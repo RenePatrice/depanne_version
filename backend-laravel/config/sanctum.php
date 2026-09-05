@@ -52,7 +52,12 @@ return [
     |
     */
 
-    'expiration' => null,
+    /*
+     * Quinze minutes (ADR-0003). Un jeton d'acces court limite la fenetre
+     * d'exploitation d'un telephone perdu ; c'est le jeton de rafraichissement,
+     * revocable cote serveur, qui porte la session longue.
+     */
+    'expiration' => (int) env('SANCTUM_ACCESS_TOKEN_MINUTES', 15),
 
     /*
     |--------------------------------------------------------------------------

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -43,5 +46,35 @@ final class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
+
+        $this->limitesApi();
+    }
+
+    /**
+     * Limites de débit de l'API mobile (§10).
+     *
+     * Les routes ouvertes sont limitées par IP **et** par numéro : limiter la
+     * seule IP punirait tout un cybercafé, limiter le seul numéro permettrait
+     * de bloquer le compte d'un tiers. Les gardes métier restent dans les
+     * actions ; ces limites-ci protègent l'infrastructure.
+     */
+    private function limitesApi(): void
+    {
+        // Ces limites protègent l'infrastructure ; c'est `AuthenticateUser` qui
+        // verrouille un compte au bout de cinq essais, avec un message lisible.
+        // Elles sont donc volontairement plus larges que la garde métier.
+        RateLimiter::for('connexion-mobile', fn (Request $request): array => [
+            Limit::perMinutes(15, 30)->by('ip:'.$request->ip()),
+            Limit::perMinutes(15, 12)->by('tel:'.$request->input('phone')),
+        ]);
+
+        RateLimiter::for('inscription', fn (Request $request): Limit => Limit::perHour(5)->by($request->ip()));
+
+        RateLimiter::for('refresh', fn (Request $request): Limit => Limit::perMinute(20)->by($request->ip()));
+
+        RateLimiter::for('mot-de-passe', fn (Request $request): array => [
+            Limit::perHour(10)->by('ip:'.$request->ip()),
+            Limit::perHour(3)->by('tel:'.$request->input('phone')),
+        ]);
     }
 }

@@ -1,0 +1,1262 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "D\u00e9panne-Moi",
+        "version": "1.0.0",
+        "description": "API de l'application mobile D\u00e9panne-Moi \u2014 mise en relation entre clients\net techniciens v\u00e9rifi\u00e9s \u00e0 Conakry.\n\n## Authentification\n\nToutes les routes prot\u00e9g\u00e9es attendent un en-t\u00eate\n`Authorization: Bearer <access_token>`. L'access token expire en\n**15 minutes** ; le jeton de rafra\u00eechissement, valable 30 jours, permet\nd'en obtenir un nouveau via `POST /api/v1/auth/refresh`.\n\nLe jeton de rafra\u00eechissement **tourne \u00e0 chaque usage** : la r\u00e9ponse en\nrenvoie toujours un nouveau, et l'ancien cesse imm\u00e9diatement d'\u00eatre\nvalable. Pr\u00e9senter deux fois le m\u00eame r\u00e9voque toutes les sessions du\ncompte \u2014 c'est le signe qu'une copie circule.\n\n## Conventions\n\n- Les num\u00e9ros de t\u00e9l\u00e9phone sont en E.164 (`+224XXXXXXXXX`) ; l'API\n  accepte les formes locales et les normalise.\n- Les montants sont des **entiers de francs guin\u00e9ens**, sans d\u00e9cimale.\n- Les horodatages sont en ISO 8601, fuseau `Africa/Conakry` (UTC+0).\n- Les messages d'erreur sont en fran\u00e7ais et destin\u00e9s \u00e0 \u00eatre affich\u00e9s\n  tels quels \u00e0 l'utilisateur."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000/api/v1"
+        }
+    ],
+    "paths": {
+        "/ping": {
+            "get": {
+                "operationId": "ping",
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "utilisateur_id": {},
+                                        "horodatage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "ok",
+                                        "utilisateur_id",
+                                        "horodatage"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/auth/inscription": {
+            "post": {
+                "operationId": "inscription",
+                "description": "\u00c9tapes 1 et 2 du parcours : la casquette choisie et les informations\npersonnelles. Un technicien devra ensuite compl\u00e9ter son dossier.",
+                "summary": "Cr\u00e9er un compte",
+                "tags": [
+                    "Inscription"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InscriptionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Compte cr\u00e9\u00e9. Compl\u00e8te ton dossier pour \u00eatre v\u00e9rifi\u00e9.",
+                                                "Compte cr\u00e9\u00e9. Bienvenue sur D\u00e9panne-Moi."
+                                            ]
+                                        },
+                                        "utilisateur": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/UtilisateurResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "profil_client",
+                                                        "profil_technicien"
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "jetons": {
+                                            "type": "object",
+                                            "properties": {
+                                                "access_token": {
+                                                    "type": "string"
+                                                },
+                                                "refresh_token": {
+                                                    "type": "string"
+                                                },
+                                                "expire_dans": {
+                                                    "type": "string"
+                                                },
+                                                "expire_le": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "access_token",
+                                                "refresh_token",
+                                                "expire_dans",
+                                                "expire_le"
+                                            ]
+                                        },
+                                        "etape_suivante": {
+                                            "type": "string",
+                                            "enum": [
+                                                "dossier_technicien",
+                                                "accueil"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "utilisateur",
+                                        "jetons",
+                                        "etape_suivante"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/auth/dossier-technicien": {
+            "post": {
+                "operationId": "dossier-technicien",
+                "description": "\u00c9tape 3, r\u00e9serv\u00e9e aux techniciens : sp\u00e9cialit\u00e9s, zone d'intervention et\npi\u00e8ces justificatives. Le compte reste en attente de validation tant que\nle back-office n'a pas tranch\u00e9.",
+                "summary": "Compl\u00e9ter le dossier professionnel",
+                "tags": [
+                    "Inscription"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DossierTechnicienRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Dossier envoy\u00e9. Tu recevras une notification d\u00e8s qu'il sera examin\u00e9."
+                                        },
+                                        "profil_technicien": {
+                                            "$ref": "#/components/schemas/ProfilTechnicienResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "profil_technicien"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/auth/mot-de-passe-oublie": {
+            "post": {
+                "operationId": "mot-de-passe.demander",
+                "description": "Envoie un code \u00e0 six chiffres par SMS, valable dix minutes. En\nd\u00e9veloppement, le code est \u00e9crit dans `laravel.log`.",
+                "summary": "Demander un code",
+                "tags": [
+                    "MotDePasse"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "maxLength": 20
+                                    }
+                                },
+                                "required": [
+                                    "phone"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Si un compte existe avec ce num\u00e9ro, un code vient d'\u00eatre envoy\u00e9 par SMS."
+                                        },
+                                        "expire_dans": {
+                                            "type": "integer",
+                                            "const": 600
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "expire_dans"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/auth/mot-de-passe-reinitialiser": {
+            "post": {
+                "operationId": "mot-de-passe.reinitialiser",
+                "description": "Le code re\u00e7u par SMS est v\u00e9rifi\u00e9, puis toutes les sessions du compte sont\nr\u00e9voqu\u00e9es : si le compte \u00e9tait compromis, l'intrus est \u00e9ject\u00e9.",
+                "summary": "D\u00e9finir un nouveau mot de passe",
+                "tags": [
+                    "MotDePasse"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReinitialisationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Mot de passe modifi\u00e9. Connecte-toi avec ton nouveau mot de passe."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/moi": {
+            "get": {
+                "operationId": "moi",
+                "summary": "Mon compte, avec les profils correspondant \u00e0 mes casquettes",
+                "tags": [
+                    "Profil"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "utilisateur": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/UtilisateurResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "profil_client",
+                                                        "profil_technicien"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "utilisateur"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "moi.modifier",
+                "summary": "Modifier mes informations. Le t\u00e9l\u00e9phone n'est pas modifiable ici : c'est l'identifiant de connexion",
+                "tags": [
+                    "Profil"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "full_name": {
+                                        "type": "string",
+                                        "minLength": 3,
+                                        "maxLength": 120
+                                    },
+                                    "email": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "email",
+                                        "maxLength": 190
+                                    },
+                                    "avatar_url": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 500
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Informations mises \u00e0 jour."
+                                        },
+                                        "utilisateur": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/UtilisateurResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "profil_client",
+                                                        "profil_technicien"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "utilisateur"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/moi/mot-de-passe": {
+            "post": {
+                "operationId": "moi.mot-de-passe",
+                "description": "L'ancien mot de passe est exig\u00e9 : sans lui, un t\u00e9l\u00e9phone d\u00e9verrouill\u00e9\nsuffirait \u00e0 verrouiller d\u00e9finitivement le compte de son propri\u00e9taire.",
+                "summary": "Changer mon mot de passe",
+                "tags": [
+                    "Profil"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ancien_mot_de_passe": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "pattern": "\\d",
+                                        "minLength": 8,
+                                        "maxLength": 72
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "pattern": "\\d",
+                                        "minLength": 8,
+                                        "maxLength": 72
+                                    }
+                                },
+                                "required": [
+                                    "ancien_mot_de_passe",
+                                    "password",
+                                    "password_confirmation"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Mot de passe modifi\u00e9. Tes autres appareils ont \u00e9t\u00e9 d\u00e9connect\u00e9s."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/moi/seconde-casquette": {
+            "post": {
+                "operationId": "moi.seconde-casquette",
+                "description": "Un client devient technicien avec un dossier \u00e0 compl\u00e9ter ; un technicien\ndevient client imm\u00e9diatement \u2014 rien \u00e0 v\u00e9rifier pour commander un d\u00e9pannage.",
+                "summary": "Activer ma seconde casquette",
+                "tags": [
+                    "Profil"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Casquette technicien activ\u00e9e. Compl\u00e8te ton dossier pour \u00eatre v\u00e9rifi\u00e9.",
+                                                "Casquette client activ\u00e9e."
+                                            ]
+                                        },
+                                        "utilisateur": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/UtilisateurResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "profil_client",
+                                                        "profil_technicien"
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "etape_suivante": {
+                                            "type": "string",
+                                            "enum": [
+                                                "dossier_technicien",
+                                                "accueil"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "utilisateur",
+                                        "etape_suivante"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/auth/connexion": {
+            "post": {
+                "operationId": "connexion",
+                "description": "Num\u00e9ro de t\u00e9l\u00e9phone et mot de passe \u2014 pas d'OTP. Cinq tentatives par\nfen\u00eatre de quinze minutes et par couple num\u00e9ro + IP.",
+                "summary": "Se connecter",
+                "tags": [
+                    "Session"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConnexionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "utilisateur": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/UtilisateurResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "profil_client",
+                                                        "profil_technicien"
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "jetons": {
+                                            "type": "object",
+                                            "properties": {
+                                                "access_token": {
+                                                    "type": "string"
+                                                },
+                                                "refresh_token": {
+                                                    "type": "string"
+                                                },
+                                                "expire_dans": {
+                                                    "type": "string"
+                                                },
+                                                "expire_le": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "access_token",
+                                                "refresh_token",
+                                                "expire_dans",
+                                                "expire_le"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "utilisateur",
+                                        "jetons"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "operationId": "refresh",
+                "description": "\u00c9change un jeton de rafra\u00eechissement contre un couple neuf. Le jeton\npr\u00e9sent\u00e9 est imm\u00e9diatement r\u00e9voqu\u00e9 : il ne sert qu'une fois.",
+                "summary": "Rafra\u00eechir la session",
+                "tags": [
+                    "Session"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "refresh_token": {
+                                        "type": "string"
+                                    },
+                                    "device_name": {
+                                        "type": "string",
+                                        "maxLength": 120
+                                    }
+                                },
+                                "required": [
+                                    "refresh_token"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "jetons": {
+                                            "type": "object",
+                                            "properties": {
+                                                "access_token": {
+                                                    "type": "string"
+                                                },
+                                                "refresh_token": {
+                                                    "type": "string"
+                                                },
+                                                "expire_dans": {
+                                                    "type": "string"
+                                                },
+                                                "expire_le": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "access_token",
+                                                "refresh_token",
+                                                "expire_dans",
+                                                "expire_le"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "jetons"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/auth/deconnexion": {
+            "post": {
+                "operationId": "deconnexion",
+                "description": "R\u00e9voque le jeton d'acc\u00e8s courant et, si le jeton de rafra\u00eechissement est\ntransmis, celui-l\u00e0 aussi. Sans lui, toutes les sessions du compte tombent.",
+                "summary": "Se d\u00e9connecter",
+                "tags": [
+                    "Session"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "D\u00e9connect\u00e9."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ConnexionRequest": {
+                "type": "object",
+                "properties": {
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 20
+                    },
+                    "password": {
+                        "type": "string",
+                        "maxLength": 72
+                    },
+                    "device_name": {
+                        "type": "string",
+                        "description": "Nom de l'appareil : il appara\u00eet dans la liste des sessions et\npermet au porteur de reconna\u00eetre laquelle r\u00e9voquer.",
+                        "maxLength": 120
+                    }
+                },
+                "required": [
+                    "phone",
+                    "password"
+                ],
+                "title": "ConnexionRequest"
+            },
+            "DossierTechnicienRequest": {
+                "type": "object",
+                "description": "\u00c9tape 3 de l'inscription : le dossier professionnel du technicien (\u00a74).\nLes trois pi\u00e8ces sont exig\u00e9es ici \u2014 un dossier sans pi\u00e8ce d'identit\u00e9 ne peut\npas \u00eatre examin\u00e9, et le laisser passer encombrerait la file de validation.",
+                "properties": {
+                    "specialties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "PLOMBERIE",
+                                "ELECTRICITE"
+                            ]
+                        },
+                        "minItems": 1
+                    },
+                    "latitude": {
+                        "type": "number",
+                        "minimum": 7,
+                        "maximum": 13
+                    },
+                    "longitude": {
+                        "type": "number",
+                        "minimum": -15.5,
+                        "maximum": -7.5
+                    },
+                    "service_radius_km": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 30
+                    },
+                    "id_doc_front_url": {
+                        "type": "string",
+                        "maxLength": 500
+                    },
+                    "id_doc_back_url": {
+                        "type": "string",
+                        "maxLength": 500
+                    },
+                    "selfie_url": {
+                        "type": "string",
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "specialties",
+                    "latitude",
+                    "longitude",
+                    "service_radius_km",
+                    "id_doc_front_url",
+                    "id_doc_back_url",
+                    "selfie_url"
+                ],
+                "title": "DossierTechnicienRequest"
+            },
+            "InscriptionRequest": {
+                "type": "object",
+                "description": "\u00c9tapes 1 et 2 de l'inscription (\u00a74) : la casquette choisie, puis les\ninformations. Le num\u00e9ro est normalis\u00e9 **avant** validation, sinon l'unicit\u00e9\nporterait sur la forme saisie et laisserait passer des doublons.",
+                "properties": {
+                    "full_name": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 20
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "email",
+                        "maxLength": 190
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "Jauge de robustesse du \u00a74 : 8 caract\u00e8res, une majuscule, un chiffre.",
+                        "pattern": "\\d",
+                        "minLength": 8,
+                        "maxLength": 72
+                    },
+                    "is_technician": {
+                        "type": "boolean"
+                    },
+                    "password_confirmation": {
+                        "type": "string",
+                        "pattern": "\\d",
+                        "minLength": 8,
+                        "maxLength": 72
+                    }
+                },
+                "required": [
+                    "full_name",
+                    "phone",
+                    "password",
+                    "password_confirmation"
+                ],
+                "title": "InscriptionRequest"
+            },
+            "ProfilClientResource": {
+                "type": "object",
+                "properties": {
+                    "points_fidelite": {
+                        "type": "integer"
+                    },
+                    "interventions": {
+                        "type": "integer"
+                    },
+                    "adresse_par_defaut_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "points_fidelite",
+                    "interventions",
+                    "adresse_par_defaut_id"
+                ],
+                "title": "ProfilClientResource"
+            },
+            "ProfilTechnicienResource": {
+                "type": "object",
+                "properties": {
+                    "specialites": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "verification": {
+                        "type": "object",
+                        "properties": {
+                            "statut": {
+                                "type": "string"
+                            },
+                            "libelle": {
+                                "type": "string",
+                                "enum": [
+                                    "En attente de validation",
+                                    "Valid\u00e9",
+                                    "Rejet\u00e9",
+                                    "Suspendu"
+                                ]
+                            },
+                            "peut_travailler": {
+                                "type": "boolean"
+                            },
+                            "motif_rejet": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "validee_le": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "statut",
+                            "libelle",
+                            "peut_travailler",
+                            "motif_rejet",
+                            "validee_le"
+                        ]
+                    },
+                    "zone": {
+                        "type": "object",
+                        "properties": {
+                            "latitude": {
+                                "type": "null"
+                            },
+                            "longitude": {
+                                "type": "null"
+                            },
+                            "rayon_km": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "latitude",
+                            "longitude",
+                            "rayon_km"
+                        ]
+                    },
+                    "en_ligne": {
+                        "type": "boolean"
+                    },
+                    "statistiques": {
+                        "type": "object",
+                        "properties": {
+                            "note_moyenne": {
+                                "type": "number"
+                            },
+                            "note_appliquee": {
+                                "type": "number"
+                            },
+                            "avis": {
+                                "type": "integer"
+                            },
+                            "interventions": {
+                                "type": "integer"
+                            },
+                            "taux_acceptation": {
+                                "type": "number"
+                            },
+                            "taux_annulation": {
+                                "type": "number"
+                            },
+                            "debutant": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "note_moyenne",
+                            "note_appliquee",
+                            "avis",
+                            "interventions",
+                            "taux_acceptation",
+                            "taux_annulation",
+                            "debutant"
+                        ]
+                    }
+                },
+                "required": [
+                    "specialites",
+                    "verification",
+                    "zone",
+                    "en_ligne",
+                    "statistiques"
+                ],
+                "title": "ProfilTechnicienResource"
+            },
+            "ReinitialisationRequest": {
+                "type": "object",
+                "properties": {
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 20
+                    },
+                    "code": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 6
+                    },
+                    "password": {
+                        "type": "string",
+                        "pattern": "\\d",
+                        "minLength": 8,
+                        "maxLength": 72
+                    },
+                    "password_confirmation": {
+                        "type": "string",
+                        "pattern": "\\d",
+                        "minLength": 8,
+                        "maxLength": 72
+                    }
+                },
+                "required": [
+                    "phone",
+                    "code",
+                    "password",
+                    "password_confirmation"
+                ],
+                "title": "ReinitialisationRequest"
+            },
+            "UtilisateurResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "nom_complet": {
+                        "type": "string"
+                    },
+                    "prenom": {
+                        "type": "string"
+                    },
+                    "telephone": {
+                        "type": "string"
+                    },
+                    "telephone_affichage": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "avatar_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "statut": {
+                        "type": "string"
+                    },
+                    "casquettes": {
+                        "type": "object",
+                        "properties": {
+                            "client": {
+                                "type": "boolean"
+                            },
+                            "technicien": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "client",
+                            "technicien"
+                        ]
+                    },
+                    "profil_client": {
+                        "$ref": "#/components/schemas/ProfilClientResource"
+                    },
+                    "profil_technicien": {
+                        "$ref": "#/components/schemas/ProfilTechnicienResource"
+                    },
+                    "inscrit_le": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "derniere_connexion": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "nom_complet",
+                    "prenom",
+                    "telephone",
+                    "telephone_affichage",
+                    "email",
+                    "avatar_url",
+                    "statut",
+                    "casquettes",
+                    "inscrit_le",
+                    "derniere_connexion"
+                ],
+                "title": "UtilisateurResource"
+            }
+        },
+        "responses": {
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthenticationException": {
+                "description": "Unauthenticated",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthorizationException": {
+                "description": "Authorization error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

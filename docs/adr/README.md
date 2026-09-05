@@ -329,3 +329,42 @@ met aussi à jour `last_known_location` en base, comme le fera l'API.
 jour où le mobile prend le relais, il remplace le producteur sans qu'une ligne
 du consommateur ne change. C'est la même logique que le pilote `log` des
 notifications push (ADR-0005).
+
+---
+
+## ADR-0022 — Rotation des jetons et révocation en cascade au rejeu
+**5 septembre 2026 · acceptée**
+
+Un téléphone se perd, se prête, se revend. Un jeton de session longue durée qui
+resterait valable trente jours sur un appareil compromis donnerait à l'intrus
+autant de temps que le porteur légitime.
+
+**Décision.** Le refresh token **tourne à chaque usage** : l'échange en délivre
+un neuf et révoque immédiatement l'ancien. Si un jeton déjà échangé se
+représente, c'est qu'une copie circule : toute la lignée est révoquée, y compris
+la session légitime.
+
+**Conséquence.** Le porteur légitime devra parfois se reconnecter sans raison
+apparente — un rafraîchissement interrompu par une coupure réseau peut produire
+ce cas. C'est le prix accepté : une reconnexion vaut mieux qu'une session volée
+qui perdure. Le client Flutter devra sérialiser ses rafraîchissements pour ne
+pas se déconnecter lui-même en lançant deux requêtes concurrentes.
+
+---
+
+## ADR-0023 — L'API ne révèle jamais si un numéro est inscrit
+**5 septembre 2026 · acceptée**
+
+L'identifiant de connexion est un numéro de téléphone. Une API qui répondrait
+« ce compte n'existe pas » deviendrait un outil pour savoir qui utilise
+Dépanne-Moi — information commercialement sensible sur un marché où les
+concurrents se comptent sur une main.
+
+**Décision.** Une connexion échouée renvoie le même message dans les deux cas, et
+le hachage du mot de passe est calculé même quand le compte n'existe pas, pour
+que le temps de réponse ne trahisse rien. La demande de réinitialisation répond
+« si un compte existe avec ce numéro… », sans distinction.
+
+**Conséquence.** Un utilisateur qui se trompe de numéro ne l'apprendra pas de
+l'API ; l'écran mobile devra donc afficher le numéro saisi, en toutes lettres, à
+côté du message d'erreur.

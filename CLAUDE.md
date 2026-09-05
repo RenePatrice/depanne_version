@@ -17,8 +17,9 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | | **B4** — catalogue, zones, configuration, audit | ✅ terminée |
 | | **B5** — finances, retraits, litiges | ✅ terminée |
 | | **B6** — carte live temps réel | ✅ terminée |
-| C — API mobile | **C1** — auth mobile, Sanctum, refresh tokens | ⏳ suivante |
-| | C2 → C6 | à faire |
+| C — API mobile | **C1** — auth mobile, Sanctum, refresh tokens | ✅ terminée |
+| | **C2** — catalogue, adresses, tickets, PricingService | ⏳ suivante |
+| | C3 → C6 | à faire |
 | D — Mobile Flutter | D1 → D5 | à faire |
 
 ## 2. Décisions du client (5 septembre 2026)
@@ -258,7 +259,40 @@ est indispensable.
   le détail — versions, message d'erreur — n'apparaît que pour un administrateur
   connecté. `/systeme` est entièrement derrière le guard.
 
-## 7. Conventions de code
+## 7. API mobile
+
+Préfixe `/api/v1`, documentation OpenAPI générée par Scramble sur **`/docs/api`**
+(JSON : `/docs/api.json`).
+
+### Jetons
+- Access token Sanctum de **15 minutes**, refresh token de **30 jours** stocké
+  hashé et **rotatif** : chaque rafraîchissement en renvoie un neuf et révoque
+  l'ancien.
+- Présenter deux fois le même refresh token révoque **toutes** les sessions du
+  compte : c'est le signe qu'une copie circule. Mieux vaut une reconnexion
+  qu'une session volée qui perdure.
+- Changer de mot de passe — par le profil ou par code SMS — coupe les autres
+  sessions.
+
+### Ce que l'API ne dit pas
+- Une connexion échouée renvoie le **même message** que le numéro existe ou non,
+  et le hachage est calculé dans les deux cas pour que le temps de réponse ne
+  trahisse rien.
+- « Mot de passe oublié » répond la même chose pour un numéro inconnu : l'API ne
+  doit pas servir à savoir qui utilise Dépanne-Moi.
+
+### Limites de débit
+Les limites de route protègent l'infrastructure et restent **plus larges** que
+les gardes métier : c'est `AuthenticateUser` qui verrouille au bout de cinq
+essais, avec un message lisible en français. Un 429 muet à sa place serait une
+régression d'expérience.
+
+### Téléphone
+`App\Support\Telephone` normalise en E.164 avant toute validation : sans cela,
+« 620 12 34 56 », « +224620123456 » et « 00224620123456 » créeraient trois
+comptes pour la même personne.
+
+## 8. Conventions de code
 
 ### PHP
 - `declare(strict_types=1);` en tête de **chaque** fichier. Pint l'applique.
@@ -294,7 +328,7 @@ est indispensable.
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **121 tests passent** ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **143 tests passent** ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
   le type de retour déclaré de `casts()` et prend une date castée pour une
   chaîne. Les tests Pest sont exclus de l'analyse : leurs closures liées
@@ -304,7 +338,7 @@ est indispensable.
 - Couverture obligatoire : calcul de prix, répartition financière, machine à
   états, scoring du matching, webhooks (signature, idempotence, rejeu).
 
-## 8. Décisions d'architecture (ADR)
+## 9. Décisions d'architecture (ADR)
 
 | # | Décision |
 |---|---|
@@ -325,7 +359,7 @@ est indispensable.
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).
 
-## 9. Écarts assumés par rapport au cahier des charges
+## 10. Écarts assumés par rapport au cahier des charges
 
 | Point du cahier | Écart | Raison |
 |---|---|---|

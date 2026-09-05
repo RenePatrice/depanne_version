@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\SecurityHeaders;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
@@ -35,5 +38,32 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        /*
+         * L'API mobile ne renvoie jamais de HTML : un ecran de connexion
+         * Laravel dans une reponse JSON serait illisible pour Flutter, et le
+         * message d'erreur en francais est ce que l'utilisateur verra.
+         */
+        $exceptions->shouldRenderJsonWhen(
+            static fn (Request $request): bool => $request->is('api/*') || $request->expectsJson()
+        );
+
+        $exceptions->render(static function (AuthenticationException $e, Request $request): ?JsonResponse {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => 'Session expiree. Rafraichis ton jeton ou reconnecte-toi.',
+            ], 401);
+        });
+
+        // Une regle metier violee est une erreur de saisie du point de vue de
+        // l'application : 422, avec le message du domaine tel quel.
+        $exceptions->render(static function (DomainException $e, Request $request): ?JsonResponse {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json(['message' => $e->getMessage()], 422);
+        });
     })->create();

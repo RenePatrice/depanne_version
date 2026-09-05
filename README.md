@@ -29,8 +29,14 @@ scripts\setup.cmd     :: dépendances, .env, migrations, build des assets
 scripts\dev.cmd       :: PostgreSQL + serveur web + queue + scheduler + Reverb + Vite
 ```
 
-L'application répond alors sur <http://localhost:8000>, la sonde de santé sur
-<http://localhost:8000/health>.
+L'application répond alors sur <http://localhost:8000> :
+
+| | |
+|---|---|
+| Back-office | <http://localhost:8000> — `admin@depanne-moi.gn` / `DepanneMoi2026` |
+| API mobile | `http://localhost:8000/api/v1` |
+| Documentation de l'API | <http://localhost:8000/docs/api> |
+| Sonde de santé | <http://localhost:8000/health> |
 
 ## Documentation
 
