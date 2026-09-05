@@ -37,7 +37,7 @@ final class InitiatePayment
     /** @throws DomainException */
     public function execute(Ticket $ticket, User $client, ?string $telephone = null): Payment
     {
-        if ((int) $ticket->client_id !== (int) $client->getKey()) {
+        if (! $ticket->estLeClient($client)) {
             throw new DomainException('Cette intervention ne t\'appartient pas.');
         }
 

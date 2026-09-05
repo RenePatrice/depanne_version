@@ -48,7 +48,7 @@ final class AdvanceIntervention
     /** @throws DomainException */
     public function execute(Ticket $ticket, User $technicien, string $etape, ?string $diagnostic = null): Ticket
     {
-        if ((int) $ticket->technician_id !== (int) $technicien->getKey()) {
+        if (! $ticket->estLeTechnicien($technicien)) {
             throw new DomainException('Cette intervention ne t\'est pas attribuée.');
         }
 

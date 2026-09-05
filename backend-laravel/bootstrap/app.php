@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\IdentifiantDeCorrelation;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -36,6 +37,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             SecurityHeaders::class,
         ]);
+
+        /*
+         * Identifiant de corrélation sur toutes les requêtes (§10). Il relie
+         * les traces d'une même intervention à travers la requête HTTP, les
+         * jobs différés et le webhook de paiement — et revient au client dans
+         * l'en-tête de réponse, pour qu'un problème signalé soit retrouvable.
+         */
+        $middleware->prepend(IdentifiantDeCorrelation::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /*

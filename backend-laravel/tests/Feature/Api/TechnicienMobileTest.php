@@ -256,9 +256,12 @@ it('refuse de faire avancer l’intervention d’un autre', function (): void {
     $this->postJson('/api/v1/sollicitations/'.MatchAttempt::query()->value('id').'/accepter')->assertOk();
 
     technicienConnecte(9.597, -13.642);
+    // 404 et non 422 : ce technicien n'est partie à rien sur ce ticket, et
+    // lui répondre autre chose lui confirmerait qu'il existe. La Policy
+    // tranche avant même que le domaine ne soit appelé.
 
     $this->postJson('/api/v1/tickets/'.$ticket->id.'/avancer', ['etape' => 'en-route'])
-        ->assertStatus(422);
+        ->assertNotFound();
 });
 
 // ------------------------------------------------------------- notifications --

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -53,6 +54,24 @@ return [
     */
 
     'channels' => [
+
+        /*
+         * Journal structuré (§10). Une ligne = un objet JSON, ce qui rend les
+         * traces exploitables par un agrégateur sans expression régulière —
+         * et surtout permet de filtrer sur l'identifiant de corrélation posé
+         * par le middleware.
+         *
+         * Ce n'est pas le canal par défaut en local : un développeur lit mieux
+         * du texte. `LOG_STACK=json` le sélectionne au déploiement.
+         */
+        'json' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/depanne.json'),
+            'formatter' => JsonFormatter::class,
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => (int) env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
 
         'stack' => [
             'driver' => 'stack',

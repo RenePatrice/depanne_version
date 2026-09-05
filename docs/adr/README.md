@@ -654,3 +654,56 @@ sera pas découvert le jour du branchement.
 Ce qui reste devant nous est nommé plutôt que caché : le jour où les clés
 arrivent, il faudra relire ce fichier ligne à ligne contre la documentation, et
 seule cette classe bougera.
+
+
+---
+
+## ADR-0035 — La Policy garde la porte, le domaine garde la règle
+**5 septembre 2026 · acceptée**
+
+Le §10 demande des Policies Laravel. Restait à décider ce qu'on y met : la
+règle d'accès seule, ou aussi les règles métier — le chat n'est ouvert
+qu'entre l'acceptation et la clôture, on ne note qu'une intervention terminée.
+
+**Décision.** La Policy répond à « as-tu le droit d'essayer ? », l'action du
+domaine à « ton essai a-t-il un sens ? ». Les gardes métier restent donc dans
+les actions.
+
+La raison est simple : le back-office n'appelle pas les Policies de l'API. Une
+règle métier logée dans une Policy deviendrait invisible depuis les actions
+support, et un administrateur pourrait faire par le back-office ce que l'API
+interdit.
+
+**Conséquence.** Les refus de Policy sont rendus en `404` — `denyAsNotFound()`
+— et non en `403` : confirmer l'existence d'un ticket à qui devine sa référence
+en dirait déjà trop. Les refus métier restent en `422`, avec un message lisible,
+parce qu'ils s'adressent à quelqu'un qui est bien partie prenante et qui s'est
+simplement trompé de bouton.
+
+La règle « être partie au ticket » était recopiée à **six endroits** — trois
+contrôleurs, trois actions. Elle vit désormais dans
+`Ticket::estPartiePrenante()`, appelée aussi bien par la Policy que par le
+domaine. Deux versions d'une règle d'accès finissent par diverger, et la
+divergence donne accès aux données de quelqu'un d'autre.
+
+---
+
+## ADR-0036 — Les pièces d'identité passent par une route signée, jamais par une URL publique
+**5 septembre 2026 · acceptée**
+
+Le §10 impose des URL signées à durée limitée pour les pièces justificatives.
+La phase B4 s'appuyait sur `temporaryUrl()` du disque — ce qui ne fonctionne
+qu'avec un stockage objet, et rendait la file de validation **indémontrable en
+local**, où l'interface affichait un encart d'indisponibilité.
+
+**Décision.** Une route signée (`documents.piece`) diffuse le fichier depuis
+l'application. Trois gardes se cumulent : la signature valable quinze minutes,
+le guard `admin`, et la permission `techniciens.voir`. Quand le disque sait
+signer lui-même, on lui laisse la main — le fichier ne transite alors pas par
+l'application.
+
+**Conséquence.** Aucune adresse publique ne pointe vers une carte d'identité, et
+le disque de stockage peut rester entièrement privé. La réponse porte
+`Cache-Control: no-store` : une pièce d'identité n'a rien à faire dans le cache
+d'un navigateur partagé. Et la validation de dossier se démontre en local, ce
+qui n'était pas le cas.

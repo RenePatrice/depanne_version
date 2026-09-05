@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\CatalogueController;
 use App\Http\Controllers\Web\ClientController;
 use App\Http\Controllers\Web\ConfigurationController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\FinanceController;
 use App\Http\Controllers\Web\HealthController;
 use App\Http\Controllers\Web\JournalAuditController;
@@ -85,6 +86,16 @@ Route::middleware('auth:admin')->group(function (): void {
         ->name('clients.statut');
 
     Route::middleware('permission:techniciens.voir')->group(function (): void {
+        /*
+         * Pièce justificative d'un technicien (§10). L'URL est signée et
+         * expire ; la signature s'ajoute au guard et à la permission, elle ne
+         * les remplace pas. Le fichier est diffusé par l'application : aucune
+         * adresse publique ne pointe vers une carte d'identité.
+         */
+        Route::get('/documents/{profil}/{piece}', [DocumentController::class, 'show'])
+            ->middleware('signed')
+            ->name('documents.piece');
+
         Route::get('/techniciens', [TechnicienController::class, 'index'])->name('techniciens');
         Route::get('/techniciens/donnees', [TechnicienController::class, 'donnees'])->name('techniciens.donnees');
         Route::get('/techniciens/export', [TechnicienController::class, 'export'])->name('techniciens.export');

@@ -18,6 +18,7 @@ use App\Http\Resources\TicketResource;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Demandes d'intervention côté mobile (§7.2, §8.1).
@@ -110,7 +111,7 @@ final class TicketController extends Controller
     /** Le détail d'une demande. */
     public function show(Request $request, Ticket $ticket): JsonResponse
     {
-        $this->refuserSiJeNySuisPas($request, $ticket);
+        Gate::authorize('view', $ticket);
 
         $ticket->load(['service', 'client', 'technician']);
 
@@ -148,16 +149,15 @@ final class TicketController extends Controller
      */
     public function destroy(Request $request, Ticket $ticket): JsonResponse
     {
-        $this->refuserSiJeNySuisPas($request, $ticket);
+        Gate::authorize('view', $ticket);
 
         $valide = $request->validate(['motif' => ['nullable', 'string', 'max:300']]);
 
         try {
-            $ticket = $this->annuler->execute(
-                $ticket,
-                (int) $request->user()?->getKey(),
-                $valide['motif'] ?? null,
-            );
+            /** @var User $moi */
+            $moi = $request->user();
+
+            $ticket = $this->annuler->execute($ticket, $moi, $valide['motif'] ?? null);
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -171,19 +171,5 @@ final class TicketController extends Controller
             'frais_gnf' => $ticket->cancellation_fee_gnf,
             'ticket' => new TicketResource($ticket),
         ]);
-    }
-
-    /**
-     * Un ticket auquel on n'est ni client ni technicien est traité comme
-     * inexistant : la référence d'un ticket ne doit rien apprendre à qui la
-     * devine.
-     */
-    private function refuserSiJeNySuisPas(Request $request, Ticket $ticket): void
-    {
-        $moi = (int) $request->user()?->getKey();
-
-        if ((int) $ticket->client_id !== $moi && (int) $ticket->technician_id !== $moi) {
-            abort(404);
-        }
     }
 }

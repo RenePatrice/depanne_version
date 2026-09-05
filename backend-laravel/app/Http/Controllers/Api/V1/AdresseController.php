@@ -13,6 +13,7 @@ use App\Http\Resources\AdresseResource;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Carnet d'adresses du client (§7.2).
@@ -73,7 +74,7 @@ final class AdresseController extends Controller
     /** Modifier une adresse. */
     public function update(AdresseRequest $request, Address $adresse): JsonResponse
     {
-        $this->refuserSiElleNEstPasAMoi($request, $adresse);
+        Gate::authorize('update', $adresse);
 
         $adresse = $this->adresses->modifier($adresse, $request->validated());
 
@@ -86,7 +87,7 @@ final class AdresseController extends Controller
     /** Supprimer une adresse. */
     public function destroy(Request $request, Address $adresse): JsonResponse
     {
-        $this->refuserSiElleNEstPasAMoi($request, $adresse);
+        Gate::authorize('delete', $adresse);
 
         try {
             $this->adresses->supprimer($adresse);
@@ -95,16 +96,5 @@ final class AdresseController extends Controller
         }
 
         return response()->json(['message' => 'Adresse supprimée.']);
-    }
-
-    /**
-     * Une adresse qui n'appartient pas au demandeur est traitée comme
-     * inexistante : répondre « interdit » confirmerait qu'elle existe.
-     */
-    private function refuserSiElleNEstPasAMoi(Request $request, Address $adresse): void
-    {
-        if ((int) $adresse->user_id !== (int) $request->user()?->getKey()) {
-            abort(404);
-        }
     }
 }

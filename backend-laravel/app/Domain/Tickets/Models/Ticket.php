@@ -205,6 +205,38 @@ final class Ticket extends Model
 
     // --------------------------------------------------------------- helpers --
 
+    /**
+     * Qui a le droit de toucher à ce ticket.
+     *
+     * La règle était recopiée à six endroits — trois contrôleurs et trois
+     * actions du domaine — avec chaque fois le même transtypage. Une seule
+     * copie ici, appelée par la Policy comme par le domaine : c'est le genre de
+     * règle dont deux versions finissent par diverger, et dont la divergence
+     * ouvre l'accès aux données de quelqu'un d'autre.
+     */
+    public function estPartiePrenante(?User $utilisateur): bool
+    {
+        if ($utilisateur === null) {
+            return false;
+        }
+
+        $id = (int) $utilisateur->getKey();
+
+        return (int) $this->client_id === $id || (int) $this->technician_id === $id;
+    }
+
+    public function estLeClient(?User $utilisateur): bool
+    {
+        return $utilisateur !== null && (int) $this->client_id === (int) $utilisateur->getKey();
+    }
+
+    public function estLeTechnicien(?User $utilisateur): bool
+    {
+        return $utilisateur !== null
+            && $this->technician_id !== null
+            && (int) $this->technician_id === (int) $utilisateur->getKey();
+    }
+
     /** Délai entre la publication et l'acceptation, en secondes. */
     public function acceptanceDelaySeconds(): ?int
     {

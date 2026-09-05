@@ -16,6 +16,7 @@ use App\Http\Resources\AvisResource;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -103,6 +104,8 @@ final class AvisController extends Controller
             'preuves' => ['nullable', 'array', 'max:5'],
             'preuves.*' => ['string', 'max:500'],
         ]);
+
+        Gate::authorize('reclamer', $ticket);
 
         /** @var User $auteur */
         $auteur = $request->user();

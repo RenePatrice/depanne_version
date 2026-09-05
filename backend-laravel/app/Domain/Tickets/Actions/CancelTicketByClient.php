@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Tickets\Actions;
 
+use App\Domain\Accounts\Models\User;
 use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
@@ -28,11 +29,13 @@ final class CancelTicketByClient
     public function __construct(private readonly TransitionTicket $transition) {}
 
     /** @throws DomainException */
-    public function execute(Ticket $ticket, int $clientId, ?string $motif = null): Ticket
+    public function execute(Ticket $ticket, User $client, ?string $motif = null): Ticket
     {
-        if ((int) $ticket->client_id !== $clientId) {
+        if (! $ticket->estLeClient($client)) {
             throw new DomainException('Cette demande ne t\'appartient pas.');
         }
+
+        $clientId = (int) $client->getKey();
 
         if (! $ticket->state->peutAllerVers(TicketState::ANNULEE_CLIENT)) {
             throw new DomainException(sprintf(

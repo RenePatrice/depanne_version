@@ -22,8 +22,9 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | | **C3** — matching, temps réel mobile, notifications | ✅ terminée |
 | | **C4** — chat, avis, litiges | ✅ terminée |
 | | **C5** — paiement, séquestre, portefeuille, retraits | ✅ terminée |
-| | **C6** — intégration bout en bout, durcissement, doc finale | ⏳ suivante |
-| D — Mobile Flutter | D1 → D5 | à faire |
+| | **C6** — intégration bout en bout, durcissement, doc finale | ✅ terminée |
+| D — Mobile Flutter | **D1** — design system, auth, navigation, client Dio | ⏳ suivante |
+| | D2 → D5 | à faire |
 
 ## 2. Décisions du client (5 septembre 2026)
 
@@ -583,6 +584,64 @@ régression d'expérience.
 « 620 12 34 56 », « +224620123456 » et « 00224620123456 » créeraient trois
 comptes pour la même personne.
 
+## 7 bis. Durcissement et observabilité
+
+### Autorisation
+`TicketPolicy` et `AddressPolicy` gardent la porte ; les actions du domaine
+gardent la règle (ADR-0035). Une règle métier logée dans une Policy deviendrait
+invisible depuis le back-office, qui n'appelle pas les Policies de l'API.
+
+- Refus de Policy → **404**, par `denyAsNotFound()`. Confirmer l'existence d'un
+  ticket à qui devine sa référence en dirait déjà trop.
+- Refus métier → **422** avec un message lisible : il s'adresse à quelqu'un qui
+  est bien partie prenante et s'est trompé de bouton.
+- `valider` — qui libère le séquestre — est réservé au **client**, pas « aux
+  parties » : l'ouvrir au technicien lui permettrait de débloquer ses propres
+  fonds.
+- La règle « être partie au ticket » vit dans `Ticket::estPartiePrenante()`, un
+  seul exemplaire pour la Policy et pour le domaine. Elle était recopiée six
+  fois.
+
+Nos modèles ne sont pas dans `App\Models` : les Policies sont **déclarées
+explicitement** dans `AppServiceProvider`, la découverte automatique ne les
+trouverait pas.
+
+### Pièces d'identité
+Route signée `documents.piece`, quinze minutes, cumulée au guard `admin` et à la
+permission `techniciens.voir` (ADR-0036). Aucune adresse publique ne pointe vers
+une carte d'identité, et la réponse porte `Cache-Control: no-store`.
+
+Quand le disque sait signer lui-même, on lui laisse la main. Sinon l'application
+diffuse le fichier — ce qui rend la file de validation **démontrable en local**,
+ce qu'elle n'était pas.
+
+### CORS
+`config/cors.php` restreint les origines à `CORS_ALLOWED_ORIGINS`. Sans ce
+fichier, Laravel laisse passer tout le monde. L'application Flutter n'est pas
+concernée : un client natif n'envoie pas d'en-tête `Origin`.
+
+`supports_credentials` reste à **false** — l'API s'authentifie par jeton Bearer,
+jamais par cookie ; l'activer ouvrirait le CSRF sur des routes qui n'en ont
+aucune protection.
+
+### Traçabilité
+Chaque réponse porte un `X-Request-Id`, repris de l'appelant s'il en fournit un
+de forme correcte, régénéré sinon — accepter une valeur arbitraire laisserait
+injecter des sauts de ligne dans les journaux. L'identifiant est partagé dans le
+contexte de tous les logs de la requête, ce qui relie la requête HTTP, les jobs
+différés et le webhook de paiement.
+
+Le canal `json` produit une ligne par objet ; il se sélectionne par
+`LOG_STACK=json` au déploiement. En local le texte reste plus lisible.
+
+### Ce que le parcours complet vérifie
+`tests/Feature/ParcoursCompletTest.php` traverse l'application **par l'API
+seule**, comme le fera Flutter, de l'inscription au retrait. Il attrape ce que
+les tests unitaires ne voient pas : un champ renommé d'un côté et pas de
+l'autre, une transition possible en théorie mais inaccessible par les routes,
+une donnée attendue par l'écran suivant et jamais renvoyée. Il a trouvé trois
+écarts à sa première exécution.
+
 ## 8. Conventions de code
 
 ### PHP
@@ -619,7 +678,7 @@ comptes pour la même personne.
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **330 tests passent** (1 262 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **344 tests passent** (1 366 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
   le type de retour déclaré de `casts()` et prend une date castée pour une
   chaîne. Les tests Pest sont exclus de l'analyse : leurs closures liées
@@ -657,6 +716,8 @@ comptes pour la même personne.
 | 0032 | **Le webhook est la seule autorité sur un paiement** — le retour du client n'écrit rien |
 | 0033 | **Un écart de montant est tracé, pas refusé** — l'argent est déjà parti de chez le client |
 | 0034 | **Orange Money est écrit mais jamais branché sans ses clés** — chaque champ à confirmer est marqué |
+| 0035 | **La Policy garde la porte, le domaine garde la règle** — 404 pour l'accès, 422 pour le métier |
+| 0036 | **Les pièces d'identité passent par une route signée** — aucune adresse publique vers une carte d'identité |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

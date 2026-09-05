@@ -17,6 +17,7 @@ use App\Http\Resources\TicketResource;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -152,6 +153,8 @@ final class TechnicienController extends Controller
      */
     public function avancer(Request $request, Ticket $ticket): JsonResponse
     {
+        Gate::authorize('avancer', $ticket);
+
         $valide = $request->validate([
             'etape' => ['required', Rule::in(AdvanceIntervention::etapesDisponibles())],
             'diagnostic' => ['nullable', 'string', 'max:2000'],

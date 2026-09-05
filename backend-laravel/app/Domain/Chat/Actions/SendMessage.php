@@ -109,9 +109,7 @@ final class SendMessage
     /** @throws DomainException */
     private function verifierParticipation(Ticket $ticket, User $utilisateur): void
     {
-        $moi = (int) $utilisateur->getKey();
-
-        if ((int) $ticket->client_id !== $moi && (int) $ticket->technician_id !== $moi) {
+        if (! $ticket->estPartiePrenante($utilisateur)) {
             throw new DomainException('Cette conversation ne te concerne pas.');
         }
     }

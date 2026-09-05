@@ -127,9 +127,7 @@ final class OpenDispute
     /** @throws DomainException */
     private function verifierParticipation(Ticket $ticket, User $auteur): void
     {
-        $moi = (int) $auteur->getKey();
-
-        if ((int) $ticket->client_id !== $moi && (int) $ticket->technician_id !== $moi) {
+        if (! $ticket->estPartiePrenante($auteur)) {
             throw new DomainException('Cette intervention ne te concerne pas.');
         }
     }

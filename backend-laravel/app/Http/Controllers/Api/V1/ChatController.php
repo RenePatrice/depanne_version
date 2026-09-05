@@ -14,6 +14,7 @@ use App\Http\Resources\MessageResource;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Chat d'une intervention (§7.3).
@@ -38,7 +39,7 @@ final class ChatController extends Controller
         /** @var User $moi */
         $moi = $request->user();
 
-        $this->refuserSiJeNySuisPas($ticket, $moi);
+        Gate::authorize('view', $ticket);
 
         $messages = Message::query()
             ->where('ticket_id', $ticket->getKey())
@@ -92,7 +93,7 @@ final class ChatController extends Controller
         /** @var User $moi */
         $moi = $request->user();
 
-        $this->refuserSiJeNySuisPas($ticket, $moi);
+        Gate::authorize('participer', $ticket);
 
         if (! $this->chatOuvert($ticket)) {
             return response()->json([
@@ -124,14 +125,5 @@ final class ChatController extends Controller
 
         return $etat->isActive()
             || in_array($etat->value, ['TERMINEE', 'PAYEE', 'LITIGE_OUVERT'], true);
-    }
-
-    private function refuserSiJeNySuisPas(Ticket $ticket, User $moi): void
-    {
-        $id = (int) $moi->getKey();
-
-        if ((int) $ticket->client_id !== $id && (int) $ticket->technician_id !== $id) {
-            abort(404);
-        }
     }
 }

@@ -23,6 +23,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
 final class TechnicienController extends Controller
@@ -95,9 +96,9 @@ final class TechnicienController extends Controller
                 ),
                 'rayonKm' => $profil->service_radius_km,
                 'documents' => [
-                    'recto' => $this->urlSignee($profil->id_doc_front_url),
-                    'verso' => $this->urlSignee($profil->id_doc_back_url),
-                    'selfie' => $this->urlSignee($profil->selfie_url),
+                    'recto' => $this->urlSignee($profil, 'recto'),
+                    'verso' => $this->urlSignee($profil, 'verso'),
+                    'selfie' => $this->urlSignee($profil, 'selfie'),
                 ],
             ])
             ->values()
@@ -116,9 +117,9 @@ final class TechnicienController extends Controller
             'technicien' => $technicien,
             'profil' => $technicien->technicianProfile,
             'documents' => [
-                'recto' => $this->urlSignee($technicien->technicianProfile?->id_doc_front_url),
-                'verso' => $this->urlSignee($technicien->technicianProfile?->id_doc_back_url),
-                'selfie' => $this->urlSignee($technicien->technicianProfile?->selfie_url),
+                'recto' => $this->urlSignee($technicien->technicianProfile, 'recto'),
+                'verso' => $this->urlSignee($technicien->technicianProfile, 'verso'),
+                'selfie' => $this->urlSignee($technicien->technicianProfile, 'selfie'),
             ],
             'tickets' => Ticket::query()
                 ->where('technician_id', $technicien->id)
@@ -209,20 +210,41 @@ final class TechnicienController extends Controller
      * durée (§10). Tant que Supabase Storage n'est pas branché, le chemin est
      * renvoyé tel quel pour que l'interface reste démontrable.
      */
-    private function urlSignee(?string $chemin): ?string
+    /**
+     * Lien temporaire vers une pièce justificative.
+     *
+     * Deux chemins pour un même résultat. Quand le disque sait signer — un
+     * stockage objet — on lui laisse la main : le fichier ne transite pas par
+     * l'application. Sinon, on passe par une route signée qui diffuse le
+     * fichier, ce qui rend la file de validation démontrable en local. Dans les
+     * deux cas le lien expire, et dans les deux cas rien n'est public.
+     */
+    private function urlSignee(?TechnicianProfile $profil, string $piece): ?string
     {
-        if ($chemin === null || $chemin === '') {
+        if ($profil === null) {
             return null;
         }
 
-        // Le disque local ne sait pas signer d'URL : tant que Supabase Storage
-        // n'est pas branche, l'interface affiche un encart explicite plutot
-        // qu'une image cassee.
-        if (config('filesystems.default') === 'local') {
+        $chemin = match ($piece) {
+            'recto' => $profil->id_doc_front_url,
+            'verso' => $profil->id_doc_back_url,
+            'selfie' => $profil->selfie_url,
+            default => null,
+        };
+
+        if (! is_string($chemin) || $chemin === '') {
             return null;
         }
 
-        return Storage::disk(config('filesystems.default'))
-            ->temporaryUrl($chemin, now()->addMinutes(self::MINUTES_URL_SIGNEE));
+        if (config('filesystems.default') !== 'local') {
+            return Storage::disk(config('filesystems.default'))
+                ->temporaryUrl($chemin, now()->addMinutes(self::MINUTES_URL_SIGNEE));
+        }
+
+        return URL::temporarySignedRoute(
+            'documents.piece',
+            now()->addMinutes(self::MINUTES_URL_SIGNEE),
+            ['profil' => $profil->user_id, 'piece' => $piece],
+        );
     }
 }

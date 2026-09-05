@@ -18,6 +18,7 @@ use App\Support\Money;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -112,9 +113,7 @@ final class PaiementController extends Controller
         /** @var User $client */
         $client = $request->user();
 
-        if ((int) $ticket->client_id !== (int) $client->getKey()) {
-            abort(404);
-        }
+        Gate::authorize('payer', $ticket);
 
         /** @var Payment|null $paiement */
         $paiement = Payment::query()

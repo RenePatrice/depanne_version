@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Accounts\Models\Address;
+use App\Domain\Tickets\Models\Ticket;
+use App\Policies\AddressPolicy;
+use App\Policies\TicketPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -46,6 +51,11 @@ final class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
+
+        // Nos modèles ne vivent pas dans App\Models : la découverte
+        // automatique des Policies ne les trouve pas, il faut les déclarer.
+        Gate::policy(Ticket::class, TicketPolicy::class);
+        Gate::policy(Address::class, AddressPolicy::class);
 
         $this->limitesApi();
     }

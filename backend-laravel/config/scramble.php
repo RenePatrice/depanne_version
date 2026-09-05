@@ -76,6 +76,54 @@ return [
         - Les horodatages sont en ISO 8601, fuseau `Africa/Conakry` (UTC+0).
         - Les messages d'erreur sont en français et destinés à être affichés
           tels quels à l'utilisateur.
+        - Chaque réponse porte un en-tête `X-Request-Id`. Renvoyez-le tel quel
+          dans vos signalements : il relie la requête à tout ce qu'elle a
+          déclenché côté serveur. Vous pouvez aussi le fournir vous-même.
+
+        ## Codes de réponse
+
+        | Code | Ce qu'il veut dire |
+        |---|---|
+        | `401` | Jeton absent, expiré ou révoqué. Rafraîchir, puis réessayer. |
+        | `403` | Casquette insuffisante — un client sur une route technicien. |
+        | `404` | La ressource n'existe pas **ou ne vous concerne pas**. L'API ne distingue pas les deux : confirmer l'existence d'un ticket à qui devine sa référence en dirait déjà trop. |
+        | `409` | Conflit d'attribution : la demande vient d'être prise par un autre technicien. |
+        | `422` | Règle métier ou validation. Le champ `message` est affichable tel quel ; `errors` détaille par champ. |
+        | `429` | Débit dépassé. L'en-tête `Retry-After` donne le délai. |
+
+        ## Le prix n'est ferme qu'à l'acceptation
+
+        `POST /devis` et la publication renvoient une **estimation** : les frais
+        de déplacement dépendent de la distance entre le client et le technicien,
+        et aucun technicien n'est encore assigné. Le devis porte `ferme: false`.
+
+        Le montant définitif est fixé quand un technicien accepte, à partir de sa
+        position réelle. Le ticket porte alors `prix.ferme: true`, et le client
+        reçoit une notification `TICKET_ACCEPTE` contenant `total_ferme: true`.
+
+        **L'écran mobile doit afficher « à partir de » avant l'acceptation, et
+        annoncer le total au moment où il devient ferme.** Sans cela, la première
+        facture plus élevée que l'estimation deviendra le premier litige.
+
+        ## Temps réel
+
+        Les canaux privés Reverb complètent l'API :
+
+        - `utilisateur.{id}` — notifications, pastille de message non lu ;
+        - `ticket.{id}` — messages du chat, réservé aux deux parties.
+
+        Chaque écran temps réel doit d'abord charger son instantané par l'API,
+        puis suivre les messages. Sans WebSocket, une interrogation périodique
+        prend le relais — et l'écran doit le dire.
+
+        ## Ce qui est simulé pendant le pilote
+
+        | Fonction | État |
+        |---|---|
+        | Paiement Mobile Money | **Simulé.** Aucun débit réel. Le champ `instruction` le dit. |
+        | Notifications push | **Simulé.** Persistées et diffusées par Reverb, mais pas de FCM. |
+        | Appel à numéro masqué | **Simulé.** La réponse porte `relais.simule: true` ; l'afficher franchement plutôt que proposer un appel qui ne partira pas. |
+        | Distance routière | **Estimée** sans clé Google : à vol d'oiseau × 1,3. Le ticket porte `distance_estimee`. |
         MD,
     ],
 

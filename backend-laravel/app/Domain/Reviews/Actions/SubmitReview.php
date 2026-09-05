@@ -57,7 +57,7 @@ final class SubmitReview
         array $etiquettes = [],
         ?string $commentaire = null,
     ): Review {
-        if ((int) $ticket->client_id !== (int) $client->getKey()) {
+        if (! $ticket->estLeClient($client)) {
             throw new DomainException('Seul le client de cette intervention peut la noter.');
         }
 
