@@ -1,0 +1,30 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # Sans cette option, Larastan lit le type de retour declare de casts()
+    # (simplement `array`) et perd le type reel des attributs : une date castee
+    # resterait une chaine a ses yeux.
+    parseModelCastsMethod: true
+
+    paths:
+        - app
+        - database
+        - routes
+
+    # Niveau 6 : le typage des génériques Eloquent est exigé, ce qui force à
+    # documenter chaque relation et chaque scope. À relever vers 8 une fois le
+    # domaine métier écrit.
+    level: 6
+
+    ignoreErrors:
+        # Seeder::$command n'est renseignée que lorsque le seeder tourne depuis
+        # la console ; le PHPDoc de Laravel la déclare pourtant non nullable.
+        -
+            identifier: nullsafe.neverNull
+            path: database/seeders
+
+    # Les tests Pest sont écrits en closures liées dynamiquement à TestCase :
+    # PHPStan ne sait pas les résoudre sans extension dédiée.
+    excludePaths:
+        - tests

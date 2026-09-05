@@ -1,0 +1,61 @@
+// =============================================================================
+// DÉPANNE-MOI — feuille de style du back-office
+//
+// Ordre imposé par Sass : les jetons et la surcharge des variables Bootstrap
+// doivent être chargés avant Bootstrap lui-même.
+// =============================================================================
+@use 'variables' as *;
+@use 'tokens' as dm;
+
+// Bootstrap est encore ecrit avec @import : nos partiels doivent donc l'etre
+// aussi, puisque Sass exige que tous les @use precedent le premier @import.
+@import 'bootstrap/scss/bootstrap';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+@import 'layout';
+@import 'components';
+@import 'datatables';
+
+// --- Base --------------------------------------------------------------------
+
+body {
+  font-family: dm.$dm-font-body;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: dm.$dm-font-heading;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+// Cible de focus visible partout : exigence d'accessibilité du §5.
+:focus-visible {
+  outline: 2px solid dm.$dm-primary;
+  outline-offset: 2px;
+}
+
+// Barres de défilement discrètes, cohérentes avec le thème.
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: dm.$dm-radius-pill;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

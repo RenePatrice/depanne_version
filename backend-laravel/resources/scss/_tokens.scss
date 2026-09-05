@@ -1,0 +1,56 @@
+// =============================================================================
+// DÉPANNE-MOI — jetons de design (source unique)
+// Ce fichier est la contrepartie web de mobile-flutter/lib/design_system/
+// design_tokens.dart : toute modification doit être répercutée dans les deux.
+// =============================================================================
+
+// --- Couleurs de marque ------------------------------------------------------
+$dm-primary:      #1B6FF3;  // bleu confiance — mode Client
+$dm-primary-dark: #0B4CB8;
+$dm-accent-tech:  #FF7A1A;  // orange chantier — mode Technicien
+
+// --- Couleurs sémantiques ----------------------------------------------------
+$dm-success: #16A34A;
+$dm-warning: #F59E0B;
+$dm-danger:  #DC2626;
+$dm-info:    #0EA5E9;
+
+// --- Neutres -----------------------------------------------------------------
+$dm-neutral-900: #0F172A;  // texte principal
+$dm-neutral-700: #334155;
+$dm-neutral-500: #64748B;  // texte secondaire
+$dm-neutral-300: #CBD5E1;
+$dm-neutral-100: #F1F5F9;  // fonds
+$dm-surface:     #FFFFFF;
+
+// --- Typographie -------------------------------------------------------------
+$dm-font-heading: 'Poppins', 'Segoe UI', system-ui, sans-serif;
+$dm-font-body:    'Inter', 'Segoe UI', system-ui, sans-serif;
+
+// Échelle : 32 / 24 / 20 / 16 / 14 / 12
+$dm-fs-1: 2rem;
+$dm-fs-2: 1.5rem;
+$dm-fs-3: 1.25rem;
+$dm-fs-4: 1rem;
+$dm-fs-5: 0.875rem;
+$dm-fs-6: 0.75rem;
+
+// --- Rayons : 8 / 16 / 24 / 999 ---------------------------------------------
+$dm-radius-sm:   0.5rem;
+$dm-radius-md:   1rem;
+$dm-radius-lg:   1.5rem;
+$dm-radius-pill: 999px;
+
+// --- Espacement : grille de 4 px --------------------------------------------
+$dm-space-1: 0.25rem;
+$dm-space-2: 0.5rem;
+$dm-space-3: 0.75rem;
+$dm-space-4: 1rem;
+$dm-space-6: 1.5rem;
+$dm-space-8: 2rem;
+$dm-space-12: 3rem;
+
+// --- Ombres : trois niveaux diffus, teintés primary, jamais noir pur ---------
+$dm-shadow-1: 0 1px 2px rgba(27, 111, 243, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+$dm-shadow-2: 0 4px 12px -2px rgba(27, 111, 243, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.05);
+$dm-shadow-3: 0 16px 40px -12px rgba(27, 111, 243, 0.14), 0 4px 12px -4px rgba(15, 23, 42, 0.06);

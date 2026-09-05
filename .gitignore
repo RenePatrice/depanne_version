@@ -1,0 +1,35 @@
+# Dépendances et artefacts locaux
+/backend-laravel/vendor
+/backend-laravel/node_modules
+/backend-laravel/public/build
+/backend-laravel/public/hot
+/backend-laravel/storage/*.key
+/backend-laravel/storage/pail
+/backend-laravel/bootstrap/cache/*.php
+/backend-laravel/.phpunit.result.cache
+/backend-laravel/.phpunit.cache
+
+# Secrets — jamais committés
+/backend-laravel/.env
+/backend-laravel/.env.backup
+/backend-laravel/.env.production
+**/google-services.json
+**/GoogleService-Info.plist
+**/*firebase-adminsdk*.json
+**/*.keystore
+**/*.jks
+**/key.properties
+
+# Flutter
+/mobile-flutter/.dart_tool
+/mobile-flutter/build
+/mobile-flutter/.flutter-plugins*
+/mobile-flutter/ios/Pods
+/mobile-flutter/ios/.symlinks
+
+# Éditeurs et système
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+*.log

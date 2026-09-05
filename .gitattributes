@@ -1,0 +1,16 @@
+# Fins de ligne normalisées en LF dans le dépôt : le projet se développe sous
+# Windows mais se déploiera sous Linux, et un fichier qui change de fins de
+# ligne au fil des postes pollue chaque diff.
+* text=auto eol=lf
+
+# Les scripts Windows doivent garder leurs CRLF pour rester exécutables.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binaires : jamais de conversion.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

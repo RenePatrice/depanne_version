@@ -1,0 +1,820 @@
+// =============================================================================
+// Composants du back-office. Bootstrap fournit la grille et le comportement ;
+// tout ce qui suit lui donne l'identité Dépanne-Moi.
+// =============================================================================
+@use 'tokens' as dm;
+
+// --- Cartes ------------------------------------------------------------------
+// Les bordures et les ombres sont dépensées par rôle : une carte de contenu est
+// posée, une carte de repère est légèrement soulevée. Tout arrondir et tout
+// ombrer de la même façon aplatit la hiérarchie.
+
+.card {
+  border: 1px solid var(--bs-border-color);
+  border-radius: dm.$dm-radius-md;
+}
+
+.dm-card {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: dm.$dm-radius-md;
+  box-shadow: dm.$dm-shadow-1;
+}
+
+// --- Repères chiffrés --------------------------------------------------------
+
+.dm-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: dm.$dm-space-4;
+  padding: dm.$dm-space-4 dm.$dm-space-4 dm.$dm-space-4 dm.$dm-space-4;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: dm.$dm-radius-md;
+  box-shadow: dm.$dm-shadow-1;
+  height: 100%;
+}
+
+.dm-stat__icon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 0.75rem;
+  display: grid;
+  place-items: center;
+  font-size: 1.2rem;
+
+  &.is-primary { background: rgba(27, 111, 243, 0.12); color: dm.$dm-primary; }
+  &.is-success { background: rgba(22, 163, 74, 0.12); color: dm.$dm-success; }
+  &.is-warning { background: rgba(245, 158, 11, 0.14); color: #B45309; }
+  &.is-danger { background: rgba(220, 38, 38, 0.12); color: dm.$dm-danger; }
+  &.is-tech { background: rgba(255, 122, 26, 0.12); color: dm.$dm-accent-tech; }
+}
+
+[data-bs-theme='dark'] .dm-stat__icon {
+  &.is-warning { color: #FBBF24; }
+}
+
+.dm-stat__value {
+  font-family: dm.$dm-font-heading;
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dm-stat__label {
+  color: var(--bs-secondary-color);
+  font-size: dm.$dm-fs-5;
+  margin-top: 0.15rem;
+}
+
+// --- Montants ----------------------------------------------------------------
+// Les chiffres d'argent s'alignent en colonnes dans les tableaux : chasse fixe.
+
+.dm-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dm-amount__currency {
+  font-weight: 500;
+  font-size: 0.85em;
+  color: var(--bs-secondary-color);
+  margin-left: 0.15rem;
+}
+
+// --- Badges de statut --------------------------------------------------------
+// Un badge d'état porte une pastille en plus de la couleur : la couleur seule
+// ne suffit pas pour un daltonien.
+
+.dm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: dm.$dm-radius-pill;
+  white-space: nowrap;
+  line-height: 1.4;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: none;
+  }
+}
+
+@each $nom, $couleur in (
+  'primary': dm.$dm-primary,
+  'success': dm.$dm-success,
+  'warning': #B45309,
+  'danger': dm.$dm-danger,
+  'secondary': dm.$dm-neutral-500,
+  'dark': dm.$dm-neutral-900,
+  'tech': dm.$dm-accent-tech
+) {
+  .dm-badge--#{$nom} {
+    color: $couleur;
+    background: rgba($couleur, 0.12);
+  }
+}
+
+[data-bs-theme='dark'] {
+  .dm-badge--warning { color: #FBBF24; background: rgba(251, 191, 36, 0.14); }
+  .dm-badge--dark { color: #CBD5E1; background: rgba(203, 213, 225, 0.14); }
+}
+
+// --- État vide / module à venir ---------------------------------------------
+// « Zéro écran brut » : un module non livré annonce ce qu'il contiendra plutôt
+// que d'afficher une page blanche.
+
+.dm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: dm.$dm-space-4;
+  padding: dm.$dm-space-12 dm.$dm-space-6;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: dm.$dm-radius-lg;
+}
+
+.dm-empty__icon {
+  width: 72px;
+  height: 72px;
+  border-radius: dm.$dm-radius-lg;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  color: dm.$dm-primary;
+  background: rgba(27, 111, 243, 0.1);
+}
+
+.dm-empty__title {
+  font-family: dm.$dm-font-heading;
+  font-weight: 600;
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.dm-empty__text {
+  color: var(--bs-secondary-color);
+  max-width: 56ch;
+  margin: 0;
+}
+
+.dm-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: dm.$dm-space-2;
+  text-align: left;
+  max-width: 62ch;
+  width: 100%;
+}
+
+.dm-checklist li {
+  display: flex;
+  gap: dm.$dm-space-3;
+  align-items: flex-start;
+  color: var(--bs-body-color);
+  font-size: dm.$dm-fs-5;
+
+  i {
+    color: dm.$dm-primary;
+    margin-top: 0.15rem;
+    flex: none;
+  }
+}
+
+// --- Formulaires -------------------------------------------------------------
+
+.form-control,
+.form-select {
+  padding: 0.6rem 0.85rem;
+  border-radius: dm.$dm-radius-sm;
+
+  &:focus {
+    box-shadow: 0 0 0 4px rgba(27, 111, 243, 0.14);
+    border-color: dm.$dm-primary;
+  }
+}
+
+.form-label {
+  font-weight: 500;
+  font-size: dm.$dm-fs-5;
+  margin-bottom: 0.35rem;
+}
+
+.btn {
+  border-radius: dm.$dm-radius-sm;
+  font-weight: 500;
+  padding: 0.55rem 1rem;
+}
+
+.btn-primary {
+  box-shadow: 0 6px 16px -8px rgba(27, 111, 243, 0.9);
+}
+
+// --- Écran de connexion ------------------------------------------------------
+
+.dm-auth {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: dm.$dm-space-6 dm.$dm-space-4;
+  background:
+    radial-gradient(1100px 520px at 15% -10%, rgba(27, 111, 243, 0.16), transparent 60%),
+    radial-gradient(900px 460px at 100% 110%, rgba(255, 122, 26, 0.12), transparent 62%),
+    var(--dm-shell-bg);
+}
+
+.dm-auth__card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: dm.$dm-radius-lg;
+  box-shadow: dm.$dm-shadow-3;
+  padding: dm.$dm-space-8;
+
+  @media (max-width: 420px) {
+    padding: dm.$dm-space-6 dm.$dm-space-4;
+  }
+}
+
+.dm-auth__brand {
+  display: flex;
+  align-items: center;
+  gap: dm.$dm-space-3;
+  margin-bottom: dm.$dm-space-6;
+}
+
+// --- Tableaux ----------------------------------------------------------------
+// Aérés : la densité par défaut de Bootstrap rend les DataTables illisibles.
+
+.table {
+  --bs-table-hover-bg: rgba(27, 111, 243, 0.045);
+
+  > :not(caption) > * > * {
+    padding: 0.75rem 0.9rem;
+  }
+
+  thead th {
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    border-bottom-width: 1px;
+    white-space: nowrap;
+  }
+}
+
+// --- Divers ------------------------------------------------------------------
+
+.dm-scroll-x {
+  overflow-x: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-sidebar,
+  .dm-backdrop {
+    transition: none;
+  }
+}
+
+// --- Flux d'activité ---------------------------------------------------------
+
+.dm-flux {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dm-flux__item {
+  display: flex;
+  align-items: flex-start;
+  gap: dm.$dm-space-3;
+  padding: dm.$dm-space-3 0;
+  border-bottom: 1px solid var(--bs-border-color);
+
+  &:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+
+.dm-flux__puce {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  margin-top: 0.45rem;
+  background: dm.$dm-neutral-500;
+
+  &--primary { background: dm.$dm-primary; }
+  &--success { background: dm.$dm-success; }
+  &--warning { background: dm.$dm-warning; }
+  &--danger { background: dm.$dm-danger; }
+  &--dark { background: dm.$dm-neutral-900; }
+}
+
+.dm-flux__heure {
+  font-size: dm.$dm-fs-6;
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+  flex: none;
+  margin-top: 0.2rem;
+}
+
+// --- Cartes de graphique -----------------------------------------------------
+
+.dm-chart-card {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: dm.$dm-radius-md;
+  box-shadow: dm.$dm-shadow-1;
+  padding: dm.$dm-space-4 dm.$dm-space-4 dm.$dm-space-3;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dm-chart-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: dm.$dm-space-3;
+  margin-bottom: dm.$dm-space-3;
+}
+
+.dm-chart-card__title {
+  font-family: dm.$dm-font-heading;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.dm-chart-card__note {
+  font-size: dm.$dm-fs-6;
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+}
+
+.dm-chart {
+  flex: 1 1 auto;
+  min-height: 240px;
+}
+
+// --- Évolution période sur période -------------------------------------------
+
+.dm-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: dm.$dm-fs-6;
+  font-weight: 600;
+
+  &--hausse { color: dm.$dm-success; }
+  &--baisse { color: dm.$dm-danger; }
+  &--stable { color: var(--bs-secondary-color); }
+}
+
+// --- Sélecteur de période ----------------------------------------------------
+
+.dm-periodes {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bs-secondary-bg);
+  border-radius: dm.$dm-radius-pill;
+}
+
+.dm-periodes a {
+  padding: 0.3rem 0.75rem;
+  border-radius: dm.$dm-radius-pill;
+  font-size: dm.$dm-fs-5;
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover { color: var(--bs-body-color); }
+
+  &.is-active {
+    background: var(--bs-body-bg);
+    color: dm.$dm-primary;
+    box-shadow: dm.$dm-shadow-1;
+  }
+}
+
+// --- Barre de filtres d'une table -------------------------------------------
+
+.dm-filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: dm.$dm-space-3;
+  align-items: flex-end;
+  padding: dm.$dm-space-3;
+  background: var(--bs-secondary-bg);
+  border-radius: dm.$dm-radius-sm;
+}
+
+.dm-filtres label {
+  display: block;
+  font-size: dm.$dm-fs-6;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.25rem;
+}
+
+.dm-filtres .form-select,
+.dm-filtres .form-control {
+  padding: 0.35rem 0.6rem;
+  font-size: dm.$dm-fs-5;
+  min-width: 9rem;
+}
+
+// --- Timeline d'un ticket ----------------------------------------------------
+
+.dm-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 dm.$dm-space-6;
+  position: relative;
+}
+
+.dm-timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--bs-border-color);
+}
+
+.dm-timeline__item {
+  position: relative;
+  padding-bottom: dm.$dm-space-4;
+}
+
+.dm-timeline__item:last-child {
+  padding-bottom: 0;
+}
+
+.dm-timeline__point {
+  position: absolute;
+  left: -#{dm.$dm-space-6};
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid var(--bs-body-bg);
+  background: dm.$dm-neutral-500;
+  box-shadow: 0 0 0 1px var(--bs-border-color);
+}
+
+@each $nom, $couleur in (
+  'primary': dm.$dm-primary, 'success': dm.$dm-success, 'warning': dm.$dm-warning,
+  'danger': dm.$dm-danger, 'secondary': dm.$dm-neutral-500, 'dark': dm.$dm-neutral-900
+) {
+  .dm-timeline__point--#{$nom} { background: $couleur; }
+}
+
+.dm-timeline__heure {
+  font-size: dm.$dm-fs-6;
+  color: var(--bs-secondary-color);
+  font-variant-numeric: tabular-nums;
+}
+
+// --- Décomposition du prix ---------------------------------------------------
+
+.dm-prix {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dm-prix li {
+  display: flex;
+  justify-content: space-between;
+  gap: dm.$dm-space-4;
+  padding: dm.$dm-space-2 0;
+  border-bottom: 1px dashed var(--bs-border-color);
+}
+
+.dm-prix li:last-child {
+  border-bottom: 0;
+  border-top: 2px solid var(--bs-border-color);
+  margin-top: dm.$dm-space-2;
+  padding-top: dm.$dm-space-3;
+  font-weight: 600;
+}
+
+// --- Conversation ------------------------------------------------------------
+
+.dm-chat {
+  display: flex;
+  flex-direction: column;
+  gap: dm.$dm-space-3;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: dm.$dm-space-2;
+}
+
+.dm-chat__bulle {
+  max-width: 78%;
+  padding: dm.$dm-space-3;
+  border-radius: dm.$dm-radius-md;
+  background: var(--bs-secondary-bg);
+  font-size: dm.$dm-fs-5;
+}
+
+.dm-chat__bulle--technicien {
+  align-self: flex-end;
+  background: rgba(27, 111, 243, 0.1);
+}
+
+.dm-chat__bulle--signale {
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.07);
+}
+
+.dm-chat__meta {
+  font-size: dm.$dm-fs-6;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.2rem;
+}
+
+// --- File de validation des techniciens --------------------------------------
+
+.dm-validation {
+  display: flex;
+  flex-direction: column;
+  gap: dm.$dm-space-3;
+}
+
+.dm-validation__barre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: dm.$dm-space-3;
+}
+
+.dm-pieces {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: dm.$dm-space-4;
+}
+
+.dm-piece {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: dm.$dm-space-2;
+}
+
+.dm-piece__titre {
+  font-size: dm.$dm-fs-6;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+}
+
+.dm-piece__cadre {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  border: 1px solid var(--bs-border-color);
+  border-radius: dm.$dm-radius-sm;
+  background: var(--bs-secondary-bg);
+  overflow: hidden;
+  cursor: zoom-in;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.dm-piece__loupe {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.dm-piece__cadre--vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  text-align: center;
+  padding: dm.$dm-space-4;
+  cursor: default;
+  color: var(--bs-secondary-color);
+  border-style: dashed;
+
+  i { font-size: 1.5rem; }
+  small { font-size: 0.7rem; opacity: 0.8; max-width: 24ch; }
+}
+
+.dm-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  background: rgba(2, 6, 23, 0.88);
+  display: grid;
+  place-items: center;
+  padding: dm.$dm-space-6;
+  cursor: zoom-out;
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: dm.$dm-radius-sm;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  }
+}
+
+.dm-zoom__fermer {
+  position: absolute;
+  top: dm.$dm-space-4;
+  right: dm.$dm-space-4;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+// --- Carte d'édition des zones ------------------------------------------------
+
+.dm-carte {
+  height: 560px;
+  min-height: 380px;
+  border-radius: dm.$dm-radius-sm;
+  overflow: hidden;
+  z-index: 0; // sous la barre latérale et les menus déroulants
+}
+
+@media (max-width: 991.98px) {
+  .dm-carte { height: 400px; }
+}
+
+// Leaflet impose ses propres couleurs : on le ramène dans le thème.
+.leaflet-container {
+  font-family: dm.$dm-font-body;
+  background: var(--bs-secondary-bg);
+}
+
+.leaflet-control-attribution,
+.leaflet-tooltip {
+  font-size: dm.$dm-fs-6;
+}
+
+.leaflet-tooltip {
+  border-radius: dm.$dm-radius-sm;
+  border: 1px solid var(--bs-border-color);
+  box-shadow: dm.$dm-shadow-2;
+}
+
+// --- Catalogue ----------------------------------------------------------------
+
+.dm-prestation {
+  display: flex;
+  align-items: center;
+  gap: dm.$dm-space-3;
+  padding: dm.$dm-space-3 0;
+  border-bottom: 1px solid var(--bs-border-color);
+
+  &:last-child { border-bottom: 0; }
+  &.is-inactive { opacity: 0.55; }
+}
+
+.dm-categorie-titre {
+  display: flex;
+  align-items: center;
+  gap: dm.$dm-space-3;
+  margin-bottom: dm.$dm-space-3;
+}
+
+.dm-categorie-pastille {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.7rem;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  flex: none;
+}
+
+// --- Configuration ------------------------------------------------------------
+
+.dm-param {
+  padding: dm.$dm-space-4 0;
+  border-bottom: 1px solid var(--bs-border-color);
+
+  &:last-child { border-bottom: 0; }
+}
+
+.dm-param__aide {
+  font-size: dm.$dm-fs-6;
+  color: var(--bs-secondary-color);
+  margin-top: 0.25rem;
+}
+
+.dm-ponderations {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: dm.$dm-space-3;
+}
+
+// --- Carte live ---------------------------------------------------------------
+
+.dm-carte--live {
+  height: 620px;
+
+  @media (max-width: 991.98px) {
+    height: 440px;
+  }
+}
+
+// Marqueur de technicien : une pastille pleine, qui pulse quand il est en
+// intervention. Le mouvement attire l'œil là où il se passe quelque chose.
+.dm-marqueur__point {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--point, #{dm.$dm-primary});
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.4);
+}
+
+.dm-marqueur__point.is-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--point);
+  opacity: 0.7;
+  animation: dm-pulse 1.8s ease-out infinite;
+}
+
+@keyframes dm-pulse {
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-marqueur__point.is-pulse::after {
+    animation: none;
+  }
+}
+
+.dm-legende {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.dm-legende--cercle {
+  background: transparent;
+  border: 2px solid dm.$dm-primary;
+}

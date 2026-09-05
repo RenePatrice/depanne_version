@@ -1,0 +1,376 @@
+// =============================================================================
+// Coquille du back-office : barre latérale sombre rétractable, barre supérieure
+// collante, zone de contenu. Responsive de 1280 px à 360 px — au-delà du point
+// de rupture lg, la barre latérale devient un tiroir.
+// =============================================================================
+@use 'tokens' as dm;
+
+:root {
+  --dm-sidebar-width: 260px;
+  --dm-sidebar-width-collapsed: 76px;
+  --dm-topbar-height: 64px;
+
+  // La barre latérale garde son fond sombre dans les deux thèmes : c'est un
+  // repère d'orientation, pas une surface de lecture.
+  --dm-sidebar-bg: #0B1220;
+  --dm-sidebar-bg-soft: #131E33;
+  --dm-sidebar-ink: #94A3B8;
+  --dm-sidebar-ink-strong: #F8FAFC;
+  --dm-sidebar-border: rgba(148, 163, 184, 0.12);
+
+  --dm-topbar-bg: rgba(255, 255, 255, 0.88);
+  --dm-shell-bg: #{dm.$dm-neutral-100};
+}
+
+[data-bs-theme='dark'] {
+  --dm-sidebar-bg: #070C16;
+  --dm-sidebar-bg-soft: #0E1626;
+  --dm-topbar-bg: rgba(16, 24, 39, 0.88);
+  --dm-shell-bg: #0B1220;
+}
+
+body.dm-shell {
+  background: var(--dm-shell-bg);
+  min-height: 100vh;
+}
+
+// --- Structure ---------------------------------------------------------------
+
+.dm-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.dm-main {
+  flex: 1 1 auto;
+  min-width: 0; // sans quoi une DataTable large pousse toute la page
+  display: flex;
+  flex-direction: column;
+}
+
+.dm-content {
+  flex: 1 1 auto;
+  padding: dm.$dm-space-6;
+
+  @media (max-width: 575.98px) {
+    padding: dm.$dm-space-4 dm.$dm-space-3;
+  }
+}
+
+// --- Barre latérale ----------------------------------------------------------
+
+.dm-sidebar {
+  flex: 0 0 var(--dm-sidebar-width);
+  width: var(--dm-sidebar-width);
+  background: linear-gradient(180deg, var(--dm-sidebar-bg) 0%, var(--dm-sidebar-bg-soft) 100%);
+  color: var(--dm-sidebar-ink);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 1040;
+  transition: width 0.2s ease, flex-basis 0.2s ease, transform 0.24s ease;
+}
+
+.dm-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: dm.$dm-space-3;
+  height: var(--dm-topbar-height);
+  padding: 0 dm.$dm-space-4;
+  border-bottom: 1px solid var(--dm-sidebar-border);
+  flex: none;
+}
+
+.dm-sidebar__logo {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: dm.$dm-radius-sm + 0.125rem;
+  background: linear-gradient(135deg, dm.$dm-primary, dm.$dm-primary-dark);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  box-shadow: 0 6px 16px -6px rgba(27, 111, 243, 0.7);
+}
+
+.dm-sidebar__name {
+  font-family: dm.$dm-font-heading;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--dm-sidebar-ink-strong);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.dm-sidebar__baseline {
+  font-size: dm.$dm-fs-6;
+  color: var(--dm-sidebar-ink);
+  white-space: nowrap;
+}
+
+.dm-sidebar__nav {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: dm.$dm-space-4 dm.$dm-space-3 dm.$dm-space-6;
+  display: flex;
+  flex-direction: column;
+  gap: dm.$dm-space-6;
+}
+
+.dm-sidebar__group-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.7);
+  padding: 0 dm.$dm-space-3 dm.$dm-space-2;
+  white-space: nowrap;
+}
+
+.dm-sidebar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dm-sidebar__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: dm.$dm-space-3;
+  padding: 0.6rem dm.$dm-space-3;
+  border-radius: 0.625rem;
+  color: var(--dm-sidebar-ink);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  i {
+    font-size: 1.05rem;
+    flex: none;
+    width: 1.25rem;
+    text-align: center;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--dm-sidebar-ink-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(27, 111, 243, 0.8);
+    outline-offset: 2px;
+  }
+
+  &.is-active {
+    background: rgba(27, 111, 243, 0.16);
+    color: var(--dm-sidebar-ink-strong);
+
+    // Repère d'accent : la barre à gauche indique la page courante sans
+    // dépendre uniquement de la couleur du texte.
+    &::before {
+      content: '';
+      position: absolute;
+      left: -#{dm.$dm-space-3};
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 22px;
+      border-radius: 0 3px 3px 0;
+      background: dm.$dm-primary;
+    }
+  }
+}
+
+.dm-sidebar__label {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Pastille de phase sur les modules pas encore livrés.
+.dm-sidebar__phase {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  border-radius: dm.$dm-radius-pill;
+  background: rgba(255, 122, 26, 0.16);
+  color: #FFB27A;
+  flex: none;
+}
+
+.dm-sidebar__footer {
+  flex: none;
+  padding: dm.$dm-space-3 dm.$dm-space-3 dm.$dm-space-4;
+  border-top: 1px solid var(--dm-sidebar-border);
+  font-size: dm.$dm-fs-6;
+  color: rgba(148, 163, 184, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+// --- État replié -------------------------------------------------------------
+
+.dm-layout.is-collapsed {
+  .dm-sidebar {
+    flex-basis: var(--dm-sidebar-width-collapsed);
+    width: var(--dm-sidebar-width-collapsed);
+  }
+
+  .dm-sidebar__name,
+  .dm-sidebar__baseline,
+  .dm-sidebar__label,
+  .dm-sidebar__phase,
+  .dm-sidebar__group-title,
+  .dm-sidebar__footer {
+    display: none;
+  }
+
+  .dm-sidebar__link {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .dm-sidebar__brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+}
+
+// --- Tiroir sous lg ----------------------------------------------------------
+
+@media (max-width: 991.98px) {
+  .dm-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
+    box-shadow: 0 0 40px rgba(2, 6, 23, 0.4);
+  }
+
+  .dm-layout.is-open .dm-sidebar {
+    transform: translateX(0);
+  }
+
+  .dm-layout.is-collapsed .dm-sidebar {
+    flex-basis: var(--dm-sidebar-width);
+    width: var(--dm-sidebar-width);
+  }
+
+  .dm-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.5);
+    z-index: 1035;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .dm-layout.is-open .dm-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+// --- Barre supérieure --------------------------------------------------------
+
+.dm-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  height: var(--dm-topbar-height);
+  display: flex;
+  align-items: center;
+  gap: dm.$dm-space-3;
+  padding: 0 dm.$dm-space-6;
+  background: var(--dm-topbar-bg);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--bs-border-color);
+
+  @media (max-width: 575.98px) {
+    padding: 0 dm.$dm-space-3;
+  }
+}
+
+.dm-topbar__toggle {
+  border: 0;
+  background: transparent;
+  color: var(--bs-body-color);
+  width: 38px;
+  height: 38px;
+  border-radius: 0.625rem;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  flex: none;
+
+  &:hover {
+    background: var(--bs-secondary-bg);
+  }
+}
+
+.dm-topbar__title {
+  font-family: dm.$dm-font-heading;
+  font-weight: 600;
+  font-size: 1.0625rem;
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dm-topbar__crumb {
+  font-size: dm.$dm-fs-6;
+  color: var(--bs-secondary-color);
+  line-height: 1.2;
+}
+
+.dm-topbar__spacer {
+  flex: 1 1 auto;
+}
+
+.dm-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, dm.$dm-primary, dm.$dm-primary-dark);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  flex: none;
+}
+
+// --- En-tête de page ---------------------------------------------------------
+
+.dm-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: dm.$dm-space-4;
+  margin-bottom: dm.$dm-space-6;
+}
+
+.dm-page-head__title {
+  font-family: dm.$dm-font-heading;
+  font-weight: 600;
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.015em;
+}
+
+.dm-page-head__lede {
+  color: var(--bs-secondary-color);
+  margin: 0;
+  max-width: 66ch;
+}

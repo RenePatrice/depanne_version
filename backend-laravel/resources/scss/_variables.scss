@@ -1,0 +1,40 @@
+// =============================================================================
+// Surcharge des variables Bootstrap 5.3 par les jetons Dépanne-Moi.
+// Doit être importé AVANT bootstrap.
+// =============================================================================
+@use 'tokens' as dm;
+
+$primary:   dm.$dm-primary;
+$secondary: dm.$dm-neutral-500;
+$success:   dm.$dm-success;
+$warning:   dm.$dm-warning;
+$danger:    dm.$dm-danger;
+$info:      dm.$dm-info;
+$light:     dm.$dm-neutral-100;
+$dark:      dm.$dm-neutral-900;
+
+$body-color: dm.$dm-neutral-900;
+$body-bg:    dm.$dm-neutral-100;
+
+$font-family-sans-serif: dm.$dm-font-body;
+$headings-font-family:   dm.$dm-font-heading;
+$headings-font-weight:   600;
+
+$font-size-base: 0.9375rem;   // 15 px
+$line-height-base: 1.6;
+
+$border-radius:    dm.$dm-radius-sm;
+$border-radius-sm: 0.375rem;
+$border-radius-lg: dm.$dm-radius-md;
+$border-radius-xl: dm.$dm-radius-lg;
+$border-radius-pill: dm.$dm-radius-pill;
+
+$box-shadow-sm: dm.$dm-shadow-1;
+$box-shadow:    dm.$dm-shadow-2;
+$box-shadow-lg: dm.$dm-shadow-3;
+
+$card-border-color: rgba(15, 23, 42, 0.06);
+$card-cap-bg: transparent;
+
+$enable-dark-mode: true;
+$color-mode-type: data;   // <html data-bs-theme="dark">
