@@ -19,8 +19,9 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | | **B6** — carte live temps réel | ✅ terminée |
 | C — API mobile | **C1** — auth mobile, Sanctum, refresh tokens | ✅ terminée |
 | | **C2** — catalogue, adresses, tickets, PricingService | ✅ terminée |
-| | **C3** — matching, temps réel mobile, notifications | ⏳ suivante |
-| | C4 → C6 | à faire |
+| | **C3** — matching, temps réel mobile, notifications | ✅ terminée |
+| | **C4** — chat, avis, litiges | ⏳ suivante |
+| | C5 → C6 | à faire |
 | D — Mobile Flutter | D1 → D5 | à faire |
 
 ## 2. Décisions du client (5 septembre 2026)
@@ -97,13 +98,13 @@ les contrôleurs web et API ne font que valider, appeler, présenter.
 | `Zones` | `Zone`, `ZoneService` (rattachement et point de référence) |
 | `Tickets` | `Ticket`, `TicketEvent`, énumérations `TicketState` et `ActorType`, les 16 classes d'état |
 | `Pricing` | `PricingService`, `MapProvider` et ses deux pilotes, `Devis`, `Distance` |
-| `Matching` | `MatchAttempt`, énumération `MatchResponse` |
+| `Matching` | `MatchAttempt`, `Candidat`, `TechnicianFinder`, `MatchScorer`, les actions de sollicitation et les deux jobs |
 | `Payments` | `Payment`, énumérations `PaymentStatus` et `PaymentMethod` |
 | `Wallet` | `Transaction`, `Withdrawal`, énumérations associées |
 | `Chat` | `Message` |
 | `Reviews` | `Review` |
 | `Disputes` | `Dispute` et ses trois énumérations |
-| `Notifications` | *(vide — phase C3)* |
+| `Notifications` | `AppNotification`, `NotificationType`, `SendNotification`, `PushProvider` et son pilote `log` |
 | `Settings` | `AppSetting` et ses clés de configuration |
 | `Reporting` | `Periode`, `DashboardService` — toutes les agrégations du tableau de bord |
 
@@ -378,6 +379,85 @@ un aller-retour réseau inutile.
 - La part technicien n'apparaît pas dans la réponse servie au client, et la
   commission ne figure pas dans le détail du devis : le client paie un total.
 
+### Matching séquentiel
+Le §8.3 en trois pièces : `TechnicianFinder` présélectionne, `MatchScorer`
+classe, `SolicitNextTechnician` sollicite.
+
+- **Un seul technicien à la fois.** C'est ce qui distingue Dépanne-Moi d'une
+  place de marché où dix techniciens reçoivent la même demande et où neuf
+  perdent leur temps. Une sollicitation vivante interdit d'en ouvrir une
+  seconde.
+- Le filtrage et le tri par distance sont **en SQL**. `ST_DWithin` s'appuie sur
+  l'index GiST posé en A1 ; un filtre PHP ne le pourrait pas, et la mémoire
+  grandirait avec le parc.
+- La position retenue est la **dernière connue si elle a moins de 15 minutes**,
+  sinon le point de rattachement. Un technicien qui a coupé son GPS il y a deux
+  heures n'est plus là où il était.
+- **Un technicien sollicité ne l'est jamais deux fois** pour le même ticket,
+  même au cycle suivant (ADR-0028).
+- L'expiration est portée par un **job différé**, pas par un balayage du
+  scheduler : la fenêtre doit se fermer à la seconde près. Le job est
+  idempotent — il n'agit que si la sollicitation est encore EN_ATTENTE.
+- `SolicitNextTechnician` est **rejouable** : appelée à la publication, à chaque
+  refus et à chaque expiration, elle repart à chaque fois de l'état du ticket.
+  Un job dupliqué par la file ne produit pas deux sollicitations.
+- Le score est normalisé composante par composante avant pondération — sans
+  cela une note sur 5 pèserait cinq fois son poids annoncé face à un taux. Le
+  **détail est conservé** sur la sollicitation : un technicien qui conteste son
+  classement obtient une réponse, pas une reconstitution.
+- La proximité est mesurée **relativement au rayon du cycle** : au troisième
+  cycle, être à 6 km n'est plus une mauvaise nouvelle.
+
+### L'attribution
+`RespondToMatch::accepter()` superpose trois protections (ADR-0027) : un verrou
+court, une mise à jour conditionnelle `WHERE state = 'PUBLIEE'` — c'est elle qui
+garantit réellement l'unicité — et la machine à états. Un second technicien
+reçoit un 409 explicite.
+
+C'est aussi là que **le prix devient ferme** : la distance facturée est celle du
+technicien qui accepte. Le prix de la prestation, lui, vient de l'instantané du
+ticket et **jamais du catalogue** (ADR-0029) : une hausse de grille décidée
+entre la publication et l'acceptation ne doit pas rattraper le client.
+
+Sans position connue pour le technicien, l'estimation est conservée telle
+quelle : mieux vaut facturer l'estimation que refuser l'attribution et laisser
+le client sans personne.
+
+### Notifications
+Trois chemins, dans cet ordre : **la base toujours**, Reverb pour une
+application ouverte, le push pour une application fermée. Aucun ne peut faire
+échouer l'appelant — une notification perdue est un désagrément, un matching
+interrompu est une panne. C'est pourquoi `PushProvider`, comme `MapProvider`, a
+l'interdiction de lever.
+
+Tant que Firebase n'existe pas, le pilote `log` écrit dans `laravel.log` ; la
+persistance et la diffusion Reverb, elles, fonctionnent réellement. Le centre de
+notifications de l'application lit la table, pas le push : sur le réseau de
+Conakry, un message perdu est un cas courant.
+
+Les textes vus par le client viennent des paramètres `notif_*` et se corrigent
+en back-office. Une variable oubliée est **effacée** plutôt que laissée en
+clair : mieux vaut une phrase incomplète qu'un « {technicien} » affiché.
+
+### Ce que le technicien ne peut pas faire
+- **Saisir un montant.** Le kilométrage est calculé depuis sa position ; aucune
+  route ne l'expose. Deux tests le vérifient.
+- **Se mettre en ligne sans dossier validé**, ni **hors ligne pendant une
+  intervention** — se déconnecter en route, c'est laisser un client sans
+  nouvelle et sans position sur la carte du support.
+- **Voir l'adresse exacte avant d'accepter** : seuls le quartier et la distance.
+  Sans cela, refuser systématiquement les demandes deviendrait un moyen de
+  collecter des adresses.
+- **Sauter une étape** : il nomme un geste — « je pars », « je suis arrivé » —
+  et c'est la machine à états qui décide s'il est possible.
+
+### Statistiques de matching
+`RecalculateTechnicianStats` **recalcule**, n'incrémente jamais — même
+raisonnement que pour le solde (ADR-0004). Un compteur incrémenté dérive au
+premier job rejoué, et une dérive du taux d'acceptation change qui reçoit les
+courses, donc qui gagne sa vie. Un technicien sans historique part à 1,00 :
+sinon il ne serait jamais sollicité, donc n'aurait jamais d'historique.
+
 ### Limites de débit
 Les limites de route protègent l'infrastructure et restent **plus larges** que
 les gardes métier : c'est `AuthenticateUser` qui verrouille au bout de cinq
@@ -425,7 +505,7 @@ comptes pour la même personne.
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **196 tests passent** (931 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **245 tests passent** (1 052 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
   le type de retour déclaré de `casts()` et prend une date castée pour une
   chaîne. Les tests Pest sont exclus de l'analyse : leurs closures liées
@@ -455,6 +535,9 @@ comptes pour la même personne.
 | 0024 | ~~Déplacement mesuré depuis le centre de la zone~~ — **remplacée par l'ADR-0026** |
 | 0025 | **Les classes d'état lisent la table de l'énumération** — une seule source de vérité pour les transitions |
 | 0026 | **Déplacement facturé au technicien réel au-delà de 3 km** — prix ferme à l'acceptation, majoration de 1 % en deçà |
+| 0027 | **Attribution protégée trois fois** — verrou, mise à jour conditionnelle, machine à états |
+| 0028 | **Un technicien sollicité ne l'est jamais deux fois** — élargir le rayon sert à trouver des gens nouveaux |
+| 0029 | **Le prix ferme relit l'instantané du ticket** — jamais le catalogue du jour |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

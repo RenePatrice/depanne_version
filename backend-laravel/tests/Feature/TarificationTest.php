@@ -136,10 +136,10 @@ it('ne fait pas de marche au passage du seuil', function (): void {
     $service->forceFill(['base_price_gnf' => 85_000])->save();
 
     $juste_avant = tarification(carteFigee(2.9))->pourTechnicien(
-        $service, zoneEssai(), Geo::point(9.60, -13.64), Geo::point(9.60, -13.63),
+        $service->base_price_gnf, zoneEssai(), Geo::point(9.60, -13.64), Geo::point(9.60, -13.63),
     );
     $juste_apres = tarification(carteFigee(3.1))->pourTechnicien(
-        $service, zoneEssai(), Geo::point(9.60, -13.64), Geo::point(9.60, -13.63),
+        $service->base_price_gnf, zoneEssai(), Geo::point(9.60, -13.64), Geo::point(9.60, -13.63),
     );
 
     // 85 850 puis 86 000 : la facture ne bondit pas pour 200 mètres.
@@ -154,7 +154,7 @@ it('rend la majoration de proximité en totalité au technicien', function (): v
     $service->forceFill(['base_price_gnf' => 85_000])->save();
 
     $devis = tarification(carteFigee(2.1))->pourTechnicien(
-        $service, zoneEssai(), Geo::point(9.60, -13.64), Geo::point(9.60, -13.638),
+        $service->base_price_gnf, zoneEssai(), Geo::point(9.60, -13.64), Geo::point(9.60, -13.638),
     );
 
     // Commission sur 85 000 seulement, pas sur les 850 de majoration.

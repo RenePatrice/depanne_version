@@ -7,6 +7,7 @@ namespace App\Domain\Tickets\Actions;
 use App\Domain\Accounts\Models\Address;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Catalog\Models\Service;
+use App\Domain\Matching\Jobs\StartMatchingJob;
 use App\Domain\Pricing\Services\PricingService;
 use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
@@ -87,13 +88,22 @@ final class CreateTicket
                 'photos' => $photos === [] ? null : $photos,
             ], $devis->colonnesTicket()));
 
-            return $this->transition->execute(
+            $ticket = $this->transition->execute(
                 $ticket,
                 TicketState::PUBLIEE,
                 ActorType::CLIENT,
                 (int) $client->getKey(),
                 ['total_gnf' => $devis->totalGnf, 'distance_km' => $devis->distance->km],
             );
+
+            // La recherche part après le commit : lancée dedans, elle
+            // solliciterait un technicien pour un ticket qu'un rollback
+            // effacerait aussitôt.
+            DB::afterCommit(static function () use ($ticket): void {
+                StartMatchingJob::dispatch((int) $ticket->getKey());
+            });
+
+            return $ticket;
         });
     }
 

@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\V1\Auth\InscriptionController;
 use App\Http\Controllers\Api\V1\Auth\MotDePasseController;
 use App\Http\Controllers\Api\V1\Auth\SessionController;
 use App\Http\Controllers\Api\V1\CatalogueController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProfilController;
+use App\Http\Controllers\Api\V1\TechnicienController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -99,6 +101,40 @@ Route::prefix('v1')->group(function (): void {
             ->name('api.tickets.creer');
 
         Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->name('api.tickets.annuler');
+
+        // --- Côté technicien -------------------------------------------------
+
+        Route::post('/technicien/disponibilite', [TechnicienController::class, 'disponibilite'])
+            ->name('api.technicien.disponibilite');
+
+        /*
+         * La position est remontée jusqu'à toutes les huit secondes pendant une
+         * intervention (§10) : sa limite est large, et c'est la seule route de
+         * l'API dont on attend ce rythme.
+         */
+        Route::post('/technicien/position', [TechnicienController::class, 'position'])
+            ->middleware('throttle:position')
+            ->name('api.technicien.position');
+
+        Route::get('/technicien/sollicitations', [TechnicienController::class, 'sollicitations'])
+            ->name('api.technicien.sollicitations');
+
+        Route::post('/sollicitations/{sollicitation}/accepter', [TechnicienController::class, 'accepter'])
+            ->name('api.sollicitations.accepter');
+
+        Route::post('/sollicitations/{sollicitation}/refuser', [TechnicienController::class, 'refuser'])
+            ->name('api.sollicitations.refuser');
+
+        Route::post('/tickets/{ticket}/avancer', [TechnicienController::class, 'avancer'])
+            ->name('api.tickets.avancer');
+
+        // --- Notifications ---------------------------------------------------
+
+        Route::get('/notifications', [NotificationController::class, 'index'])
+            ->name('api.notifications');
+
+        Route::post('/notifications/lues', [NotificationController::class, 'marquerLues'])
+            ->name('api.notifications.lues');
 
         /*
          * Sonde d'API : permet à l'application Flutter de vérifier que son

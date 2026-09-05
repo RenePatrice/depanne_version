@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Notifications\Channels\LogPushProvider;
 use App\Domain\Notifications\Channels\LogSmsProvider;
+use App\Domain\Notifications\Contracts\PushProvider;
 use App\Domain\Notifications\Contracts\SmsProvider;
 use App\Domain\Pricing\Contracts\MapProvider;
 use App\Domain\Pricing\Providers\GoogleDistanceMatrixProvider;
@@ -26,6 +28,15 @@ final class DomainServiceProvider extends ServiceProvider
                 // Les passerelles réelles se brancheront ici ; tant qu'aucune
                 // n'est choisie, le code part dans laravel.log.
                 default => new LogSmsProvider,
+            };
+        });
+
+        $this->app->bind(PushProvider::class, function (): PushProvider {
+            return match (config('depanne.push.provider')) {
+                // Firebase n'existe pas encore : la notification part dans
+                // laravel.log. La persistance en base et la diffusion Reverb,
+                // elles, fonctionnent réellement — voir SendNotification.
+                default => new LogPushProvider,
             };
         });
 

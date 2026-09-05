@@ -3,6 +3,12 @@
 declare(strict_types=1);
 
 use App\Domain\Accounts\Models\AdminUser;
+use App\Domain\Accounts\Models\User;
+use App\Domain\Catalog\Models\Service;
+use App\Domain\Tickets\Data\TicketState;
+use App\Domain\Tickets\Models\Ticket;
+use App\Domain\Zones\Models\Zone;
+use App\Support\Geo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -91,6 +97,41 @@ function parametresTable(array $colonnes, array $filtres = []): array
         'columns' => $definition,
         'search' => ['value' => '', 'regex' => 'false'],
     ], $filtres);
+}
+
+/**
+ * Ticket publié à Kipé, prêt à être proposé au matching.
+ *
+ * Déclaré ici et non dans un fichier de test : PHP n'a qu'un espace de
+ * fonctions global, et deux fichiers qui déclareraient le même helper se
+ * percuteraient au chargement.
+ */
+function ticketPublie(float $lat = 9.595, float $lng = -13.640): Ticket
+{
+    $client = User::factory()->create();
+
+    /** @var Ticket $ticket */
+    $ticket = Ticket::query()->create([
+        'reference' => 'DM-TEST-'.str_pad((string) (Ticket::query()->count() + 1), 6, '0', STR_PAD_LEFT),
+        'client_id' => $client->id,
+        'service_id' => Service::query()->value('id'),
+        'zone_id' => Zone::query()->where('code', 'RAT-CENTRE')->value('id'),
+        'state' => TicketState::PUBLIEE->value,
+        'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma, Conakry', 'landmark' => 'Près du marché'],
+        'location' => Geo::point($lat, $lng),
+        'problem_description' => 'Fuite sous l’évier.',
+        'base_price_gnf' => 85_000,
+        'travel_fee_gnf' => 0,
+        'short_trip_uplift_gnf' => 850,
+        'extra_fee_gnf' => 0,
+        'total_gnf' => 85_850,
+        'commission_gnf' => 8_500,
+        'technician_net_gnf' => 77_350,
+        'distance_km' => 2.0,
+        'published_at' => now(),
+    ]);
+
+    return $ticket->fresh();
 }
 
 /**

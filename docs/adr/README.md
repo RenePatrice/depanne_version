@@ -465,3 +465,71 @@ sans quoi la première facture surprise deviendra le premier litige.
 
 Le barème reste continu au passage du seuil : 85 850 GNF à 2,9 km, 86 000 GNF à
 3,1 km. C'est ce que garantit le forfait de zone à zéro, et un test le vérifie.
+
+
+---
+
+## ADR-0027 — L'attribution est protégée trois fois plutôt qu'une
+**5 septembre 2026 · acceptée · précise l'ADR-0008**
+
+Deux techniciens attribués au même ticket, ce sont deux personnes qui roulent
+vers la même adresse et une seule qui sera payée. L'ADR-0008 prévoyait un
+verrou ; à l'écriture, le verrou seul s'est révélé insuffisant à raisonner
+dessus — il expire, et un worker tué le laisse tomber.
+
+**Décision.** Trois protections superposées, du plus commode au plus sûr :
+
+1. Un **verrou** par ticket, court (10 s) et pris pendant l'acceptation
+   seulement — pas pendant les 45 secondes de la fenêtre, qu'aucun verrou ne
+   devrait avoir à couvrir.
+2. Une **mise à jour conditionnelle** `WHERE state = 'PUBLIEE' AND
+   technician_id IS NULL`. Zéro ligne touchée signifie que quelqu'un a été plus
+   rapide. C'est la garantie réelle : elle est atomique en SQL et ne dépend
+   d'aucun verrou.
+3. La **machine à états**, qui refuserait de toute façon une seconde transition
+   vers ACCEPTEE.
+
+**Conséquence.** Le second technicien reçoit un 409 avec un message explicite
+plutôt qu'une erreur de contrainte. Le verrou reste utile — il évite de faire
+travailler deux transactions pour rien — mais aucune correction ne doit plus
+partir du principe qu'il suffit.
+
+---
+
+## ADR-0028 — Un technicien sollicité ne l'est jamais deux fois
+**5 septembre 2026 · acceptée**
+
+Le §8.3 élargit le rayon de 5 à 15 km sur trois cycles. La table
+`match_attempts` porte une clé unique sur *(ticket, technicien, cycle)*, ce qui
+autorisait à re-solliciter au cycle suivant quelqu'un qui n'avait pas répondu.
+
+**Décision.** L'exclusion porte sur le **ticket entier**, quelle qu'ait été la
+réponse. Élargir le rayon sert à trouver des gens nouveaux, pas à insister
+auprès des mêmes.
+
+**Conséquence.** Un technicien momentanément indisponible ne sera pas
+re-sollicité même s'il redevient libre pendant la recherche. C'est assumé : le
+client attend, et brûler 45 secondes de plus sur quelqu'un qui a déjà ignoré la
+demande, c'est du temps pris sur lui. La clé unique par cycle reste en place
+comme filet.
+
+---
+
+## ADR-0029 — Le prix ferme relit l'instantané du ticket, jamais le catalogue
+**5 septembre 2026 · acceptée · précise les ADR-0013 et 0026**
+
+À l'acceptation, `pourTechnicien()` recompose le prix. Sa première écriture
+prenait un `Service` et lisait `base_price_gnf` — c'est-à-dire le tarif **du
+jour**, pas celui promis au client. Un prix modifié en back-office entre la
+publication et l'acceptation se serait répercuté sur une demande déjà engagée.
+Un test l'a révélé.
+
+**Décision.** `pourTechnicien()` prend le prix de la prestation **en entier**,
+et l'appelant lui passe `$ticket->base_price_gnf`. Elle ne reçoit délibérément
+pas de `Service`, contrairement à `estimation()`, qui a bien vocation à lire le
+catalogue du jour.
+
+**Conséquence.** L'asymétrie des deux signatures documente la règle : ce qui
+est estimé lit le catalogue, ce qui est ferme lit l'instantané. Seul le
+déplacement change entre les deux calculs, et c'est bien le seul terme qui
+dépende du technicien.

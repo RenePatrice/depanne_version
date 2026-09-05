@@ -89,5 +89,12 @@ final class AppServiceProvider extends ServiceProvider
         // ouverte, avec un message compréhensible.
         RateLimiter::for('publication', fn (Request $request): Limit => Limit::perHour(10)
             ->by((string) $request->user()?->getKey()));
+
+        // Une position toutes les huit secondes fait sept à huit appels par
+        // minute (§10). La limite laisse la place aux reprises après coupure
+        // réseau, fréquentes à Conakry, sans ouvrir la route à un client qui
+        // l'inonderait.
+        RateLimiter::for('position', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by((string) $request->user()?->getKey()));
     }
 }

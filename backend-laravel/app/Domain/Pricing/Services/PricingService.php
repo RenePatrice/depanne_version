@@ -77,9 +77,16 @@ final readonly class PricingService
      * technicien n'a aucun moyen de saisir ce montant : il est calculé ici, à
      * partir de sa position et de la grille de la zone, et aucune route de
      * l'API ne lui permet de l'influencer.
+     *
+     * Le prix de la prestation est **passé en entier**, pas relu du catalogue :
+     * il a été figé à la publication (ADR-0013). Le relire ici ferait payer au
+     * client une hausse de grille décidée entre sa demande et l'acceptation —
+     * exactement ce que l'instantané doit empêcher. C'est aussi pourquoi cette
+     * méthode ne prend pas de `Service`, contrairement à `estimation()`, qui a
+     * bien vocation à lire le catalogue du jour.
      */
     public function pourTechnicien(
-        Service $service,
+        int $prixPrestationGnf,
         Zone $zone,
         Point $technicien,
         Point $adresse,
@@ -87,7 +94,7 @@ final readonly class PricingService
     ): Devis {
         $distance = $this->carte->distance($technicien, $adresse);
 
-        return $this->composer($service->base_price_gnf, $zone, $distance, $supplementGnf, ferme: true);
+        return $this->composer($prixPrestationGnf, $zone, $distance, $supplementGnf, ferme: true);
     }
 
     /**

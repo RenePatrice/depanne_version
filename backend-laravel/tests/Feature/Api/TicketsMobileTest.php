@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Accounts\Models\Address;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Catalog\Models\Service;
+use App\Domain\Matching\Jobs\StartMatchingJob;
 use App\Domain\Tickets\Actions\TransitionTicket;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
@@ -12,6 +13,7 @@ use App\Support\Geo;
 use Database\Seeders\Demo\AppSettingsSeeder;
 use Database\Seeders\Demo\CatalogSeeder;
 use Database\Seeders\Demo\ZoneSeeder;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
 
@@ -30,6 +32,13 @@ beforeEach(function (): void {
     $this->seed(CatalogSeeder::class);
     $this->seed(ZoneSeeder::class);
     $this->seed(AppSettingsSeeder::class);
+
+    // La publication met la recherche de technicien en file (§8.3). Ces tests
+    // portent sur la publication elle-même : sans ce `fake`, la recherche
+    // s'exécuterait en synchrone, ne trouverait personne — aucun technicien
+    // n'est créé ici — et ferait aussitôt basculer le ticket en SANS_REPONSE.
+    // Le matching a ses propres tests.
+    Queue::fake();
 });
 
 /** Client authentifié avec une adresse dans la zone RAT-CENTRE. */
@@ -211,6 +220,17 @@ it('publie une demande au prix exact annoncé par le devis', function (): void {
         ->assertJsonPath('ticket.prix.total_gnf', $devis);
 });
 
+it('met la recherche de technicien en file dès la publication', function (): void {
+    [, $adresse] = clientAvecAdresse();
+
+    $this->postJson('/api/v1/tickets', [
+        'service_id' => Service::query()->value('id'),
+        'address_id' => $adresse->id,
+    ])->assertCreated();
+
+    Queue::assertPushed(StartMatchingJob::class);
+});
+
 it('horodate la publication et journalise la transition d\'origine', function (): void {
     [, $adresse] = clientAvecAdresse();
 
@@ -321,7 +341,11 @@ it('n’expose aucune route permettant de modifier le prix d’un ticket', funct
 
     // Publier et annuler : rien d'autre ne touche à un ticket existant, et
     // aucune des deux ne prend de montant en entrée.
-    expect($modifiantes->all())->toBe(['POST api/v1/tickets', 'DELETE api/v1/tickets/{ticket}']);
+    expect($modifiantes->all())->toBe([
+        'POST api/v1/tickets',
+        'DELETE api/v1/tickets/{ticket}',
+        'POST api/v1/tickets/{ticket}/avancer',
+    ]);
 });
 
 // ---------------------------------------------------------------- annulation --
