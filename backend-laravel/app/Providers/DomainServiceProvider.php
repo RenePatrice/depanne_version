@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Chat\Contracts\MaskedCallProvider;
+use App\Domain\Chat\Providers\MockMaskedCallProvider;
 use App\Domain\Notifications\Channels\LogPushProvider;
 use App\Domain\Notifications\Channels\LogSmsProvider;
 use App\Domain\Notifications\Contracts\PushProvider;
@@ -37,6 +39,14 @@ final class DomainServiceProvider extends ServiceProvider
                 // laravel.log. La persistance en base et la diffusion Reverb,
                 // elles, fonctionnent réellement — voir SendNotification.
                 default => new LogPushProvider,
+            };
+        });
+
+        $this->app->bind(MaskedCallProvider::class, function (): MaskedCallProvider {
+            return match (config('depanne.masked_call.provider')) {
+                // Aucun opérateur n'est branché pour le pilote : le pilote
+                // simulé renvoie un numéro fictif et le dit franchement.
+                default => new MockMaskedCallProvider,
             };
         });
 

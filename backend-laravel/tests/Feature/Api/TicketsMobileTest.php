@@ -339,13 +339,18 @@ it('n’expose aucune route permettant de modifier le prix d’un ticket', funct
         ->map(fn ($r): string => implode('|', $r->methods()).' '.$r->uri())
         ->values();
 
-    // Publier et annuler : rien d'autre ne touche à un ticket existant, et
-    // aucune des deux ne prend de montant en entrée.
-    expect($modifiantes->all())->toBe([
-        'POST api/v1/tickets',
-        'DELETE api/v1/tickets/{ticket}',
-        'POST api/v1/tickets/{ticket}/avancer',
-    ]);
+    // Liste volontairement exhaustive : ce test est un garde-fou. Toute route
+    // ajoutée sur un ticket le fait tomber, ce qui oblige à vérifier qu'elle
+    // ne prend pas de montant en entrée. Aucune de celles-ci n'en prend.
+    $this->assertSame([
+        'DELETE api/v1/tickets/{ticket}',            // annuler
+        'POST api/v1/tickets',                       // publier
+        'POST api/v1/tickets/{ticket}/appel',        // mise en relation
+        'POST api/v1/tickets/{ticket}/avancer',      // jalon d'intervention
+        'POST api/v1/tickets/{ticket}/avis',         // noter
+        'POST api/v1/tickets/{ticket}/messages',     // chat
+        'POST api/v1/tickets/{ticket}/reclamation',  // litige
+    ], $modifiantes->sort()->values()->all());
 });
 
 // ---------------------------------------------------------------- annulation --

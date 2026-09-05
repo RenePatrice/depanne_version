@@ -96,5 +96,17 @@ final class AppServiceProvider extends ServiceProvider
         // l'inonderait.
         RateLimiter::for('position', fn (Request $request): Limit => Limit::perMinute(30)
             ->by((string) $request->user()?->getKey()));
+
+        // Le chat doit rester fluide — on tape vite quand on cherche une
+        // adresse — mais une cadence anormale trahit soit un automate, soit
+        // quelqu'un qui épèle son numéro chiffre par chiffre pour passer sous
+        // le seuil du masquage.
+        RateLimiter::for('chat', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by((string) $request->user()?->getKey()));
+
+        // Une mise en relation coûte à l'opérateur : elle se demande, elle ne
+        // se martèle pas.
+        RateLimiter::for('appel', fn (Request $request): Limit => Limit::perHour(10)
+            ->by((string) $request->user()?->getKey()));
     }
 }

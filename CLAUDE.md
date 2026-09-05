@@ -20,8 +20,9 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | C — API mobile | **C1** — auth mobile, Sanctum, refresh tokens | ✅ terminée |
 | | **C2** — catalogue, adresses, tickets, PricingService | ✅ terminée |
 | | **C3** — matching, temps réel mobile, notifications | ✅ terminée |
-| | **C4** — chat, avis, litiges | ⏳ suivante |
-| | C5 → C6 | à faire |
+| | **C4** — chat, avis, litiges | ✅ terminée |
+| | **C5** — paiement, séquestre, portefeuille, retraits | ⏳ suivante |
+| | C6 | à faire |
 | D — Mobile Flutter | D1 → D5 | à faire |
 
 ## 2. Décisions du client (5 septembre 2026)
@@ -101,9 +102,9 @@ les contrôleurs web et API ne font que valider, appeler, présenter.
 | `Matching` | `MatchAttempt`, `Candidat`, `TechnicianFinder`, `MatchScorer`, les actions de sollicitation et les deux jobs |
 | `Payments` | `Payment`, énumérations `PaymentStatus` et `PaymentMethod` |
 | `Wallet` | `Transaction`, `Withdrawal`, énumérations associées |
-| `Chat` | `Message` |
-| `Reviews` | `Review` |
-| `Disputes` | `Dispute` et ses trois énumérations |
+| `Chat` | `Message`, `ContactMaskingFilter`, `SendMessage`, `MaskedCallProvider` |
+| `Reviews` | `Review`, `SubmitReview` |
+| `Disputes` | `Dispute`, ses trois énumérations, `OpenDispute` et `ResolveDispute` |
 | `Notifications` | `AppNotification`, `NotificationType`, `SendNotification`, `PushProvider` et son pilote `log` |
 | `Settings` | `AppSetting` et ses clés de configuration |
 | `Reporting` | `Periode`, `DashboardService` — toutes les agrégations du tableau de bord |
@@ -458,6 +459,57 @@ premier job rejoué, et une dérive du taux d'acceptation change qui reçoit les
 courses, donc qui gagne sa vie. Un technicien sans historique part à 1,00 :
 sinon il ne serait jamais sollicité, donc n'aurait jamais d'historique.
 
+### Chat et anti-contournement
+Le §11 appelle le contournement « risque business n°1 ». `ContactMaskingFilter`
+cherche trois choses — numéros, e-mails, liens — et normalise avant de chercher :
+un `620123456` se repère en une expression régulière, mais « six deux zéro », les
+chiffres espacés un à un et « nom arobase gmail point com » demandent une analyse
+par jetons.
+
+- **Le message part quand même**, masqué, et son auteur reçoit un avertissement
+  qui explique *pourquoi* (ADR-0030). Le refuser pousserait à recommencer
+  autrement jusqu'à trouver la faille, sans laisser de trace ; le laisser passer
+  masqué rend la tentative visible au back-office.
+- Le filtre **n'est pas étanche** et ne prétend pas l'être. Toute évolution doit
+  être jugée sur « le contournement est-il resté pénible ? », pas sur un taux de
+  détection.
+- **Les montants et les références sont épargnés** (ADR-0031) : le seuil est à
+  huit chiffres, une suite suivie de `GNF` ou précédée de `DM` est ignorée. Un
+  filtre qui masque les prix dans une conversation sur le prix pousse les gens
+  dehors — l'inverse du but. La moitié « ce qu'il ne faut pas masquer » de la
+  suite de tests est aussi fournie que l'autre.
+- Le chat n'est ouvert **qu'entre l'acceptation et la clôture**. Avant, les deux
+  parties n'ont rien à se dire ; après, rouvrir permettrait de reprendre contact
+  des semaines plus tard hors de tout cadre.
+- L'original n'est exclu qu'**à un seul endroit** — `Message::$hidden` — plutôt
+  qu'à chaque sérialisation. C'est la ligne qu'on oublie.
+- L'appel masqué a son interface et un pilote simulé qui **annonce qu'il l'est**.
+  Un bouton qui ne marche pas coûte plus cher en confiance qu'une fonction
+  annoncée comme à venir.
+
+### Avis
+L'avis pèse 30 % du score de matching : il décide de qui reçoit les courses
+suivantes. Seul le client du ticket note, une seule fois, et seulement une
+intervention réellement effectuée. La moyenne est **recalculée** depuis la table,
+jamais ajustée à l'incrément (ADR-0004).
+
+La note affichée reste la moyenne réelle ; c'est le **scoring** qui substitue une
+note neutre aux nouveaux venus. Confondre les deux afficherait 4,0 sur le profil
+d'un technicien jamais noté, ce qui serait faux.
+
+Seul le prénom du client apparaît sur un avis public : dans une ville où tout le
+monde se connaît, un avis négatif ne doit pas être un risque social.
+
+### Réclamations côté mobile
+`OpenDispute` ouvre la porte que le back-office traite depuis B5. Le ticket passe
+en LITIGE_OUVERT, ce qui **suspend la libération des fonds** — un litige déposé
+après le versement n'aurait plus de levier.
+
+La priorité est **déduite** du motif et de l'enjeu, jamais déclarée : chacun
+estimerait son propre litige urgent. Elle n'est pas exposée au déclarant, pas
+plus que l'échéance interne — les afficher inviterait à négocier son rang dans la
+file.
+
 ### Limites de débit
 Les limites de route protègent l'infrastructure et restent **plus larges** que
 les gardes métier : c'est `AuthenticateUser` qui verrouille au bout de cinq
@@ -505,7 +557,7 @@ comptes pour la même personne.
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **245 tests passent** (1 052 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **305 tests passent** (1 174 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
   le type de retour déclaré de `casts()` et prend une date castée pour une
   chaîne. Les tests Pest sont exclus de l'analyse : leurs closures liées
@@ -538,6 +590,8 @@ comptes pour la même personne.
 | 0027 | **Attribution protégée trois fois** — verrou, mise à jour conditionnelle, machine à états |
 | 0028 | **Un technicien sollicité ne l'est jamais deux fois** — élargir le rayon sert à trouver des gens nouveaux |
 | 0029 | **Le prix ferme relit l'instantané du ticket** — jamais le catalogue du jour |
+| 0030 | **Le masquage filtre et signale, il ne bloque pas** — un refus pousse à contourner sans laisser de trace |
+| 0031 | **Le masquage épargne montants et références** — un filtre qui masque les prix pousse les gens dehors |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\V1\AdresseController;
 use App\Http\Controllers\Api\V1\Auth\InscriptionController;
 use App\Http\Controllers\Api\V1\Auth\MotDePasseController;
 use App\Http\Controllers\Api\V1\Auth\SessionController;
+use App\Http\Controllers\Api\V1\AvisController;
 use App\Http\Controllers\Api\V1\CatalogueController;
+use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProfilController;
 use App\Http\Controllers\Api\V1\TechnicienController;
@@ -127,6 +129,33 @@ Route::prefix('v1')->group(function (): void {
 
         Route::post('/tickets/{ticket}/avancer', [TechnicienController::class, 'avancer'])
             ->name('api.tickets.avancer');
+
+        // --- Chat (§7.3) -----------------------------------------------------
+
+        Route::get('/tickets/{ticket}/messages', [ChatController::class, 'index'])
+            ->name('api.chat');
+
+        Route::post('/tickets/{ticket}/messages', [ChatController::class, 'store'])
+            ->middleware('throttle:chat')
+            ->name('api.chat.envoyer');
+
+        Route::post('/tickets/{ticket}/appel', [ChatController::class, 'appel'])
+            ->middleware('throttle:appel')
+            ->name('api.chat.appel');
+
+        // --- Avis et réclamations --------------------------------------------
+
+        Route::post('/tickets/{ticket}/avis', [AvisController::class, 'store'])
+            ->name('api.avis.creer');
+
+        Route::get('/techniciens/{technicien}/avis', [AvisController::class, 'pourTechnicien'])
+            ->name('api.avis.technicien');
+
+        Route::post('/tickets/{ticket}/reclamation', [AvisController::class, 'reclamation'])
+            ->name('api.reclamations.creer');
+
+        Route::get('/reclamations', [AvisController::class, 'reclamations'])
+            ->name('api.reclamations');
 
         // --- Notifications ---------------------------------------------------
 

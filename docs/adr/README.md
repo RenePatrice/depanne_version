@@ -533,3 +533,52 @@ catalogue du jour.
 est estimé lit le catalogue, ce qui est ferme lit l'instantané. Seul le
 déplacement change entre les deux calculs, et c'est bien le seul terme qui
 dépende du technicien.
+
+
+---
+
+## ADR-0030 — Le masquage filtre et signale, il ne bloque pas
+**5 septembre 2026 · acceptée**
+
+Le §7.3 impose de masquer les coordonnées échangées dans le chat, et le §11
+qualifie le contournement de risque business n°1. Restait à décider ce qu'on
+fait d'un message qui en contient : le refuser, ou le laisser passer masqué.
+
+**Décision.** Le message **part quand même**, masqué, et son auteur reçoit un
+avertissement qui explique *pourquoi* — la garantie, le support, l'historique.
+Le message est marqué `is_flagged` avec sa raison, et le texte d'origine est
+conservé pour le support seul.
+
+**Conséquence.** Refuser aurait poussé à recommencer autrement — en épelant,
+en photographiant un papier — jusqu'à trouver la faille, et sans laisser de
+trace. Laisser passer masqué rend la tentative visible : une paire
+client/technicien qui revient dans la liste des messages signalés est un signal
+exploitable, ce qu'un refus silencieux n'aurait jamais produit.
+
+Le filtre n'est **pas étanche** et ne prétend pas l'être : un numéro en soussou,
+à l'envers, ou dans une photo passera. Le but est de rendre le contournement
+assez pénible pour ne pas être le réflexe. Toute évolution doit être jugée sur
+ce critère, pas sur un taux de détection.
+
+---
+
+## ADR-0031 — Le masquage épargne les montants et les références
+**5 septembre 2026 · acceptée**
+
+Un numéro guinéen fait neuf chiffres. Mais à Conakry un montant courant —
+100 000 GNF — en fait six, un million en fait sept, et une référence
+`DM-2026-000123` en porte dix.
+
+Un filtre qui masque les prix rendrait le chat inutilisable **dans les
+conversations qui portent précisément sur le prix**, et pousserait les deux
+parties dehors : exactement l'inverse du but.
+
+**Décision.** Le seuil est à huit chiffres — assez bas pour attraper un numéro
+amputé d'un chiffre, assez haut pour laisser passer les montants. En plus, une
+suite suivie d'une mention monétaire (`GNF`, `fg`, `francs`) ou précédée d'un
+préfixe de référence (`DM`, `LIT`, `ticket`) est explicitement épargnée.
+
+**Conséquence.** Un numéro écrit sans aucun contexte et long de sept chiffres
+passerait. C'est le prix d'un chat utilisable, et la moitié « ce qu'il ne faut
+pas masquer » de la suite de tests est aussi fournie que l'autre — elle protège
+contre la tentation de durcir le filtre sans mesurer ce qu'on casse.
