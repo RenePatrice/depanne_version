@@ -18,25 +18,7 @@ Money in-app est réparti automatiquement **90 % technicien / 10 % plateforme**.
 | `docs/` | Architecture, modèle de données, ADR, guide d'environnement |
 | `scripts/` | Scripts de développement local (Windows) |
 
-## Démarrage rapide
 
-Prérequis installés en mode portable dans `%USERPROFILE%\devtools`
-(voir [docs/environnement-local.md](docs/environnement-local.md)) :
-PHP 8.4, Composer, PostgreSQL 17 + PostGIS, Node 22.
-
-```cmd
-scripts\setup.cmd     :: dépendances, .env, migrations, build des assets
-scripts\dev.cmd       :: PostgreSQL + serveur web + queue + scheduler + Reverb + Vite
-```
-
-L'application répond alors sur <http://localhost:8000> :
-
-| | |
-|---|---|
-| Back-office | <http://localhost:8000> — `admin@depanne-moi.gn` / `DepanneMoi2026` |
-| API mobile | `http://localhost:8000/api/v1` |
-| Documentation de l'API | <http://localhost:8000/docs/api> |
-| Sonde de santé | <http://localhost:8000/health> |
 
 ## Documentation
 
