@@ -10,6 +10,9 @@ use App\Domain\Notifications\Channels\LogPushProvider;
 use App\Domain\Notifications\Channels\LogSmsProvider;
 use App\Domain\Notifications\Contracts\PushProvider;
 use App\Domain\Notifications\Contracts\SmsProvider;
+use App\Domain\Payments\Contracts\PaymentProvider;
+use App\Domain\Payments\Providers\MockPaymentProvider;
+use App\Domain\Payments\Providers\OrangeMoneyProvider;
 use App\Domain\Pricing\Contracts\MapProvider;
 use App\Domain\Pricing\Providers\GoogleDistanceMatrixProvider;
 use App\Domain\Pricing\Providers\HaversineMapProvider;
@@ -48,6 +51,35 @@ final class DomainServiceProvider extends ServiceProvider
                 // simulé renvoie un numéro fictif et le dit franchement.
                 default => new MockMaskedCallProvider,
             };
+        });
+
+        $this->app->bind(PaymentProvider::class, function (): PaymentProvider {
+            $config = config('depanne.payment.orange_money');
+
+            // Le vrai fournisseur n'est atteignable que si les quatre clés
+            // sont là. Tant qu'elles manquent — c'est le cas en local — le
+            // pilote simulé prend la main, et le parcours complet reste
+            // jouable sans compte marchand.
+            $complet = config('depanne.payment.provider') === 'orange_money'
+                && is_array($config)
+                && ! in_array(null, [
+                    $config['base_url'] ?? null,
+                    $config['client_id'] ?? null,
+                    $config['client_secret'] ?? null,
+                    $config['merchant_key'] ?? null,
+                ], true);
+
+            if (! $complet) {
+                return new MockPaymentProvider;
+            }
+
+            return new OrangeMoneyProvider(
+                rtrim((string) $config['base_url'], '/'),
+                (string) $config['client_id'],
+                (string) $config['client_secret'],
+                (string) $config['merchant_key'],
+                (string) ($config['webhook_secret'] ?? ''),
+            );
         });
 
         $this->app->bind(MapProvider::class, function (): MapProvider {

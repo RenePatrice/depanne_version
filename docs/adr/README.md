@@ -582,3 +582,75 @@ préfixe de référence (`DM`, `LIT`, `ticket`) est explicitement épargnée.
 passerait. C'est le prix d'un chat utilisable, et la moitié « ce qu'il ne faut
 pas masquer » de la suite de tests est aussi fournie que l'autre — elle protège
 contre la tentation de durcir le filtre sans mesurer ce qu'on casse.
+
+
+---
+
+## ADR-0032 — Le webhook est la seule autorité sur un paiement
+**5 septembre 2026 · acceptée**
+
+Un encaissement Mobile Money a deux témoins possibles : le navigateur du client
+qui revient de la page de l'opérateur, et la notification serveur à serveur.
+
+**Décision.** Seule la **notification** décide. La route de retour du client
+n'écrit rien : elle affiche un message et renvoie vers le suivi. Le ticket ne
+passe en PAYEE que sur webhook signé.
+
+**Conséquence.** Si la route de retour tranchait, il suffirait de l'ouvrir à la
+main pour se déclarer payé. Le prix à payer est une attente : la notification
+peut arriver après le retour du client dans l'application, d'où la route de
+suivi que le mobile interroge — l'ordre des deux n'est jamais garanti.
+
+Quatre protections gardent le webhook, dans cet ordre : signature vérifiée
+avant toute lecture du corps, référence qui doit **exister** en base (une
+référence inconnue est ignorée, jamais créée), verrou par référence, et état du
+paiement revérifié dans la transaction. La réponse reste un 200 même sur un
+rejeu : répondre en erreur ferait rejouer l'opérateur indéfiniment sur un cas
+qui ne se résoudra jamais.
+
+---
+
+## ADR-0033 — Un écart de montant est tracé, pas refusé
+**5 septembre 2026 · acceptée**
+
+L'opérateur peut notifier un montant différent de celui attendu — frais
+prélevés, arrondi, ou anomalie réelle.
+
+**Décision.** La capture se fait quand même, et l'écart est journalisé dans
+`activity_log` sous le nom `finances`, avec les deux montants.
+
+**Conséquence.** L'argent est déjà parti de chez le client : refuser la
+notification le laisserait débité sans intervention payée, ce qui est pire que
+l'écart. Le rapprochement devient un travail de support, ce qui est sa place —
+mais il faut donc que quelqu'un regarde ce journal. C'est un indicateur à mettre
+au tableau de bord si le pilote en produit.
+
+---
+
+## ADR-0034 — Orange Money est écrit mais jamais branché tant que les clés manquent
+**5 septembre 2026 · acceptée**
+
+Aucun compte marchand n'est ouvert. Deux tentations : ne rien écrire et
+découvrir l'intégration au dernier moment, ou écrire du code fictif qui donne
+l'illusion d'être prêt.
+
+**Décision.** `OrangeMoneyProvider` est écrit — jeton OAuth2 mis en cache,
+initiation, vérification de signature à temps constant, lecture de la
+notification — et porte en tête un avertissement disant qu'**il n'a jamais parlé
+à l'API réelle**. Chaque champ à confirmer contre la documentation Orange est
+marqué `À CONFIRMER` à l'endroit exact où il est utilisé. Quatre points sont
+listés nommément : noms de champs de la réponse, algorithme de signature, unité
+du montant, comportement en cas de rejeu.
+
+Le conteneur ne le lie que si `PAYMENT_PROVIDER=orange_money` **et** que les
+quatre clés sont renseignées. En local, `MockPaymentProvider` prend la main.
+
+**Conséquence.** Le parcours complet — paiement, séquestre, libération,
+portefeuille, retrait — est jouable et testé dès maintenant, sans compte
+marchand. Le pilote simulé **signe ses notifications de la même façon** que le
+fera l'opérateur, si bien que le code de vérification est exercé en local et ne
+sera pas découvert le jour du branchement.
+
+Ce qui reste devant nous est nommé plutôt que caché : le jour où les clés
+arrivent, il faudra relire ce fichier ligne à ligne contre la documentation, et
+seule cette classe bougera.

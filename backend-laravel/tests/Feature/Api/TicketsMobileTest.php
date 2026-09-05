@@ -349,7 +349,9 @@ it('n’expose aucune route permettant de modifier le prix d’un ticket', funct
         'POST api/v1/tickets/{ticket}/avancer',      // jalon d'intervention
         'POST api/v1/tickets/{ticket}/avis',         // noter
         'POST api/v1/tickets/{ticket}/messages',     // chat
+        'POST api/v1/tickets/{ticket}/paiement',     // encaisser — montant lu sur le ticket
         'POST api/v1/tickets/{ticket}/reclamation',  // litige
+        'POST api/v1/tickets/{ticket}/valider',      // libérer le séquestre — sans paramètre
     ], $modifiantes->sort()->values()->all());
 });
 

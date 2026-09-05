@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\V1\AvisController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\PaiementController;
+use App\Http\Controllers\Api\V1\PortefeuilleController;
 use App\Http\Controllers\Api\V1\ProfilController;
 use App\Http\Controllers\Api\V1\TechnicienController;
 use App\Http\Controllers\Api\V1\TicketController;
@@ -61,6 +63,18 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/catalogue', [CatalogueController::class, 'index'])->name('api.catalogue');
     Route::get('/zones', [CatalogueController::class, 'zones'])->name('api.zones');
     Route::get('/reglages', [CatalogueController::class, 'reglages'])->name('api.reglages');
+
+    /*
+     * Notification d'opérateur de paiement (§8.4). Publique par nécessité :
+     * c'est l'opérateur qui appelle, pas l'utilisateur. Sa seule garde est la
+     * vérification de signature, faite dès l'entrée du contrôleur.
+     */
+    Route::post('/paiements/webhook', [PaiementController::class, 'webhook'])
+        ->middleware('throttle:webhook')
+        ->name('api.paiements.webhook');
+
+    Route::get('/paiements/retour', [PaiementController::class, 'retour'])
+        ->name('api.paiements.retour');
 
     // --- Authentifié -------------------------------------------------------
 
@@ -156,6 +170,29 @@ Route::prefix('v1')->group(function (): void {
 
         Route::get('/reclamations', [AvisController::class, 'reclamations'])
             ->name('api.reclamations');
+
+        // --- Paiement (§8.4) --------------------------------------------------
+
+        Route::post('/tickets/{ticket}/paiement', [PaiementController::class, 'store'])
+            ->middleware('throttle:paiement')
+            ->name('api.paiements.creer');
+
+        Route::post('/tickets/{ticket}/valider', [PaiementController::class, 'valider'])
+            ->name('api.paiements.valider');
+
+        Route::get('/paiements/{reference}', [PaiementController::class, 'show'])
+            ->name('api.paiements.suivi');
+
+        // --- Portefeuille et retraits ----------------------------------------
+
+        Route::get('/portefeuille', [PortefeuilleController::class, 'index'])
+            ->name('api.portefeuille');
+
+        Route::post('/retraits', [PortefeuilleController::class, 'retirer'])
+            ->name('api.retraits.creer');
+
+        Route::get('/retraits', [PortefeuilleController::class, 'retraits'])
+            ->name('api.retraits');
 
         // --- Notifications ---------------------------------------------------
 

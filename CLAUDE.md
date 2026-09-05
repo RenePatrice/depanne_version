@@ -21,8 +21,8 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | | **C2** — catalogue, adresses, tickets, PricingService | ✅ terminée |
 | | **C3** — matching, temps réel mobile, notifications | ✅ terminée |
 | | **C4** — chat, avis, litiges | ✅ terminée |
-| | **C5** — paiement, séquestre, portefeuille, retraits | ⏳ suivante |
-| | C6 | à faire |
+| | **C5** — paiement, séquestre, portefeuille, retraits | ✅ terminée |
+| | **C6** — intégration bout en bout, durcissement, doc finale | ⏳ suivante |
 | D — Mobile Flutter | D1 → D5 | à faire |
 
 ## 2. Décisions du client (5 septembre 2026)
@@ -100,8 +100,8 @@ les contrôleurs web et API ne font que valider, appeler, présenter.
 | `Tickets` | `Ticket`, `TicketEvent`, énumérations `TicketState` et `ActorType`, les 16 classes d'état |
 | `Pricing` | `PricingService`, `MapProvider` et ses deux pilotes, `Devis`, `Distance` |
 | `Matching` | `MatchAttempt`, `Candidat`, `TechnicianFinder`, `MatchScorer`, les actions de sollicitation et les deux jobs |
-| `Payments` | `Payment`, énumérations `PaymentStatus` et `PaymentMethod` |
-| `Wallet` | `Transaction`, `Withdrawal`, énumérations associées |
+| `Payments` | `Payment`, `PaymentProvider` et ses deux pilotes, `InitiatePayment`, `HandlePaymentWebhook` |
+| `Wallet` | `Transaction`, `Withdrawal`, `EscrowService`, `RequestWithdrawal`, `ProcessWithdrawal` |
 | `Chat` | `Message`, `ContactMaskingFilter`, `SendMessage`, `MaskedCallProvider` |
 | `Reviews` | `Review`, `SubmitReview` |
 | `Disputes` | `Dispute`, ses trois énumérations, `OpenDispute` et `ResolveDispute` |
@@ -510,6 +510,68 @@ estimerait son propre litige urgent. Elle n'est pas exposée au déclarant, pas
 plus que l'échéance interne — les afficher inviterait à négocier son rang dans la
 file.
 
+### Paiement et séquestre
+`PaymentProvider` a deux pilotes. **`MockPaymentProvider` est celui qui tourne
+aujourd'hui** : aucun compte marchand n'est ouvert, et le parcours complet —
+paiement, séquestre, libération, portefeuille, retrait — se joue et se teste
+sans lui. Il est fidèle sur ce qui compte : référence unique, **signature
+HMAC-SHA256 identique** à celle attendue de l'opérateur, et capacité à échouer
+(une référence contenant `ECHEC` produit un refus).
+
+`OrangeMoneyProvider` est écrit mais **n'a jamais parlé à l'API réelle**
+(ADR-0034). Chaque champ à confirmer contre la documentation Orange porte la
+mention `À CONFIRMER` à l'endroit où il est utilisé. Le conteneur ne le lie que
+si `PAYMENT_PROVIDER=orange_money` **et** que les quatre clés sont là : il ne
+peut pas être atteint par accident.
+
+> **Avant toute mise en ligne**, relire `OrangeMoneyProvider` ligne à ligne
+> contre la documentation Orange : noms de champs de la réponse d'initiation,
+> algorithme et en-tête de signature, unité du montant, comportement en cas de
+> rejeu. Seule cette classe bougera.
+
+**Le webhook est la seule autorité** (ADR-0032). La route de retour du client
+n'écrit rien : si elle tranchait, il suffirait de l'ouvrir à la main pour se
+déclarer payé. Quatre protections, dans cet ordre :
+
+1. Signature vérifiée **avant** toute lecture du corps.
+2. Référence qui doit **exister** en base — une référence inconnue est ignorée,
+   jamais créée.
+3. Verrou par référence : les opérateurs rejouent volontiers quand la première
+   réponse tarde.
+4. État du paiement revérifié dans la transaction.
+
+La réponse reste un **200 même sur un rejeu**. Répondre en erreur ferait rejouer
+l'opérateur indéfiniment sur un cas qui ne se résoudra jamais.
+
+Un écart de montant est **tracé, pas refusé** (ADR-0033) : l'argent est déjà
+parti de chez le client, refuser le laisserait débité sans intervention payée.
+L'écart part dans `activity_log` sous `finances` — il faut donc que quelqu'un
+regarde ce journal.
+
+### Le grand livre
+Entre la capture et la libération, l'argent est **encaissé mais pas acquis**.
+C'est ce qui donne au client un levier réel : une réclamation ouverte suspend
+une libération qui n'a pas eu lieu. Deux chemins de libération — le client
+valide, ou vingt-quatre heures passent. Le second n'est pas une commodité : sans
+lui, un client qui n'ouvre plus l'application bloquerait l'argent d'un
+technicien qui a fait son travail.
+
+- `EscrowService::liberer()` est **rejouable** : job différé, validation du
+  client et reprise manuelle peuvent arriver dans n'importe quel ordre.
+- **Deux mouvements, pas un** : `EARNING` du total puis `COMMISSION` en négatif.
+  Le solde fait bien le net, mais le grand livre garde trace du chiffre
+  d'affaires *et* du prélèvement. Un mouvement net unique rendrait le CA
+  irrécupérable.
+- `balance_after_gnf` est une **commodité de lecture**, pas une source de vérité
+  (ADR-0004). Le solde reste la somme des mouvements.
+- Le **retirable** n'est pas le solde : il en retranche ce qui est engagé dans
+  une demande non versée. Sans cela, un technicien déposerait trois demandes de
+  la totalité de son solde.
+
+> ⚠️ **En test, `QUEUE_CONNECTION=sync` ignore les délais.** Un test qui veut
+> observer le séquestre doit appeler `Queue::fake()`, sinon la libération
+> s'exécute dans la foulée de la capture et le séquestre n'existe jamais.
+
 ### Limites de débit
 Les limites de route protègent l'infrastructure et restent **plus larges** que
 les gardes métier : c'est `AuthenticateUser` qui verrouille au bout de cinq
@@ -557,7 +619,7 @@ comptes pour la même personne.
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **305 tests passent** (1 174 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **330 tests passent** (1 262 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
   le type de retour déclaré de `casts()` et prend une date castée pour une
   chaîne. Les tests Pest sont exclus de l'analyse : leurs closures liées
@@ -592,6 +654,9 @@ comptes pour la même personne.
 | 0029 | **Le prix ferme relit l'instantané du ticket** — jamais le catalogue du jour |
 | 0030 | **Le masquage filtre et signale, il ne bloque pas** — un refus pousse à contourner sans laisser de trace |
 | 0031 | **Le masquage épargne montants et références** — un filtre qui masque les prix pousse les gens dehors |
+| 0032 | **Le webhook est la seule autorité sur un paiement** — le retour du client n'écrit rien |
+| 0033 | **Un écart de montant est tracé, pas refusé** — l'argent est déjà parti de chez le client |
+| 0034 | **Orange Money est écrit mais jamais branché sans ses clés** — chaque champ à confirmer est marqué |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

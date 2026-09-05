@@ -108,5 +108,18 @@ final class AppServiceProvider extends ServiceProvider
         // se martèle pas.
         RateLimiter::for('appel', fn (Request $request): Limit => Limit::perHour(10)
             ->by((string) $request->user()?->getKey()));
+
+        // Lancer un paiement engage un appel à l'opérateur. La limite est
+        // basse : une intervention se paie une fois, et les reprises après
+        // échec restent rares.
+        RateLimiter::for('paiement', fn (Request $request): Limit => Limit::perMinute(5)
+            ->by((string) $request->user()?->getKey()));
+
+        // Le webhook est la seule route publique qui écrive de l'argent. La
+        // limite est large — un opérateur peut légitimement rejouer — mais
+        // elle existe : sans elle, l'adresse serait un levier de saturation
+        // pour qui la découvre, même sans signature valide.
+        RateLimiter::for('webhook', fn (Request $request): Limit => Limit::perMinute(120)
+            ->by($request->ip()));
     }
 }
