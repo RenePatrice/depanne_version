@@ -12,6 +12,7 @@ use App\Support\Geo;
 use Database\Seeders\Demo\AppSettingsSeeder;
 use Database\Seeders\Demo\CatalogSeeder;
 use Database\Seeders\Demo\ZoneSeeder;
+use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
 
 /*
@@ -282,6 +283,45 @@ it('ne montre pas le ticket d\'un autre', function (): void {
     Sanctum::actingAs(User::factory()->create());
 
     $this->getJson('/api/v1/tickets/'.$id)->assertNotFound();
+});
+
+// ------------------------------------------------------- prix non saisissable --
+
+it('ignore un montant de déplacement glissé dans la requête', function (): void {
+    [, $adresse] = clientAvecAdresse();
+    $service = Service::query()->firstOrFail();
+
+    // Le §8.2 exige que le kilométrage soit calculé, jamais saisi. Cette
+    // requête tente de le poser directement, comme le ferait un client
+    // modifié ou un technicien qui rejouerait l'appel.
+    $id = $this->postJson('/api/v1/tickets', [
+        'service_id' => $service->id,
+        'address_id' => $adresse->id,
+        'travel_fee_gnf' => 1,
+        'short_trip_uplift_gnf' => 999_999,
+        'total_gnf' => 1,
+        'commission_gnf' => 0,
+        'distance_km' => 0.1,
+    ])->json('ticket.id');
+
+    $ticket = Ticket::query()->findOrFail($id);
+
+    expect($ticket->total_gnf)->toBeGreaterThanOrEqual($service->base_price_gnf)
+        ->and($ticket->total_gnf)->not->toBe(1)
+        ->and($ticket->short_trip_uplift_gnf)->not->toBe(999_999)
+        ->and($ticket->priceIsCoherent())->toBeTrue();
+});
+
+it('n’expose aucune route permettant de modifier le prix d’un ticket', function (): void {
+    $modifiantes = collect(Route::getRoutes()->getRoutes())
+        ->filter(fn ($r): bool => str_starts_with((string) $r->uri(), 'api/v1/tickets'))
+        ->reject(fn ($r): bool => $r->methods() === ['GET', 'HEAD'])
+        ->map(fn ($r): string => implode('|', $r->methods()).' '.$r->uri())
+        ->values();
+
+    // Publier et annuler : rien d'autre ne touche à un ticket existant, et
+    // aucune des deux ne prend de montant en entrée.
+    expect($modifiantes->all())->toBe(['POST api/v1/tickets', 'DELETE api/v1/tickets/{ticket}']);
 });
 
 // ---------------------------------------------------------------- annulation --

@@ -34,7 +34,7 @@ beforeEach(function (): void {
 });
 
 /** Zone d'essai avec une grille de déplacement lisible à l'œil nu. */
-function zoneEssai(int $base = 10_000, int $parKm = 2_000, int $inclus = 5): Zone
+function zoneEssai(int $base = 0, int $parKm = 2_000, int $inclus = 3): Zone
 {
     /** @var Zone */
     return Zone::query()->create([
@@ -72,43 +72,97 @@ function tarification(MapProvider $carte): PricingService
 
 // --------------------------------------------------------------- déplacement --
 
-it('ne facture que le forfait de base sous le seuil de kilomètres inclus', function (): void {
-    $frais = tarification(carteFigee(3.2))->fraisDeplacement(zoneEssai(), 3.2);
-
-    // 10 000 de base, rien au-delà de 5 km inclus.
-    expect($frais)->toBeGnf(10_000);
+it('ne facture aucun déplacement quand le technicien est sous le seuil', function (): void {
+    expect(tarification(carteFigee(2.1))->fraisDeplacement(zoneEssai(), 2.1))->toBeGnf(0);
 });
 
-it('ne facture que le forfait quand la distance vaut exactement le seuil', function (): void {
-    expect(tarification(carteFigee(5.0))->fraisDeplacement(zoneEssai(), 5.0))->toBeGnf(10_000);
+it('ne facture aucun déplacement quand la distance vaut exactement le seuil', function (): void {
+    expect(tarification(carteFigee(3.0))->fraisDeplacement(zoneEssai(), 3.0))->toBeGnf(0);
 });
 
-it('facture les kilomètres au-delà du forfait', function (): void {
-    // 10 000 + (8 − 5) × 2 000 = 16 000, déjà multiple de 1 000.
-    expect(tarification(carteFigee(8.0))->fraisDeplacement(zoneEssai(), 8.0))->toBeGnf(16_000);
+it('facture les kilomètres au-delà du seuil', function (): void {
+    // (8 − 3) × 2 000 = 10 000, déjà multiple de 1 000.
+    expect(tarification(carteFigee(8.0))->fraisDeplacement(zoneEssai(), 8.0))->toBeGnf(10_000);
 });
 
 it('arrondit les frais de déplacement au millier supérieur', function (): void {
-    // 10 000 + 2,3 × 2 000 = 14 600 → 15 000.
-    expect(tarification(carteFigee(7.3))->fraisDeplacement(zoneEssai(), 7.3))->toBeGnf(15_000);
+    // (7,3 − 3) × 2 000 = 8 600 → 9 000.
+    expect(tarification(carteFigee(7.3))->fraisDeplacement(zoneEssai(), 7.3))->toBeGnf(9_000);
 });
 
-it('laisse intact un montant déjà multiple du pas d\'arrondi', function (): void {
-    // 10 000 + 1 × 2 000 = 12 000 : l'arrondi supérieur ne doit pas ajouter 1 000.
-    expect(tarification(carteFigee(6.0))->fraisDeplacement(zoneEssai(), 6.0))->toBeGnf(12_000);
+it('laisse intact un montant déjà multiple du pas d’arrondi', function (): void {
+    // (4 − 3) × 2 000 = 2 000 : l'arrondi supérieur ne doit pas ajouter 1 000.
+    expect(tarification(carteFigee(4.0))->fraisDeplacement(zoneEssai(), 4.0))->toBeGnf(2_000);
 });
 
-it('suit le pas d\'arrondi défini en back-office', function (): void {
+it('suit le pas d’arrondi défini en back-office', function (): void {
     AppSetting::put(AppSetting::TRAVEL_FEE_ROUNDING_GNF, 5_000);
 
-    // 14 600 arrondi au multiple de 5 000 supérieur = 15 000.
-    expect(tarification(carteFigee(7.3))->fraisDeplacement(zoneEssai(), 7.3))->toBeGnf(15_000);
+    // 8 600 arrondi au multiple de 5 000 supérieur = 10 000.
+    expect(tarification(carteFigee(7.3))->fraisDeplacement(zoneEssai(), 7.3))->toBeGnf(10_000);
 
     AppSetting::put(AppSetting::TRAVEL_FEE_ROUNDING_GNF, 1_000);
 });
 
-it('ne facture jamais de kilomètres négatifs', function (): void {
-    expect(tarification(carteFigee(0.0))->fraisDeplacement(zoneEssai(), 0.0))->toBeGnf(10_000);
+it('applique le forfait de zone quand le back-office en rétablit un', function (): void {
+    // Le forfait vaut zéro pour le pilote, mais le levier reste disponible.
+    $zone = zoneEssai(base: 15_000);
+
+    expect(tarification(carteFigee(8.0))->fraisDeplacement($zone, 8.0))->toBeGnf(25_000);
+});
+
+// ---------------------------------------------------------------- proximité --
+
+it('majore la prestation de 1 % quand le technicien est tout près', function (): void {
+    $majoration = tarification(carteFigee(2.1))->majorationProximite(zoneEssai(), 2.1, 85_000);
+
+    expect($majoration)->toBeGnf(850);
+});
+
+it('ne majore pas au-delà du seuil, où le kilométrage prend le relais', function (): void {
+    expect(tarification(carteFigee(3.1))->majorationProximite(zoneEssai(), 3.1, 85_000))->toBeGnf(0);
+});
+
+it('suit le taux de proximité défini en back-office', function (): void {
+    AppSetting::put(AppSetting::SHORT_TRIP_UPLIFT_RATE, 0.05);
+
+    expect(tarification(carteFigee(1.0))->majorationProximite(zoneEssai(), 1.0, 85_000))->toBeGnf(4_250);
+
+    AppSetting::put(AppSetting::SHORT_TRIP_UPLIFT_RATE, 0.01);
+});
+
+it('ne fait pas de marche au passage du seuil', function (): void {
+    $service = Service::query()->firstOrFail();
+    $service->forceFill(['base_price_gnf' => 85_000])->save();
+
+    $juste_avant = tarification(carteFigee(2.9))->pourTechnicien(
+        $service, zoneEssai(), Geo::point(9.60, -13.64), Geo::point(9.60, -13.63),
+    );
+    $juste_apres = tarification(carteFigee(3.1))->pourTechnicien(
+        $service, zoneEssai(), Geo::point(9.60, -13.64), Geo::point(9.60, -13.63),
+    );
+
+    // 85 850 puis 86 000 : la facture ne bondit pas pour 200 mètres.
+    expect($juste_avant->totalGnf)->toBeGnf(85_850)
+        ->and($juste_apres->totalGnf)->toBeGnf(86_000);
+});
+
+it('rend la majoration de proximité en totalité au technicien', function (): void {
+    AppSetting::put(AppSetting::COMMISSION_RATE, 0.10);
+
+    $service = Service::query()->firstOrFail();
+    $service->forceFill(['base_price_gnf' => 85_000])->save();
+
+    $devis = tarification(carteFigee(2.1))->pourTechnicien(
+        $service, zoneEssai(), Geo::point(9.60, -13.64), Geo::point(9.60, -13.638),
+    );
+
+    // Commission sur 85 000 seulement, pas sur les 850 de majoration.
+    expect($devis->totalGnf)->toBeGnf(85_850)
+        ->and($devis->majorationProximiteGnf)->toBeGnf(850)
+        ->and($devis->commissionGnf)->toBeGnf(8_500)
+        ->and($devis->netTechnicienGnf)->toBeGnf(77_350)
+        ->and($devis->commissionGnf + $devis->netTechnicienGnf)->toBe(85_850);
 });
 
 // --------------------------------------------------------------------- total --
@@ -117,7 +171,7 @@ it('compose le total à partir de la prestation, du déplacement et du suppléme
     $service = Service::query()->firstOrFail();
     $service->forceFill(['base_price_gnf' => 85_000])->save();
 
-    $devis = tarification(carteFigee(8.0))->devis(
+    $devis = tarification(carteFigee(8.0))->estimation(
         $service,
         zoneEssai(),
         Geo::point(9.60, -13.64),
@@ -125,13 +179,14 @@ it('compose le total à partir de la prestation, du déplacement et du suppléme
     );
 
     expect($devis->prixPrestationGnf)->toBeGnf(85_000)
-        ->and($devis->fraisDeplacementGnf)->toBeGnf(16_000)
+        ->and($devis->fraisDeplacementGnf)->toBeGnf(10_000)   // (8 − 3) × 2 000
+        ->and($devis->majorationProximiteGnf)->toBeGnf(0)
         ->and($devis->supplementGnf)->toBeGnf(25_000)
-        ->and($devis->totalGnf)->toBeGnf(126_000);
+        ->and($devis->totalGnf)->toBeGnf(120_000);
 });
 
 it('refuse un supplément négatif plutôt que de réduire le total', function (): void {
-    $devis = tarification(carteFigee(6.0))->devis(
+    $devis = tarification(carteFigee(6.0))->estimation(
         Service::query()->firstOrFail(),
         zoneEssai(),
         Geo::point(9.60, -13.64),
@@ -198,7 +253,7 @@ it('ajoute le supplément de diagnostic sans recalculer le déplacement figé', 
 // ------------------------------------------------------------------ distance --
 
 it('signale une distance estimée pour que le support la retrouve plus tard', function (): void {
-    $devis = tarification(carteFigee(8.0, estimee: true))->devis(
+    $devis = tarification(carteFigee(8.0, estimee: true))->estimation(
         Service::query()->firstOrFail(),
         zoneEssai(),
         Geo::point(9.60, -13.64),
@@ -208,7 +263,7 @@ it('signale une distance estimée pour que le support la retrouve plus tard', fu
         ->and($devis->colonnesTicket()['distance_is_estimated'])->toBeTrue();
 });
 
-it('applique le facteur de sinuosité paramétré au repli à vol d\'oiseau', function (): void {
+it('applique le facteur de sinuosité paramétré au repli à vol d\’oiseau', function (): void {
     AppSetting::put(AppSetting::HAVERSINE_ROAD_FACTOR, 2.0);
 
     $depart = Geo::point(9.60, -13.64);
@@ -225,8 +280,28 @@ it('applique le facteur de sinuosité paramétré au repli à vol d\'oiseau', fu
 
 // -------------------------------------------------------------------- devis --
 
+it('conserve la majoration de proximité figée lors d’un supplément', function (): void {
+    AppSetting::put(AppSetting::COMMISSION_RATE, 0.10);
+
+    $ticket = new Ticket;
+    $ticket->forceFill([
+        'base_price_gnf' => 85_000,
+        'short_trip_uplift_gnf' => 850,
+        'travel_fee_gnf' => 0,
+        'distance_km' => 2.1,
+        'distance_is_estimated' => false,
+    ]);
+
+    $devis = tarification(carteFigee(1.0))->avecSupplement($ticket, 30_000);
+
+    // Commission sur 115 000, la majoration reste entièrement au technicien.
+    expect($devis->totalGnf)->toBeGnf(115_850)
+        ->and($devis->commissionGnf)->toBeGnf(11_500)
+        ->and($devis->netTechnicienGnf)->toBeGnf(104_350);
+});
+
 it('détaille le déplacement en toutes lettres pour un prix contestable', function (): void {
-    $devis = tarification(carteFigee(8.0))->devis(
+    $devis = tarification(carteFigee(8.0))->estimation(
         Service::query()->firstOrFail(),
         zoneEssai(),
         Geo::point(9.60, -13.64),
@@ -235,11 +310,11 @@ it('détaille le déplacement en toutes lettres pour un prix contestable', funct
     $deplacement = collect($devis->pourClient()['lignes'])->firstWhere('libelle', 'Déplacement');
 
     expect($deplacement['detail'])->toContain('8,0 km')
-        ->and($deplacement['detail'])->toContain('5 km');
+        ->and($deplacement['detail'])->toContain('3 km');
 });
 
 it('masque la commission dans le détail montré au client', function (): void {
-    $devis = tarification(carteFigee(8.0))->devis(
+    $devis = tarification(carteFigee(8.0))->estimation(
         Service::query()->firstOrFail(),
         zoneEssai(),
         Geo::point(9.60, -13.64),
@@ -251,8 +326,8 @@ it('masque la commission dans le détail montré au client', function (): void {
         ->and($devis->pourClient())->not->toHaveKey('commission_gnf');
 });
 
-it('n\'affiche pas de ligne de supplément quand il n\'y en a pas', function (): void {
-    $devis = tarification(carteFigee(8.0))->devis(
+it('n\’affiche pas de ligne de supplément quand il n\’y en a pas', function (): void {
+    $devis = tarification(carteFigee(8.0))->estimation(
         Service::query()->firstOrFail(),
         zoneEssai(),
         Geo::point(9.60, -13.64),

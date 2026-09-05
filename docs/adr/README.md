@@ -372,7 +372,7 @@ côté du message d'erreur.
 ---
 
 ## ADR-0024 — Le déplacement se mesure depuis le centre de la zone
-**5 septembre 2026 · acceptée**
+**5 septembre 2026 · remplacée par l'ADR-0026 le jour même**
 
 Le §8.2 fait entrer une `distance_km` dans les frais de déplacement, sans dire
 d'où elle part. Or au moment où le client voit son prix, **aucun technicien n'est
@@ -420,3 +420,48 @@ migration, comme annoncé en A1.
 l'énumération, la classe d'état ou la valeur brute — sans lui, écrire
 `$ticket->state = TicketState::PAYEE` échouait sur une erreur de type opaque, à
 l'exécution seulement. Les trois écritures donnent désormais le même résultat.
+
+
+---
+
+## ADR-0026 — Le déplacement se facture au technicien réel, à partir de 3 km
+**5 septembre 2026 · acceptée · remplace l'ADR-0024**
+
+Précision du client sur le §8.2 : la distance qui compte est celle **entre le
+client et le technicien**, elle n'est monétisée qu'au-delà de 3 km, le
+technicien ne doit avoir aucun moyen de saisir ce montant, et sous 3 km la
+prestation est majorée de 1 % qui lui revient.
+
+Cette règle a une conséquence que le §8.2 ne mentionne pas : le prix **ne peut
+pas être ferme à la publication**, puisque aucun technicien n'est encore
+assigné. L'ADR-0024, qui mesurait depuis le centroïde pour obtenir un prix ferme
+avant publication, ne tient plus.
+
+**Décision.**
+
+1. Deux calculs, une seule formule. `estimation()` part du centroïde de la zone
+   et se déclare **provisoire** ; `pourTechnicien()` part de la position réelle
+   du technicien et est **ferme**. Le devis porte un drapeau `ferme` que
+   l'application mobile doit refléter — « à partir de », puis « total ».
+2. Le verrouillage se déplace de la publication à l'**acceptation**. C'est là
+   que le montant définitif est figé sur le ticket.
+3. Sous le seuil, le déplacement vaut zéro et la prestation est majorée du taux
+   de proximité. La majoration est **retirée de l'assiette de commission** puis
+   rendue au technicien : elle lui revient en entier, puisqu'elle remplace un
+   déplacement qu'on ne lui facture pas.
+4. Le seuil est le `included_km` de la zone, à 3 km pour les trois zones du
+   pilote. Le forfait de zone passe à **zéro** sans disparaître : un forfait non
+   nul recréerait une marche au passage du seuil — 15 000 GNF de plus pour
+   200 mètres — mais le levier reste en back-office.
+5. `short_trip_uplift_gnf` est figée sur le ticket plutôt que redérivée. Le taux
+   et le seuil sont pilotables ; rejouer le calcul dans six mois, avec les
+   réglages de six mois plus tard, donnerait un autre chiffre que celui facturé.
+
+**Conséquence.** Le client ne connaît plus son total exact au moment où il
+confirme : il voit le prix de la prestation et une estimation du déplacement.
+C'est le prix à payer pour une règle qui dépend du technicien. L'écran mobile
+devra le dire sans ambiguïté, et notifier le montant ferme à l'acceptation —
+sans quoi la première facture surprise deviendra le premier litige.
+
+Le barème reste continu au passage du seuil : 85 850 GNF à 2,9 km, 86 000 GNF à
+3,1 km. C'est ce que garantit le forfait de zone à zéro, et un test le vérifie.

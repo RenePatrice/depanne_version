@@ -51,7 +51,7 @@ final class Ticket extends Model
         'reference', 'client_id', 'technician_id', 'service_id', 'zone_id', 'state',
         'address_id', 'address_snapshot', 'location', 'problem_description', 'photos',
         'distance_km', 'distance_is_estimated',
-        'base_price_gnf', 'travel_fee_gnf', 'extra_fee_gnf', 'total_gnf',
+        'base_price_gnf', 'short_trip_uplift_gnf', 'travel_fee_gnf', 'extra_fee_gnf', 'total_gnf',
         'commission_gnf', 'technician_net_gnf', 'commission_rate',
         'diagnosis', 'diagnosis_photos', 'cancellation_reason', 'cancellation_fee_gnf',
         'published_at', 'accepted_at', 'en_route_at', 'arrived_at',
@@ -69,6 +69,7 @@ final class Ticket extends Model
             'distance_km' => 'float',
             'distance_is_estimated' => 'boolean',
             'base_price_gnf' => 'integer',
+            'short_trip_uplift_gnf' => 'integer',
             'travel_fee_gnf' => 'integer',
             'extra_fee_gnf' => 'integer',
             'total_gnf' => 'integer',
@@ -215,11 +216,14 @@ final class Ticket extends Model
     }
 
     /**
-     * Contrôle d'intégrité du prix : le total est toujours la somme de ses trois
-     * composantes. Utilisé par les tests et par la supervision.
+     * Contrôle d'intégrité du prix : le total est toujours la somme de ses
+     * quatre composantes. Utilisé par les tests et par la supervision.
      */
     public function priceIsCoherent(): bool
     {
-        return $this->total_gnf === $this->base_price_gnf + $this->travel_fee_gnf + $this->extra_fee_gnf;
+        return $this->total_gnf === $this->base_price_gnf
+            + $this->short_trip_uplift_gnf
+            + $this->travel_fee_gnf
+            + $this->extra_fee_gnf;
     }
 }

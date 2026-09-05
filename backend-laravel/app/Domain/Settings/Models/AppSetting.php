@@ -51,6 +51,8 @@ final class AppSetting extends Model
 
     public const HAVERSINE_ROAD_FACTOR = 'haversine_road_factor';
 
+    public const SHORT_TRIP_UPLIFT_RATE = 'short_trip_uplift_rate';
+
     public const CGU = 'cgu';
 
     public const POLITIQUE_CONFIDENTIALITE = 'politique_confidentialite';

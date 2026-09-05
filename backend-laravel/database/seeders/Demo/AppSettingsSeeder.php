@@ -77,6 +77,16 @@ final class AppSettingsSeeder extends Seeder
                 'description' => 'Les frais sont arrondis au multiple supérieur de cette valeur.',
             ],
             [
+                'key' => AppSetting::SHORT_TRIP_UPLIFT_RATE,
+                'value' => 0.01,
+                'group' => 'tarifs',
+                'type' => 'decimal',
+                'label' => 'Majoration des interventions de proximité',
+                'description' => '0,01 = 1 %. Appliquée quand le technicien est sous le seuil de kilomètres '
+                    ."inclus de la zone : le déplacement n'est alors pas facturé, et cette majoration "
+                    .'revient en totalité au technicien.',
+            ],
+            [
                 'key' => AppSetting::HAVERSINE_ROAD_FACTOR,
                 'value' => 1.3,
                 'group' => 'tarifs',

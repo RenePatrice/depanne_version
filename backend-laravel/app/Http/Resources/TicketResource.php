@@ -57,10 +57,14 @@ final class TicketResource extends JsonResource
 
             'prix' => [
                 'prestation_gnf' => $this->base_price_gnf,
+                'majoration_proximite_gnf' => $this->short_trip_uplift_gnf,
                 'deplacement_gnf' => $this->travel_fee_gnf,
                 'supplement_gnf' => $this->extra_fee_gnf,
                 'total_gnf' => $this->total_gnf,
                 'total_formate' => Money::format($this->total_gnf),
+                // Tant qu'aucun technicien n'a accepté, le déplacement n'est
+                // qu'une estimation : la distance facturée est la sienne.
+                'ferme' => $this->accepted_at !== null,
                 // La part technicien n'a de sens que pour lui.
                 'net_technicien_gnf' => $this->when(! $estLeClient, $this->technician_net_gnf),
             ],

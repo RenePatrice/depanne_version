@@ -66,7 +66,9 @@ final class CreateTicket
 
         $this->refuserSiDejaEnCours($client);
 
-        $devis = $this->tarification->devis($service, $zone, $point);
+        // Estimation seulement : le montant ferme sera calculé à
+        // l'acceptation, depuis la position réelle du technicien (ADR-0026).
+        $devis = $this->tarification->estimation($service, $zone, $point);
 
         $photos = array_slice($donnees['photos'] ?? [], 0, self::MAX_PHOTOS);
 

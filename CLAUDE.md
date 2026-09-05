@@ -295,23 +295,51 @@ un montant à payer. Back-office, API mobile et jeux de démonstration l'appelle
 tous : deux implémentations du même barème finiraient par diverger, et la
 divergence se lirait dans la caisse.
 
-    total             = prix_prestation + frais_déplacement + supplément
-    frais_déplacement = arrondi_sup( tarif_base_zone
-                                     + max(0, distance − km_inclus) × prix_par_km )
+La distance qui compte est celle **entre le technicien et le client**, et le
+seuil est le `included_km` de la zone — 3 km pour le pilote :
 
-- Aucune valeur n'est codée en dur : le taux de commission et le pas d'arrondi
-  viennent des paramètres, la grille de déplacement de la zone, le prix de la
-  prestation du catalogue.
-- La distance part du **centroïde de la zone**, pas du technicien : au moment du
-  devis, aucun technicien n'est assigné (ADR-0024).
+    sous le seuil    majoration  = prix_prestation × taux_proximité
+                     déplacement = 0
+
+    au-delà          majoration  = 0
+                     déplacement = arrondi_sup( forfait_zone
+                                     + (distance − seuil) × prix_par_km )
+
+    total = prix_prestation + majoration + déplacement + supplément
+
+- **Le technicien ne saisit jamais un montant.** Le kilométrage est calculé
+  depuis sa position et la grille de la zone ; aucune route de l'API ne permet
+  de l'influencer, et deux tests le vérifient — l'un tente de glisser un
+  montant dans la requête, l'autre énumère les routes qui touchent un ticket.
+- **La majoration de proximité revient en entier au technicien** : elle est
+  retirée de l'assiette de commission avant calcul, puis rendue. Elle compense
+  un déplacement qu'on ne lui facture pas.
 - Le net technicien est obtenu par **soustraction**, jamais par un second
   produit : `total × (1 − taux)` et `total − total × taux` ne donnent pas
   toujours le même entier, et l'écart d'un franc irait au grand livre.
-- Un taux de commission aberrant est borné à [0, 1] plutôt que de produire un
-  net négatif.
-- Le devis est recopié colonne par colonne sur le ticket à la publication
-  (ADR-0013). Le montant affiché avant confirmation et celui du ticket ne
-  peuvent pas diverger : c'est le même objet.
+- Le forfait de zone vaut **zéro** pour le pilote sans disparaître du
+  back-office : un forfait non nul recréerait une marche au passage du seuil —
+  15 000 GNF de plus pour 200 mètres. Le barème est aujourd'hui continu,
+  85 850 GNF à 2,9 km contre 86 000 GNF à 3,1 km, et un test le garde.
+- Un taux de commission ou de proximité aberrant est borné à [0, 1] plutôt que
+  de produire un net négatif.
+- Aucune valeur n'est codée en dur : taux de commission, taux de proximité et
+  pas d'arrondi viennent des paramètres, la grille de déplacement de la zone, le
+  prix de la prestation du catalogue.
+
+### Le prix est ferme à l'acceptation, pas à la publication
+Puisque le déplacement dépend de la position du technicien, il ne peut pas être
+ferme tant qu'aucun technicien n'a accepté (ADR-0026). D'où deux calculs et une
+seule formule :
+
+| Méthode | Point de départ | Quand | `ferme` |
+|---|---|---|---|
+| `estimation()` | centroïde de la zone | avant publication | `false` |
+| `pourTechnicien()` | position réelle du technicien | à l'acceptation (C3) | `true` |
+
+Le devis et le ticket portent tous deux ce drapeau. L'application mobile doit
+afficher « à partir de » puis « total », et **notifier le montant ferme à
+l'acceptation** : sans cela, la première facture surprise sera le premier litige.
 
 `MapProvider` a deux pilotes. `GoogleDistanceMatrixProvider` mesure la vraie
 distance routière, met en cache sur des coordonnées arrondies — à Conakry les
@@ -397,7 +425,7 @@ comptes pour la même personne.
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **190 tests passent** (903 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **196 tests passent** (931 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
   le type de retour déclaré de `casts()` et prend une date castée pour une
   chaîne. Les tests Pest sont exclus de l'analyse : leurs closures liées
@@ -424,8 +452,9 @@ comptes pour la même personne.
 | 0011 | **Files d'attente et cache sur PostgreSQL en local** — le pilote `database` fournit des verrous atomiques ; bascule sur Redis + Horizon au déploiement |
 | 0012 | **React 19** au lieu du 18 mentionné au cahier — version stable courante, API `createRoot` identique |
 | 0015 | **Modules en préparation servis sous leur URL définitive** — un lien de la barre latérale ne renvoie jamais un 404, et le passage au module réel ne change aucune adresse |
-| 0024 | **Déplacement mesuré depuis le centre de la zone** — aucun technicien n'est assigné au moment du devis |
+| 0024 | ~~Déplacement mesuré depuis le centre de la zone~~ — **remplacée par l'ADR-0026** |
 | 0025 | **Les classes d'état lisent la table de l'énumération** — une seule source de vérité pour les transitions |
+| 0026 | **Déplacement facturé au technicien réel au-delà de 3 km** — prix ferme à l'acceptation, majoration de 1 % en deçà |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

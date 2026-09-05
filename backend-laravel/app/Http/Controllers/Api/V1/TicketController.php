@@ -38,10 +38,11 @@ final class TicketController extends Controller
     /**
      * Estimer le prix avant de publier.
      *
-     * Le devis n'engage rien et ne crée aucune ligne : il donne au client le
-     * prix ferme qu'il paiera s'il confirme. C'est le même calcul, par le même
-     * service, que celui figé à la publication — le montant affiché ici et
-     * celui du ticket ne peuvent pas diverger.
+     * Le devis ne crée aucune ligne. Il ne peut pas non plus être ferme : les
+     * frais de déplacement dépendent de la distance entre le technicien et le
+     * client, et aucun technicien n'est encore assigné (ADR-0026). Le montant
+     * part donc du point de référence de la zone et se déclare provisoire ;
+     * c'est l'acceptation qui le verrouille.
      */
     public function devis(Request $request): JsonResponse
     {
@@ -72,11 +73,13 @@ final class TicketController extends Controller
         /** @var Service $service */
         $service = Service::query()->where('is_active', true)->findOrFail($valide['service_id']);
 
-        $devis = $this->tarification->devis($service, $zone, $adresse->location);
+        $devis = $this->tarification->estimation($service, $zone, $adresse->location);
 
         return response()->json([
             'devis' => $devis->pourClient(),
             'zone' => ['id' => $zone->id, 'nom' => $zone->name],
+            'avertissement' => 'Montant estimé. Le déplacement définitif sera calculé '
+                .'selon la distance du technicien qui accepte, et confirmé à ce moment-là.',
         ]);
     }
 
