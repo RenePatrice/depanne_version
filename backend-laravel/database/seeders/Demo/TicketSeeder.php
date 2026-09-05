@@ -206,7 +206,7 @@ final class TicketSeeder extends Seeder
             'technician_id' => $technician['user']->id ?? null,
             'service_id' => $service->id,
             'zone_id' => $zone?->id,
-            'state' => $state,
+            'state' => $state->value,
             'address_id' => $client['address']->id,
             'address_snapshot' => $client['address']->toSnapshot(),
             'location' => Geo::point($client['lat'], $client['lng']),

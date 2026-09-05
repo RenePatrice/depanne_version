@@ -76,5 +76,18 @@ final class AppServiceProvider extends ServiceProvider
             Limit::perHour(10)->by('ip:'.$request->ip()),
             Limit::perHour(3)->by('tel:'.$request->input('phone')),
         ]);
+
+        // Chaque devis peut déclencher un appel Distance Matrix facturé. La
+        // limite est large pour un usage normal — on compare quelques
+        // prestations avant de choisir — et serrée face à un balayage
+        // systématique de la grille tarifaire.
+        RateLimiter::for('devis', fn (Request $request): Limit => Limit::perMinute(20)
+            ->by((string) $request->user()?->getKey()));
+
+        // Publier reste rare : une panne à la fois. Cette limite n'est qu'un
+        // garde-fou ; c'est `CreateTicket` qui refuse une seconde demande
+        // ouverte, avec un message compréhensible.
+        RateLimiter::for('publication', fn (Request $request): Limit => Limit::perHour(10)
+            ->by((string) $request->user()?->getKey()));
     }
 }

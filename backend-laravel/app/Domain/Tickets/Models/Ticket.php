@@ -13,6 +13,7 @@ use App\Domain\Matching\Models\MatchAttempt;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Reviews\Models\Review;
 use App\Domain\Tickets\Data\TicketState;
+use App\Domain\Tickets\States\TicketStatus;
 use App\Domain\Wallet\Models\Transaction;
 use App\Domain\Zones\Models\Zone;
 use Clickbar\Magellan\Data\Geometries\Point;
@@ -21,15 +22,31 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\ModelStates\HasStates;
 
 /**
  * Demande d'intervention. Voir §8.1 pour le cycle de vie et §8.2 pour le prix.
  *
  * Les colonnes de prix sont un instantané pris à la publication : rejouer le
  * calcul plus tard ne doit jamais changer ce qui a été annoncé au client.
+ *
+ * Les trois clés étrangères effaçables sont déclarées nullables : la migration
+ * les pose en `nullOnDelete`, et un ticket dont la zone ou l'adresse a été
+ * supprimée doit rester lisible. Sans ces annotations, l'analyse statique croit
+ * ces relations toujours présentes et laisse passer un accès à null.
+ *
+ * @property TicketStatus $state
+ * @property int|null $technician_id
+ * @property int|null $zone_id
+ * @property int|null $address_id
+ * @property-read User|null $technician
+ * @property-read Zone|null $zone
+ * @property-read Address|null $address
  */
 final class Ticket extends Model
 {
+    use HasStates;
+
     protected $fillable = [
         'reference', 'client_id', 'technician_id', 'service_id', 'zone_id', 'state',
         'address_id', 'address_snapshot', 'location', 'problem_description', 'photos',
@@ -44,7 +61,7 @@ final class Ticket extends Model
     protected function casts(): array
     {
         return [
-            'state' => TicketState::class,
+            'state' => TicketStatus::class,
             'address_snapshot' => 'array',
             'location' => Point::class,
             'photos' => 'array',

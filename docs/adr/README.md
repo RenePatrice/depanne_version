@@ -368,3 +368,55 @@ que le temps de réponse ne trahisse rien. La demande de réinitialisation répo
 **Conséquence.** Un utilisateur qui se trompe de numéro ne l'apprendra pas de
 l'API ; l'écran mobile devra donc afficher le numéro saisi, en toutes lettres, à
 côté du message d'erreur.
+
+---
+
+## ADR-0024 — Le déplacement se mesure depuis le centre de la zone
+**5 septembre 2026 · acceptée**
+
+Le §8.2 fait entrer une `distance_km` dans les frais de déplacement, sans dire
+d'où elle part. Or au moment où le client voit son prix, **aucun technicien n'est
+assigné** : le matching n'a pas encore tourné. Il n'existe donc pas de position
+de départ réelle à cet instant, et le prix doit pourtant être ferme (ADR-0013).
+
+Trois lectures étaient possibles : mesurer depuis le technicien (impossible,
+il n'existe pas encore), mesurer depuis un dépôt fictif (arbitraire), ou mesurer
+depuis la zone elle-même.
+
+**Décision.** La distance part du **centroïde de la zone** qui contient
+l'adresse, calculé par PostGIS et mis en cache jusqu'à la prochaine
+modification de l'emprise.
+
+**Conséquence.** Deux clients de la même rue paient exactement le même
+déplacement, ce qui est défendable au téléphone. Le prix croît vers les bords de
+la zone, là où le technicien roule effectivement plus loin. En revanche il ne
+reflète pas le trajet réellement parcouru par le technicien retenu : c'est un
+tarif, pas un compteur. Si le pilote montre un écart systématique entre les
+frais encaissés et la peine réelle des techniciens, la variable d'ajustement est
+le découpage des zones, pas la formule.
+
+---
+
+## ADR-0025 — Les classes d'état lisent la table de l'énumération
+**5 septembre 2026 · acceptée**
+
+Le §8.1 impose `spatie/laravel-model-states` : une classe par statut, des
+transitions déclarées, une exception sur toute transition illégale. La phase A1
+avait livré la même table de transitions sous forme d'énumération, faute de
+pouvoir mettre de la logique métier dans A1 (ADR-0014).
+
+Recopier la table dans les classes d'état aurait créé deux sources de vérité.
+Elles auraient divergé, et la divergence se serait payée en tickets bloqués dans
+un état sans issue.
+
+**Décision.** `TicketStatus::config()` **lit** `TicketState::transitionsPossibles()`
+pour déclarer les transitions au paquet. L'énumération reste la source unique et
+garde les libellés, les couleurs et les listes d'états ; les classes d'état
+délèguent tout cela et n'apportent que la garde du paquet. Le nom de chaque
+classe est la valeur déjà stockée en base : le basculement n'a demandé aucune
+migration, comme annoncé en A1.
+
+**Conséquence.** Un cast maison, `TicketStatusCaster`, accepte indifféremment
+l'énumération, la classe d'état ou la valeur brute — sans lui, écrire
+`$ticket->state = TicketState::PAYEE` échouait sur une erreur de type opaque, à
+l'exécution seulement. Les trois écritures donnent désormais le même résultat.

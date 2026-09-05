@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Settings\Models;
 
+use DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
@@ -80,25 +81,49 @@ final class AppSetting extends Model
      */
     public static function get(string $key, mixed $default = null): mixed
     {
-        return Cache::rememberForever(self::CACHE_PREFIX.$key, static function () use ($key, $default): mixed {
-            $setting = self::query()->where('key', $key)->first();
+        $cle = self::CACHE_PREFIX.$key;
 
-            if ($setting === null) {
-                return $default;
-            }
+        $cache = Cache::get($cle);
 
-            $value = $setting->value;
+        if ($cache !== null) {
+            return $cache['v'];
+        }
 
-            return array_key_exists('v', $value) ? $value['v'] : $value;
-        });
+        $setting = self::query()->where('key', $key)->first();
+
+        // Une clé absente n'est **pas** mise en cache. Sans cela, un `get()`
+        // appelé avant que le seeder n'ait tourné figerait la valeur par
+        // défaut pour toujours, et le réglage saisi en back-office resterait
+        // sans effet jusqu'au prochain vidage de cache.
+        if ($setting === null) {
+            return $default;
+        }
+
+        $value = $setting->value;
+        $valeur = array_key_exists('v', $value) ? $value['v'] : $value;
+
+        Cache::forever($cle, ['v' => $valeur]);
+
+        return $valeur;
     }
 
+    /**
+     * Les clés sont déclarées par le seeder, avec leur libellé et leur groupe :
+     * elles ne s'inventent pas à l'exécution. Écrire une clé inconnue créerait
+     * une ligne sans libellé, invisible dans le back-office et impossible à
+     * corriger depuis l'interface.
+     *
+     * @throws DomainException si la clé n'existe pas
+     */
     public static function put(string $key, mixed $value, ?int $updatedBy = null): void
     {
-        self::query()->updateOrCreate(
-            ['key' => $key],
-            ['value' => ['v' => $value], 'updated_by' => $updatedBy],
-        );
+        $setting = self::query()->where('key', $key)->first();
+
+        if ($setting === null) {
+            throw new DomainException(sprintf('Paramètre inconnu : %s.', $key));
+        }
+
+        $setting->forceFill(['value' => ['v' => $value], 'updated_by' => $updatedBy])->save();
 
         Cache::forget(self::CACHE_PREFIX.$key);
     }

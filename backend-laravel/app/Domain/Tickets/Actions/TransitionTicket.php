@@ -46,9 +46,11 @@ final class TransitionTicket
         ?int $acteurId = null,
         array $metadonnees = [],
     ): Ticket {
-        $depuis = $ticket->state;
+        $depuis = $ticket->state->etat();
 
-        if (! $depuis->peutAllerVers($cible)) {
+        // La légalité est vérifiée par le paquet d'états, à partir des
+        // transitions déclarées dans TicketStatus::config() (§8.1).
+        if (! $ticket->state->peutAllerVers($cible)) {
             throw new DomainException(sprintf(
                 'Transition interdite : %s ne peut pas passer à %s.',
                 $depuis->label(),
@@ -57,7 +59,7 @@ final class TransitionTicket
         }
 
         return DB::transaction(function () use ($ticket, $depuis, $cible, $acteur, $acteurId, $metadonnees): Ticket {
-            $modifications = ['state' => $cible];
+            $modifications = ['state' => $cible->value];
 
             $jalon = self::JALONS[$cible->value] ?? null;
 

@@ -80,7 +80,7 @@ function ticketRegle(int $total, int $commission): Ticket
         'client_id' => $client->id,
         'technician_id' => $technicien->id,
         'service_id' => Service::query()->value('id'),
-        'state' => TicketState::PAYEE,
+        'state' => TicketState::PAYEE->value,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma, Conakry'],
         'location' => Geo::point(9.598, -13.643),
         'base_price_gnf' => $total - 15_000,

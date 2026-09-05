@@ -38,7 +38,7 @@ function ticket(TicketState $etat, ?User $technicien = null): Ticket
         'client_id' => $client->id,
         'technician_id' => $technicien->id,
         'service_id' => Service::query()->value('id'),
-        'state' => $etat,
+        'state' => $etat->value,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma, Conakry'],
         'location' => Geo::point(9.598, -13.643),
         'base_price_gnf' => 85_000,
@@ -54,7 +54,7 @@ it('refuse une transition que la machine à états interdit', function (): void 
     expect(fn () => app(TransitionTicket::class)->execute($ticket, TicketState::EN_COURS))
         ->toThrow(DomainException::class);
 
-    expect($ticket->fresh()->state)->toBe(TicketState::CLOTUREE);
+    expect($ticket->fresh()->state->etat())->toBe(TicketState::CLOTUREE);
 });
 
 it('journalise chaque transition légale et horodate son jalon', function (): void {
@@ -66,7 +66,7 @@ it('journalise chaque transition légale et horodate son jalon', function (): vo
 
     $ticket->refresh();
 
-    expect($ticket->state)->toBe(TicketState::EN_ROUTE)
+    expect($ticket->state->etat())->toBe(TicketState::EN_ROUTE)
         ->and($ticket->en_route_at)->not->toBeNull()
         ->and($ticket->events()->count())->toBe(1)
         ->and($ticket->events()->first()->from_state)->toBe(TicketState::ACCEPTEE);
@@ -91,7 +91,7 @@ it('annule un ticket et impute l\'annulation à la bonne partie', function (): v
 
     $ticket->refresh();
 
-    expect($ticket->state)->toBe(TicketState::ANNULEE_TECHNICIEN)
+    expect($ticket->state->etat())->toBe(TicketState::ANNULEE_TECHNICIEN)
         ->and($ticket->cancellation_reason)->toBe('Le technicien ne répond plus.');
 });
 
@@ -107,7 +107,7 @@ it('force la clôture d\'un ticket payé', function (): void {
 
     app(ForceCloseTicket::class)->execute($ticket, 'Le client ne valide pas depuis trois jours.', 1);
 
-    expect($ticket->fresh()->state)->toBe(TicketState::CLOTUREE)
+    expect($ticket->fresh()->state->etat())->toBe(TicketState::CLOTUREE)
         ->and($ticket->fresh()->closed_at)->not->toBeNull();
 });
 

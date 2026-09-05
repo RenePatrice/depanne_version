@@ -18,8 +18,9 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | | **B5** — finances, retraits, litiges | ✅ terminée |
 | | **B6** — carte live temps réel | ✅ terminée |
 | C — API mobile | **C1** — auth mobile, Sanctum, refresh tokens | ✅ terminée |
-| | **C2** — catalogue, adresses, tickets, PricingService | ⏳ suivante |
-| | C3 → C6 | à faire |
+| | **C2** — catalogue, adresses, tickets, PricingService | ✅ terminée |
+| | **C3** — matching, temps réel mobile, notifications | ⏳ suivante |
+| | C4 → C6 | à faire |
 | D — Mobile Flutter | D1 → D5 | à faire |
 
 ## 2. Décisions du client (5 septembre 2026)
@@ -93,9 +94,9 @@ les contrôleurs web et API ne font que valider, appeler, présenter.
 |---|---|
 | `Accounts` | `User`, `AdminUser`, `ClientProfile`, `TechnicianProfile`, `Address`, `RefreshToken`, `PasswordResetCode` |
 | `Catalog` | `ServiceCategory`, `Service`, énumération `Specialty` |
-| `Zones` | `Zone` |
-| `Tickets` | `Ticket`, `TicketEvent`, énumérations `TicketState` et `ActorType` |
-| `Pricing` | *(vide — `PricingService` en phase C2)* |
+| `Zones` | `Zone`, `ZoneService` (rattachement et point de référence) |
+| `Tickets` | `Ticket`, `TicketEvent`, énumérations `TicketState` et `ActorType`, les 16 classes d'état |
+| `Pricing` | `PricingService`, `MapProvider` et ses deux pilotes, `Devis`, `Distance` |
 | `Matching` | `MatchAttempt`, énumération `MatchResponse` |
 | `Payments` | `Payment`, énumérations `PaymentStatus` et `PaymentMethod` |
 | `Wallet` | `Transaction`, `Withdrawal`, énumérations associées |
@@ -111,11 +112,18 @@ le seul fichier autorisé à appeler `env()`, ailleurs la valeur disparaîtrait 
 que la configuration est mise en cache.
 
 ### État du ticket
-La colonne `tickets.state` est aujourd'hui castée vers l'énumération
-`App\Domain\Tickets\Data\TicketState`. En phase C2,
-`spatie/laravel-model-states` reprendra cette colonne avec une classe par état
-et des transitions déclarées ; les valeurs de l'énumération sont déjà les noms
-d'états définitifs, **aucune migration ne sera nécessaire**.
+La colonne `tickets.state` est castée vers `Tickets\States\TicketStatus`, la
+classe de base de `spatie/laravel-model-states`. Les 16 états sont des classes
+dont le `$name` est la valeur déjà stockée en base : le passage aux classes
+d'état n'a demandé **aucune migration**, comme annoncé en A1.
+
+La table des transitions n'est pas recopiée : `TicketStatus::config()` lit
+`TicketState::transitionsPossibles()` (ADR-0025). L'énumération reste la source
+unique et garde libellés, couleurs et listes d'états ; les classes délèguent.
+
+`TicketStatusCaster` accepte indifféremment l'énumération, la classe d'état ou
+la valeur brute. Sans lui, `$ticket->state = TicketState::PAYEE` échouait sur
+une erreur de type opaque, à l'exécution seulement.
 
 ## 6. Back-office
 
@@ -281,6 +289,67 @@ Préfixe `/api/v1`, documentation OpenAPI générée par Scramble sur **`/docs/a
 - « Mot de passe oublié » répond la même chose pour un numéro inconnu : l'API ne
   doit pas servir à savoir qui utilise Dépanne-Moi.
 
+### Tarification
+`Pricing\Services\PricingService` est le **seul** endroit du projet qui produit
+un montant à payer. Back-office, API mobile et jeux de démonstration l'appellent
+tous : deux implémentations du même barème finiraient par diverger, et la
+divergence se lirait dans la caisse.
+
+    total             = prix_prestation + frais_déplacement + supplément
+    frais_déplacement = arrondi_sup( tarif_base_zone
+                                     + max(0, distance − km_inclus) × prix_par_km )
+
+- Aucune valeur n'est codée en dur : le taux de commission et le pas d'arrondi
+  viennent des paramètres, la grille de déplacement de la zone, le prix de la
+  prestation du catalogue.
+- La distance part du **centroïde de la zone**, pas du technicien : au moment du
+  devis, aucun technicien n'est assigné (ADR-0024).
+- Le net technicien est obtenu par **soustraction**, jamais par un second
+  produit : `total × (1 − taux)` et `total − total × taux` ne donnent pas
+  toujours le même entier, et l'écart d'un franc irait au grand livre.
+- Un taux de commission aberrant est borné à [0, 1] plutôt que de produire un
+  net négatif.
+- Le devis est recopié colonne par colonne sur le ticket à la publication
+  (ADR-0013). Le montant affiché avant confirmation et celui du ticket ne
+  peuvent pas diverger : c'est le même objet.
+
+`MapProvider` a deux pilotes. `GoogleDistanceMatrixProvider` mesure la vraie
+distance routière, met en cache sur des coordonnées arrondies — à Conakry les
+demandes se concentrent sur quelques quartiers et chaque appel est facturé — et
+**ne lève jamais d'exception** : toute anomalie rend la main à
+`HaversineMapProvider`, qui applique le facteur de sinuosité paramétré. Un devis
+ne peut pas échouer parce qu'un tiers a hoqueté ; il se dégrade et le dit, par
+le drapeau `distance_is_estimated` conservé sur le ticket.
+
+Sans clé Google, le conteneur lie directement le pilote Haversine : tenter
+l'appel renverrait `REQUEST_DENIED` sur chaque devis et le repli se ferait après
+un aller-retour réseau inutile.
+
+### Publication d'une demande
+- `CreateTicket` crée le ticket en BROUILLON puis le fait passer en PUBLIEE
+  **par la machine à états**. Ce détour garantit qu'un ticket publié a toujours
+  sa ligne `ticket_events` et son `published_at` : l'historique n'a pas de trou
+  au point de départ.
+- Un client ne peut avoir qu'une demande ouverte. Sans cette garde, un client
+  agacé par l'attente republie la même panne : deux techniciens se déplacent, un
+  seul est payé, et le second impute l'annulation à son propre taux.
+- La référence vient d'une **séquence PostgreSQL**. Un compteur calculé en PHP
+  ne tient pas la concurrence : deux publications simultanées liraient la même
+  valeur et la seconde échouerait sur l'unicité, au pire moment.
+- L'adresse est figée en instantané : le client peut la supprimer, l'historique
+  reste lisible.
+- Les frais d'annulation ne démarrent qu'à EN_ROUTE — tant que personne n'a
+  bougé, annuler ne coûte rien — et sont **figés sur le ticket** au moment de
+  l'annulation, pas relus à l'encaissement.
+
+### Ce que l'API ne montre pas
+- Un ticket ou une adresse qui n'est pas à soi répond **404**, jamais 403 :
+  répondre « interdit » confirmerait son existence.
+- Le numéro de l'autre partie n'est en clair que pendant une intervention
+  active ; masqué avant et après.
+- La part technicien n'apparaît pas dans la réponse servie au client, et la
+  commission ne figure pas dans le détail du devis : le client paie un total.
+
 ### Limites de débit
 Les limites de route protègent l'infrastructure et restent **plus larges** que
 les gardes métier : c'est `AuthenticateUser` qui verrouille au bout de cinq
@@ -328,7 +397,7 @@ comptes pour la même personne.
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **143 tests passent** ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **190 tests passent** (903 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
   le type de retour déclaré de `casts()` et prend une date castée pour une
   chaîne. Les tests Pest sont exclus de l'analyse : leurs closures liées
@@ -355,6 +424,8 @@ comptes pour la même personne.
 | 0011 | **Files d'attente et cache sur PostgreSQL en local** — le pilote `database` fournit des verrous atomiques ; bascule sur Redis + Horizon au déploiement |
 | 0012 | **React 19** au lieu du 18 mentionné au cahier — version stable courante, API `createRoot` identique |
 | 0015 | **Modules en préparation servis sous leur URL définitive** — un lien de la barre latérale ne renvoie jamais un 404, et le passage au module réel ne change aucune adresse |
+| 0024 | **Déplacement mesuré depuis le centre de la zone** — aucun technicien n'est assigné au moment du devis |
+| 0025 | **Les classes d'état lisent la table de l'énumération** — une seule source de vérité pour les transitions |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).
@@ -366,6 +437,6 @@ Chaque ADR est détaillé dans [docs/adr/](docs/adr/).
 | `docker-compose` en A0 | Remplacé par `scripts\*.cmd` | Décision client : pas de Docker |
 | Redis + Horizon | Reportés au déploiement | Ni Redis ni Docker en local ; Horizon exige `ext-pcntl`, absente sous Windows |
 | React 18 | React 19.2 | Version stable courante, îlots identiques |
-| `app/Domain/` à 10 contextes | 13 contextes | Ajout de `Pricing/` (§8.2 impose un `PricingService` testé), `Settings/` (accès typé et caché à `app_settings`) et `Reviews/` (l'avis a son propre cycle de vie et alimente le scoring) |
-| Machine à états dès A1 | Énumération `TicketState` en A1, spatie/model-states en C2 | A1 ne doit contenir aucune logique métier ; les valeurs sont déjà définitives |
+| `app/Domain/` à 10 contextes | 14 contextes | Ajout de `Pricing/` (§8.2 impose un `PricingService` testé), `Settings/` (accès typé et caché à `app_settings`) et `Reviews/` (l'avis a son propre cycle de vie et alimente le scoring) |
+| Machine à états dès A1 | Énumération `TicketState` en A1, spatie/model-states livré en C2 | A1 ne devait contenir aucune logique métier ; le basculement n'a demandé aucune migration |
 | Supabase dès A1 | PostgreSQL local d'abord | Décision client ; bascule par simple changement de `.env` |

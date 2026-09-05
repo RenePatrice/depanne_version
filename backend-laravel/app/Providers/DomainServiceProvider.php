@@ -6,6 +6,9 @@ namespace App\Providers;
 
 use App\Domain\Notifications\Channels\LogSmsProvider;
 use App\Domain\Notifications\Contracts\SmsProvider;
+use App\Domain\Pricing\Contracts\MapProvider;
+use App\Domain\Pricing\Providers\GoogleDistanceMatrixProvider;
+use App\Domain\Pricing\Providers\HaversineMapProvider;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -24,6 +27,25 @@ final class DomainServiceProvider extends ServiceProvider
                 // n'est choisie, le code part dans laravel.log.
                 default => new LogSmsProvider,
             };
+        });
+
+        $this->app->bind(MapProvider::class, function (): MapProvider {
+            $repli = new HaversineMapProvider;
+
+            $cle = config('depanne.map.google_server_key');
+
+            // Sans clé, on ne tente même pas l'appel : Google renverrait
+            // REQUEST_DENIED sur chaque devis et le repli serait fait après
+            // un aller-retour réseau inutile.
+            if (config('depanne.map.provider') !== 'google' || ! is_string($cle) || $cle === '') {
+                return $repli;
+            }
+
+            return new GoogleDistanceMatrixProvider(
+                $repli,
+                $cle,
+                (int) config('depanne.map.distance_cache_ttl', 604800),
+            );
         });
     }
 }
