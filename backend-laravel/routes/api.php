@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Auth\SessionController;
 use App\Http\Controllers\Api\V1\AvisController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ChatController;
+use App\Http\Controllers\Api\V1\DiagnosticController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaiementController;
 use App\Http\Controllers\Api\V1\PortefeuilleController;
@@ -156,6 +157,17 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/tickets/{ticket}/appel', [ChatController::class, 'appel'])
             ->middleware('throttle:appel')
             ->name('api.chat.appel');
+
+        // --- Supplément après diagnostic (§8.1) ------------------------------
+
+        Route::post('/tickets/{ticket}/diagnostic', [DiagnosticController::class, 'proposer'])
+            ->name('api.diagnostic.proposer');
+
+        Route::get('/tickets/{ticket}/diagnostic', [DiagnosticController::class, 'apercu'])
+            ->name('api.diagnostic');
+
+        Route::post('/tickets/{ticket}/diagnostic/reponse', [DiagnosticController::class, 'repondre'])
+            ->name('api.diagnostic.repondre');
 
         // --- Avis et réclamations --------------------------------------------
 

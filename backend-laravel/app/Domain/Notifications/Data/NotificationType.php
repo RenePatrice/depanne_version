@@ -23,6 +23,8 @@ enum NotificationType: string
     case TECHNICIEN_ARRIVE = 'TECHNICIEN_ARRIVE';
     case INTERVENTION_TERMINEE = 'INTERVENTION_TERMINEE';
     case PAIEMENT_RECU = 'PAIEMENT_RECU';
+    case DIAGNOSTIC_PROPOSE = 'DIAGNOSTIC_PROPOSE';
+    case DIAGNOSTIC_TRANCHE = 'DIAGNOSTIC_TRANCHE';
     case TICKET_ANNULE = 'TICKET_ANNULE';
     case AUCUN_TECHNICIEN = 'AUCUN_TECHNICIEN';
 
@@ -39,6 +41,8 @@ enum NotificationType: string
             self::TECHNICIEN_ARRIVE => 'Technicien arrivé',
             self::INTERVENTION_TERMINEE => 'Intervention terminée',
             self::PAIEMENT_RECU => 'Paiement reçu',
+            self::DIAGNOSTIC_PROPOSE => 'Supplément proposé',
+            self::DIAGNOSTIC_TRANCHE => 'Réponse du client',
             self::TICKET_ANNULE => 'Demande annulée',
             self::AUCUN_TECHNICIEN => 'Aucun technicien disponible',
             self::NOUVELLE_DEMANDE => 'Nouvelle demande',
@@ -69,6 +73,9 @@ enum NotificationType: string
             self::TECHNICIEN_ARRIVE => '{technicien} est arrivé à l\'adresse indiquée.',
             self::INTERVENTION_TERMINEE => 'L\'intervention {reference} est terminée. Total : {total}.',
             self::PAIEMENT_RECU => 'Paiement de {total} reçu pour {reference}.',
+            self::DIAGNOSTIC_PROPOSE => '{technicien} propose un supplément de {supplement} '
+                .'pour {reference}. Nouveau total : {total}. À toi de valider.',
+            self::DIAGNOSTIC_TRANCHE => 'Le client a {decision} le supplément pour {reference}.',
             self::TICKET_ANNULE => 'La demande {reference} a été annulée.',
             self::AUCUN_TECHNICIEN => 'Aucun technicien n\'est disponible pour {reference} '
                 .'pour le moment. Tu peux réessayer dans quelques minutes.',
@@ -86,6 +93,9 @@ enum NotificationType: string
      */
     public function estUrgente(): bool
     {
-        return $this === self::NOUVELLE_DEMANDE;
+        // La sollicitation a une fenêtre de 45 secondes ; le supplément
+        // immobilise un technicien devant une porte. Les deux doivent réveiller
+        // le téléphone, le reste peut attendre qu'on regarde l'écran.
+        return $this === self::NOUVELLE_DEMANDE || $this === self::DIAGNOSTIC_PROPOSE;
     }
 }

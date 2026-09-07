@@ -550,6 +550,31 @@ parti de chez le client, refuser le laisserait débité sans intervention payée
 L'écart part dans `activity_log` sous `finances` — il faut donc que quelqu'un
 regarde ce journal.
 
+### Supplément après diagnostic
+Le seul endroit où le total d'un ticket accepté peut augmenter, et **la seule
+route de l'API qui accepte un montant en entrée**. Trois gardes le rendent
+acceptable :
+
+- le technicien **propose**, il ne décide pas. Le ticket passe en
+  DIAGNOSTIC_EN_ATTENTE et `total_gnf` ne bouge pas tant que le client n'a pas
+  répondu. Le montant proposé vit dans `proposed_extra_fee_gnf`, distinct de
+  `extra_fee_gnf` qui est le supplément **appliqué** ;
+- il est **plafonné au double de la prestation** — assez large pour une pièce
+  coûteuse, assez ferme pour transformer une dérive en refus explicite plutôt
+  qu'en négociation sur le pas de la porte ;
+- le **diagnostic écrit est obligatoire**, vingt caractères au minimum. Un
+  supplément sans explication est un litige à venir dont le support n'aurait
+  rien à examiner.
+
+À l'acceptation, la répartition est **entièrement recalculée** : ajouter le
+supplément au total sans reventiler laisserait la commission porter sur
+l'ancien montant. Un refus n'annule rien — le technicien est sur place et fait
+ce qui était prévu, d'où la transition DIAGNOSTIC_REFUSE → EN_COURS.
+
+> Cette route a fait tomber le garde-fou « aucune route ne prend de montant ».
+> C'était son rôle : le test liste désormais l'exception, la nomme, et un
+> second test vérifie que le montant saisi n'est pas appliqué sans accord.
+
 ### Le grand livre
 Entre la capture et la libération, l'argent est **encaissé mais pas acquis**.
 C'est ce qui donne au client un levier réel : une réclamation ouverte suspend
@@ -735,7 +760,7 @@ devant un tableau de bord vide.
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **344 tests passent** (1 366 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **360 tests passent** (1 423 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
   le type de retour déclaré de `casts()` et prend une date castée pour une
   chaîne. Les tests Pest sont exclus de l'analyse : leurs closures liées

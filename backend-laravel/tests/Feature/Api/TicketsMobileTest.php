@@ -340,19 +340,58 @@ it('n’expose aucune route permettant de modifier le prix d’un ticket', funct
         ->values();
 
     // Liste volontairement exhaustive : ce test est un garde-fou. Toute route
-    // ajoutée sur un ticket le fait tomber, ce qui oblige à vérifier qu'elle
-    // ne prend pas de montant en entrée. Aucune de celles-ci n'en prend.
+    // ajoutée sur un ticket le fait tomber, ce qui oblige à se demander si elle
+    // laisse quelqu'un saisir un montant.
+    //
+    // Une seule le fait — `/diagnostic` — et c'est prévu par le §8.1 : le
+    // technicien qui découvre une pièce à changer doit pouvoir la chiffrer. Elle
+    // est encadrée par le test juste en dessous. Toutes les autres tirent leur
+    // montant du ticket, jamais de la requête.
     $this->assertSame([
-        'DELETE api/v1/tickets/{ticket}',            // annuler
-        'POST api/v1/tickets',                       // publier
-        'POST api/v1/tickets/{ticket}/appel',        // mise en relation
-        'POST api/v1/tickets/{ticket}/avancer',      // jalon d'intervention
-        'POST api/v1/tickets/{ticket}/avis',         // noter
-        'POST api/v1/tickets/{ticket}/messages',     // chat
-        'POST api/v1/tickets/{ticket}/paiement',     // encaisser — montant lu sur le ticket
-        'POST api/v1/tickets/{ticket}/reclamation',  // litige
-        'POST api/v1/tickets/{ticket}/valider',      // libérer le séquestre — sans paramètre
+        'DELETE api/v1/tickets/{ticket}',                     // annuler
+        'POST api/v1/tickets',                                // publier
+        'POST api/v1/tickets/{ticket}/appel',                 // mise en relation
+        'POST api/v1/tickets/{ticket}/avancer',               // jalon d'intervention
+        'POST api/v1/tickets/{ticket}/avis',                  // noter
+        'POST api/v1/tickets/{ticket}/diagnostic',            // supplément — SEULE à prendre un montant
+        'POST api/v1/tickets/{ticket}/diagnostic/reponse',    // décision du client, sans montant
+        'POST api/v1/tickets/{ticket}/messages',              // chat
+        'POST api/v1/tickets/{ticket}/paiement',              // encaisser — montant lu sur le ticket
+        'POST api/v1/tickets/{ticket}/reclamation',           // litige
+        'POST api/v1/tickets/{ticket}/valider',               // libérer le séquestre — sans paramètre
     ], $modifiantes->sort()->values()->all());
+});
+
+it('n’applique pas le montant que le technicien a saisi sans accord du client', function (): void {
+    // La contrepartie de l'exception ci-dessus. Le technicien chiffre, mais le
+    // total ne bouge pas tant que le client n'a rien dit — c'est ce qui sépare
+    // une révision de prix d'une facture imposée sur le pas de la porte.
+    [, $adresse] = clientAvecAdresse();
+
+    $ticketId = $this->postJson('/api/v1/tickets', [
+        'service_id' => Service::query()->value('id'),
+        'address_id' => $adresse->id,
+    ])->json('ticket.id');
+
+    $ticket = Ticket::query()->findOrFail($ticketId);
+    $technicien = User::factory()->technician()->create();
+
+    $totalAvant = $ticket->total_gnf;
+
+    $ticket->forceFill([
+        'technician_id' => $technicien->id,
+        'state' => TicketState::SUR_PLACE->value,
+    ])->save();
+
+    Sanctum::actingAs($technicien);
+
+    $this->postJson("/api/v1/tickets/{$ticketId}/diagnostic", [
+        'diagnostic' => 'Le flexible est percé et le robinet d’arrêt ne ferme plus, '
+            .'les deux sont à remplacer.',
+        'supplement_gnf' => 25_000,
+    ])->assertCreated();
+
+    expect(Ticket::query()->findOrFail($ticketId)->total_gnf)->toBe($totalAvant);
 });
 
 // ---------------------------------------------------------------- annulation --
