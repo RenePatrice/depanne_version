@@ -8,7 +8,7 @@ consomme l'API `/api/v1` du backend Laravel, sans jamais toucher à la base.
 | Phase | Contenu | État |
 |---|---|---|
 | **D1** | Design system, thèmes, client Dio + refresh, auth, navigation, sélecteur de mode | ✅ terminée |
-| D2 | Parcours client : catalogue → adresse → prix → publication → suivi → paiement → avis | à faire |
+| **D2** | Parcours client : catalogue → adresse → prix → publication → suivi → supplément → paiement → avis → historique | ✅ terminée |
 | D3 | Parcours technicien : disponibilité, réception, intervention, portefeuille | à faire |
 | D4 | Chat, push, temps réel, mode hors-ligne | à faire |
 | D5 | Build, signature, publication | à faire |
@@ -30,9 +30,10 @@ scripts\mobile-verifier.cmd        :: format + analyse + tests
 > `FLUTTER_ROOT` l'expose. Les deux scripts s'en chargent ; en cas d'appel
 > direct, prévoir `for %%I in ("%USERPROFILE%\devtools\flutter") do set FLUTTER_ROOT=%%~sI`.
 
-Le SDK Android **n'est pas installé** : il n'est nécessaire qu'à partir de D2,
-pour lancer l'application sur un appareil. `flutter analyze` et `flutter test`
-tournent sans lui.
+Le SDK Android **n'est pas installé** : il n'est nécessaire que pour lancer
+l'application sur un appareil ou produire un APK. `flutter analyze` et
+`flutter test` tournent sans lui, et c'est ce que vérifie
+`scripts\mobile-verifier.cmd`.
 
 ## Lancer
 
@@ -63,6 +64,11 @@ lib/
     onboarding/            trois écrans d'introduction
     auth/                  inscription, connexion, mot de passe oublié, dossier
     shared/                démarrage, accueil, sélecteur de mode
+    client/
+      data/                modèles JSON et ClientRepository
+      application/         fournisseurs Riverpod et brouillon de demande
+      presentation/        catalogue, demande, suivi, paiement, avis, profil
+    chat/                  messagerie — annoncée, livrée en D4
 ```
 
 ## Ce qu'il faut savoir avant de toucher au code
@@ -82,6 +88,26 @@ couvert par onze tests.
 le corps plus commodément ferait passer les 401 à côté de l'intercepteur, et
 tout le mécanisme de rafraîchissement deviendrait silencieusement inopérant.
 
+**Le prix se lit avant de s'engager.** Le bouton « Publier ma demande » reste
+inactif tant que le devis n'est pas affiché, et le mot employé suit le drapeau
+`ferme` du serveur : « à partir de » avant qu'un technicien n'ait accepté,
+« total » après. Le déplacement dépend de la position du technicien, qui
+n'existe pas encore au moment de la publication (ADR-0026) ; annoncer un total
+à ce stade produirait la première facture surprise, donc la première
+réclamation.
+
+**Aucun montant ne part vers le serveur.** Le prix est calculé côté Laravel, à
+partir de la grille de la zone et de la position réelle du technicien. Un test
+énumère tous les appels mutants du parcours client et refuse qu'une clé de
+requête contienne « montant », « prix », « gnf » ou « km ». Si un jour un écran
+doit envoyer un chiffre, c'est ce test qu'il faudra convaincre — et l'exception
+devra être nommée, pas glissée.
+
+**L'application ne décide pas qu'un paiement a réussi.** Elle lance
+l'encaissement puis interroge `/paiements/{reference}` jusqu'à ce que le serveur
+tranche : le webhook est la seule autorité (ADR-0032). Une interrogation qui
+échoue est ignorée — le réseau a hoqueté, la suivante réessaiera.
+
 **Les messages d'erreur viennent du serveur.** L'API les rédige en français pour
 être affichés tels quels. `ApiException` ne fabrique un texte que lorsque le
 serveur n'a rien pu dire.
@@ -93,5 +119,5 @@ serveur n'a rien pu dire.
 | SDK Android | build de l'APK, lancement sur appareil |
 | Compte Apple Developer + machine macOS ou CI | build iOS — **impossible depuis Windows** |
 | Polices Poppins et Inter dans `assets/fonts/` | typographie de la maquette |
-| Clés Google Maps Android et iOS | carte, adresse, suivi |
+| Clés Google Maps Android et iOS | carte, suivi, et remplacer la liste de quartiers par un sélecteur sur carte |
 | Projet Firebase | notifications push |

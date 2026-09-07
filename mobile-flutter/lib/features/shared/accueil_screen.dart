@@ -5,17 +5,20 @@ import '../../core/app_mode.dart';
 import '../../core/providers.dart';
 import '../../design_system/components/dm_composants.dart';
 import '../auth/application/session_controller.dart';
+import '../client/presentation/catalogue_screen.dart';
+import '../client/presentation/historique_screen.dart';
+import '../client/presentation/profil_client_screen.dart';
 import 'mode/selecteur_mode.dart';
 
 /// Coquille d'accueil, commune aux deux modes.
 ///
-/// Elle porte la navigation, l'identité visuelle du mode et la bascule ; les
-/// onglets sont vides à dessein. Les remplir est le travail des phases D2
-/// (parcours client) et D3 (parcours technicien) — les livrer à moitié ici
-/// donnerait l'illusion d'une application terminée.
+/// Elle porte la navigation, l'identité visuelle du mode et la bascule. Les
+/// onglets client sont livrés depuis la phase D2 ; ceux du technicien
+/// annoncent encore ce qu'ils contiendront, et arrivent en D3 — les remplir à
+/// moitié donnerait l'illusion d'une application terminée.
 ///
-/// Les libellés d'onglets sont déjà les bons : le jour où le contenu arrive, la
-/// navigation ne bouge pas, et personne n'a à réapprendre où sont les choses.
+/// Les libellés d'onglets ne bougent pas d'une phase à l'autre : personne n'a à
+/// réapprendre où sont les choses quand le contenu arrive.
 class AccueilScreen extends ConsumerStatefulWidget {
   const AccueilScreen({super.key});
 
@@ -61,11 +64,23 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
           ),
         ],
       ),
-      body: DmVide(
-        icone: onglets[index].icone,
-        titre: onglets[index].libelle,
-        texte: onglets[index].aVenir,
-      ),
+      // Les onglets client sont conservés vivants d'un passage à l'autre :
+      // revenir sur « Mes demandes » ne doit pas relancer un chargement que
+      // l'on vient de payer, ni perdre la position dans la liste.
+      body: mode == AppMode.client
+          ? IndexedStack(
+              index: index,
+              children: const <Widget>[
+                CatalogueVue(),
+                HistoriqueScreen(),
+                ProfilClientScreen(),
+              ],
+            )
+          : DmVide(
+              icone: onglets[index].icone,
+              titre: onglets[index].libelle,
+              texte: onglets[index].aVenir,
+            ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (int i) => setState(() => _onglet = i),
@@ -77,23 +92,13 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
     );
   }
 
+  // Le texte « à venir » ne sert plus côté client : les trois onglets ont leur
+  // écran. Il est conservé sur la structure pour le mode technicien, livré en
+  // D3, et disparaîtra avec le dernier onglet vide.
   static const List<_Onglet> _ongletsClient = <_Onglet>[
-    _Onglet(
-      Icons.add_circle_outline,
-      'Demander',
-      'Le catalogue des prestations, le choix de l\'adresse et le prix arrivent '
-          'en phase D2.',
-    ),
-    _Onglet(
-      Icons.receipt_long_outlined,
-      'Mes demandes',
-      'Le suivi de tes interventions, en cours et passées, arrive en phase D2.',
-    ),
-    _Onglet(
-      Icons.person_outline,
-      'Profil',
-      'Adresses, moyens de paiement et paramètres arrivent en phase D2.',
-    ),
+    _Onglet(Icons.add_circle_outline, 'Demander', ''),
+    _Onglet(Icons.receipt_long_outlined, 'Mes demandes', ''),
+    _Onglet(Icons.person_outline, 'Profil', ''),
   ];
 
   static const List<_Onglet> _ongletsTechnicien = <_Onglet>[

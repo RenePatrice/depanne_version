@@ -7,6 +7,12 @@ import '../../features/auth/presentation/connexion_screen.dart';
 import '../../features/auth/presentation/dossier_technicien_screen.dart';
 import '../../features/auth/presentation/inscription_screen.dart';
 import '../../features/auth/presentation/mot_de_passe_oublie_screen.dart';
+import '../../features/chat/presentation/chat_screen.dart';
+import '../../features/client/presentation/adresse_form_screen.dart';
+import '../../features/client/presentation/avis_screen.dart';
+import '../../features/client/presentation/catalogue_screen.dart';
+import '../../features/client/presentation/nouvelle_demande_screen.dart';
+import '../../features/client/presentation/suivi_ticket_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/shared/accueil_screen.dart';
 import '../../features/shared/demarrage_screen.dart';
@@ -86,9 +92,51 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
         builder: (_, _) => const DossierTechnicienScreen(),
       ),
       GoRoute(path: '/accueil', builder: (_, _) => const AccueilScreen()),
+
+      // --- Parcours client ------------------------------------------------
+      //
+      // Empilées sur l'accueil plutôt que fondues dans ses onglets : le
+      // parcours est linéaire — catalogue, demande, suivi — et le bouton
+      // « retour » du téléphone doit défaire une étape, pas quitter
+      // l'application.
+      GoRoute(
+        path: '/client/catalogue',
+        builder: (_, _) => const CatalogueScreen(),
+      ),
+      GoRoute(
+        path: '/client/demande',
+        builder: (_, _) => const NouvelleDemandeScreen(),
+      ),
+      GoRoute(
+        path: '/client/adresse',
+        builder: (_, _) => const AdresseFormScreen(),
+      ),
+      GoRoute(
+        path: '/client/suivi/:id',
+        builder: (_, GoRouterState state) =>
+            SuiviTicketScreen(ticketId: _identifiant(state)),
+      ),
+      GoRoute(
+        path: '/client/avis/:id',
+        builder: (_, GoRouterState state) =>
+            AvisScreen(ticketId: _identifiant(state)),
+      ),
+      GoRoute(
+        path: '/client/chat/:id',
+        builder: (_, GoRouterState state) =>
+            ChatScreen(ticketId: _identifiant(state)),
+      ),
     ],
   );
 });
+
+/// Identifiant de ticket porté par l'URL.
+///
+/// Un segment illisible vaut zéro, et l'écran affichera l'erreur que renverra
+/// l'API — plutôt qu'une exception au moment de construire la route, qui
+/// laisserait un écran blanc sans rien expliquer.
+int _identifiant(GoRouterState state) =>
+    int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
 
 /// Pont entre Riverpod et go_router.
 ///

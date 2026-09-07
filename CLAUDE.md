@@ -24,8 +24,9 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | | **C5** — paiement, séquestre, portefeuille, retraits | ✅ terminée |
 | | **C6** — intégration bout en bout, durcissement, doc finale | ✅ terminée |
 | D — Mobile Flutter | **D1** — design system, auth, navigation, client Dio | ✅ terminée |
-| | **D2** — parcours client complet | ⏳ suivante |
-| | D3 → D5 | à faire |
+| | **D2** — parcours client complet | ✅ terminée |
+| | **D3** — parcours technicien | ⏳ suivante |
+| | D4 → D5 | à faire |
 
 ## 2. Décisions du client (5 septembre 2026)
 
@@ -671,11 +672,11 @@ une donnée attendue par l'écran suivant et jamais renvoyée. Il a trouvé troi
 ## 7 ter. Application mobile (bloc D)
 
 Flutter **3.47.2** / Dart 3.13.2, installé en portable dans
-`%USERPROFILE%\devtoolslutter`. Riverpod pour l'état, go_router pour la
+`%USERPROFILE%\devtools\flutter`. Riverpod pour l'état, go_router pour la
 navigation, Dio pour le réseau.
 
 ```cmd
-scriptslutter.cmd run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+scripts\flutter.cmd run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 scripts\mobile-verifier.cmd        :: format + analyse + tests
 ```
 
@@ -714,10 +715,52 @@ Deux détails qui ont l'air anodins :
   Seul un 401 sur le refresh lui-même est sans appel. Sans cette nuance, toute
   perte de couverture déconnecterait l'utilisateur.
 
-### Ce que D1 ne fait pas
-Les onglets d'accueil sont vides et le disent : les remplir est le travail de
-D2 et D3. Leurs libellés sont déjà les bons, si bien que la navigation ne
-bougera pas quand le contenu arrivera.
+### Le parcours client (D2)
+Catalogue, adresse, prix, publication, recherche, suivi, supplément, paiement,
+avis, historique — le parcours entier du §7.2, par l'API seule.
+
+`ClientRepository` est **la seule** classe qui connaisse la forme du JSON.
+Au-dessus, on ne manipule que des objets typés ; le jour où un champ est
+renommé côté serveur, la correspondance saute aux yeux à un seul endroit.
+
+Trois écrans portent l'essentiel des décisions :
+
+- **`nouvelle_demande_screen.dart`** — le bouton de publication reste inactif
+  tant que le devis n'est pas affiché. Publier sans avoir vu le prix serait
+  possible techniquement et contraire à toute la promesse. Le mot employé suit
+  `devis.ferme` : « à partir de » avant qu'un technicien n'ait accepté, « total »
+  après (ADR-0026). Trois tests de widget gardent ces deux règles.
+- **`suivi_ticket_screen.dart`** — un seul écran pour les seize états, piloté par
+  l'état renvoyé, jamais par une pile d'écrans propre à chaque étape. Il
+  interroge le ticket toutes les dix secondes et **s'arrête sur un état final** :
+  une interrogation qui continue après la clôture consomme le forfait de
+  quelqu'un. Reverb remplacera cette boucle en D4 ; elle restera le repli.
+- **`paiement_feuille.dart`** — l'application ne conclut jamais qu'un paiement a
+  réussi ; elle interroge `/paiements/{reference}` jusqu'à ce que le serveur le
+  dise (ADR-0032). Une interrogation qui échoue est ignorée : le réseau a
+  hoqueté, la suivante réessaiera, et afficher une erreur ferait croire au
+  client que son argent est perdu.
+
+**Aucun montant ne remonte vers le serveur.** Un test énumère tous les appels
+mutants du parcours et refuse qu'une clé contienne « montant », « prix », « gnf »
+ou « km » — le pendant mobile du garde-fou de l'API. C'est la porte d'entrée
+d'une facture négociée dans l'application, et elle reste fermée des deux côtés.
+
+Le carnet d'adresses passe par une liste de **neuf quartiers** de Ratoma plutôt
+que par un sélecteur sur carte : celui-ci demande une clé Google Maps que le
+pilote n'a pas encore. La position n'a pas à être exacte au mètre — elle sert à
+trouver la zone et à mesurer une distance, tous deux à l'échelle du kilomètre —
+et c'est le **point de repère écrit** qui amène réellement quelqu'un devant la
+bonne porte. Le jour où la carte arrive, seul `adresse_form_screen.dart` change.
+
+### Ce que D2 ne fait pas
+Les onglets du mode technicien sont vides et le disent : ils arrivent en D3.
+Leurs libellés sont déjà les bons, si bien que la navigation ne bougera pas.
+
+La messagerie répond sous son adresse définitive — `/client/chat/:id` — en
+annonçant qu'elle arrive en D4, pour la même raison qu'en back-office
+(ADR-0015) : le bouton « Discuter » du suivi mène quelque part qui explique,
+plutôt que nulle part.
 
 Le dépôt du dossier technicien est annoncé pour D3 — il demande l'appareil
 photo, la carte et le téléversement. L'écran existe malgré tout : un technicien

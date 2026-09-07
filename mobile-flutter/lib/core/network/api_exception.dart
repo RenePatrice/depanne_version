@@ -99,3 +99,18 @@ class ApiException implements Exception {
   @override
   String toString() => 'ApiException($statut): $message';
 }
+
+/// Message affichable pour n'importe quelle erreur.
+///
+/// Les écrans reçoivent un `Object` de Riverpod, pas un type précis. Cette
+/// fonction préfère toujours le message de l'API — rédigé en français, pour
+/// être montré tel quel — et ne fabrique un texte que si l'erreur vient
+/// d'ailleurs. Sans elle, chaque écran ferait son propre `is ApiException`, et
+/// l'un d'eux finirait par afficher une trace de pile à un client de Ratoma.
+String messageErreur(Object erreur) => erreur is ApiException
+    ? erreur.message
+    : 'Une erreur est survenue. Réessaie dans un instant.';
+
+/// Vrai quand l'erreur vient du réseau : l'écran peut alors proposer
+/// « Réessayer » plutôt qu'un message définitif.
+bool erreurReseau(Object erreur) => erreur is ApiException && erreur.reseau;
