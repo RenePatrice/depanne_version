@@ -23,8 +23,9 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | | **C4** — chat, avis, litiges | ✅ terminée |
 | | **C5** — paiement, séquestre, portefeuille, retraits | ✅ terminée |
 | | **C6** — intégration bout en bout, durcissement, doc finale | ✅ terminée |
-| D — Mobile Flutter | **D1** — design system, auth, navigation, client Dio | ⏳ suivante |
-| | D2 → D5 | à faire |
+| D — Mobile Flutter | **D1** — design system, auth, navigation, client Dio | ✅ terminée |
+| | **D2** — parcours client complet | ⏳ suivante |
+| | D3 → D5 | à faire |
 
 ## 2. Décisions du client (5 septembre 2026)
 
@@ -641,6 +642,62 @@ les tests unitaires ne voient pas : un champ renommé d'un côté et pas de
 l'autre, une transition possible en théorie mais inaccessible par les routes,
 une donnée attendue par l'écran suivant et jamais renvoyée. Il a trouvé trois
 écarts à sa première exécution.
+
+## 7 ter. Application mobile (bloc D)
+
+Flutter **3.47.2** / Dart 3.13.2, installé en portable dans
+`%USERPROFILE%\devtoolslutter`. Riverpod pour l'état, go_router pour la
+navigation, Dio pour le réseau.
+
+```cmd
+scriptslutter.cmd run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+scripts\mobile-verifier.cmd        :: format + analyse + tests
+```
+
+> ⚠️ **Le chemin du SDK doit passer par le nom court 8.3.** L'outillage Flutter
+> compile ses greffons natifs en appelant `dart` sans guillemets ; le profil
+> utilisateur de cette machine contient un espace, et `flutter test` échoue si
+> `FLUTTER_ROOT` l'expose. Les deux scripts s'en chargent.
+
+### Le design system est en double, à dessein
+`mobile-flutter/lib/design_system/design_tokens.dart` et
+`backend-laravel/resources/scss/_tokens.scss` décrivent **le même** système.
+Toute modification se porte des deux côtés ; un test compare les trois couleurs
+de marque, pour que la dérive se voie avant qu'on la remarque à l'œil.
+
+Le mode Client est bleu, le mode Technicien orange. Ce n'est pas décoratif :
+c'est ce qui permet de savoir dans quel mode on se trouve sans lire. Un
+technicien qui se croit en mode client cherche un bouton qui n'existe pas.
+
+### Le rafraîchissement des jetons est sérialisé
+Le refresh token tourne à chaque usage (ADR-0022). Une application mobile lance
+volontiers cinq requêtes en parallèle au retour sur un écran : si le jeton a
+expiré entre-temps, cinq rafraîchissements partiraient avec le même refresh
+token, le serveur y verrait un rejeu, et **le mécanisme censé maintenir la
+session la détruirait**.
+
+`AuthInterceptor` n'en laisse partir qu'un : les autres attendent son résultat
+et repartent avec le jeton neuf. Onze tests couvrent ce fichier, dont celui de
+la concurrence.
+
+Deux détails qui ont l'air anodins :
+
+- `validateStatus` s'arrête à **400**. L'élargir aux 4xx — réflexe courant pour
+  lire le corps plus commodément — ferait passer les 401 à côté de
+  l'intercepteur, et le rafraîchissement deviendrait silencieusement inopérant.
+- Une coupure réseau pendant le rafraîchissement **n'efface pas** les jetons.
+  Seul un 401 sur le refresh lui-même est sans appel. Sans cette nuance, toute
+  perte de couverture déconnecterait l'utilisateur.
+
+### Ce que D1 ne fait pas
+Les onglets d'accueil sont vides et le disent : les remplir est le travail de
+D2 et D3. Leurs libellés sont déjà les bons, si bien que la navigation ne
+bougera pas quand le contenu arrivera.
+
+Le dépôt du dossier technicien est annoncé pour D3 — il demande l'appareil
+photo, la carte et le téléversement. L'écran existe malgré tout : un technicien
+qui vient de s'inscrire doit savoir où en est son dossier, pas se retrouver
+devant un tableau de bord vide.
 
 ## 8. Conventions de code
 

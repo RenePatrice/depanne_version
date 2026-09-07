@@ -148,7 +148,11 @@ it('bascule la maille des revenus à la semaine au-delà d\'un mois', function (
 
 it('range la carte de chaleur du lundi au dimanche', function (): void {
     // Un mercredi à 14 h : ISODOW vaut 3, donc l'index attendu est 2.
-    $mercredi = CarbonImmutable::now()->startOfWeek()->addDays(2)->setTime(14, 0);
+    //
+    // Celui de la semaine **précédente**, jamais celui de la semaine en cours :
+    // un lundi ou un mardi, le mercredi courant est dans le futur et tombe hors
+    // de la fenêtre de trente jours. Le test passait alors cinq jours sur sept.
+    $mercredi = CarbonImmutable::now()->startOfWeek()->subWeek()->addDays(2)->setTime(14, 0);
 
     ticketDeTest(TicketState::CLOTUREE, $mercredi, 100_000, 10_000);
 
