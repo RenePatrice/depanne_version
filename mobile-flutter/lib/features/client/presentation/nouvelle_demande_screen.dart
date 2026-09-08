@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
+import '../../shared/data/modeles.dart';
 import '../application/client_providers.dart';
-import '../data/modeles.dart';
 
 /// Adresse, description, prix, publication.
 ///

@@ -5,7 +5,7 @@ import 'package:depanne_moi/core/auth/token_store.dart';
 import 'package:depanne_moi/core/config/app_config.dart';
 import 'package:depanne_moi/core/network/api_client.dart';
 import 'package:depanne_moi/features/client/data/client_repository.dart';
-import 'package:depanne_moi/features/client/data/modeles.dart';
+import 'package:depanne_moi/features/shared/data/modeles.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -7,8 +7,8 @@ import '../../../core/providers.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
 import '../../auth/application/session_controller.dart';
+import '../../shared/data/modeles.dart';
 import '../application/client_providers.dart';
-import '../data/modeles.dart';
 
 /// Profil client : identité et carnet d'adresses.
 ///

@@ -707,3 +707,85 @@ le disque de stockage peut rester entièrement privé. La réponse porte
 `Cache-Control: no-store` : une pièce d'identité n'a rien à faire dans le cache
 d'un navigateur partagé. Et la validation de dossier se démontre en local, ce
 qui n'était pas le cas.
+
+---
+
+## ADR-0037 — L'itinéraire passe par l'application de cartographie du téléphone
+**8 septembre 2026 · acceptée**
+
+Le technicien doit se rendre chez le client. La réponse réflexe est une carte
+embarquée dans l'application — `google_maps_flutter`, un marqueur, un tracé.
+Elle coûte une clé Google Maps, une facturation active, et le poids du SDK dans
+le binaire.
+
+**Décision.** L'écran d'intervention ouvre le schéma `geo:` et laisse
+l'application de cartographie installée prendre la main. Aucune clé n'est
+requise. Le **point de repère écrit** — « portail vert, en face de la
+pharmacie » — est affiché en grand, au-dessus de tout le reste.
+
+**Conséquence.** L'application guide mieux qu'elle ne le ferait elle-même :
+Google Maps ou Waze connaissent le trafic, savent recalculer, et fonctionnent
+hors ligne si leurs cartes sont téléchargées. Le manifeste déclare la requête
+`geo:` — sans elle, Android 11 et suivants répondent « aucune application »
+même quand Maps est installé. Si rien ne peut ouvrir le lien, l'écran le dit :
+un bouton silencieux coûte plus cher en confiance qu'un message
+d'indisponibilité.
+
+À Conakry, une coordonnée à dix mètres près n'amène personne devant la bonne
+porte ; c'est le repère écrit qui le fait. La carte embarquée reste possible le
+jour où une clé existe, mais elle ne remplacera pas le repère.
+
+---
+
+## ADR-0038 — Le suivi GPS est lié à l'intervention, jamais à un interrupteur
+**8 septembre 2026 · acceptée**
+
+La position du technicien alimente le matching (§8.3) et la carte live du
+back-office (§10). Il faut donc la remonter — mais un GPS actif vide une
+batterie en quelques heures et collecte une donnée personnelle.
+
+**Décision.** Le flux démarre quand une intervention active apparaît et
+s'arrête avec elle. Deux cadences : huit secondes pendant une intervention, où
+le client regarde le point avancer ; deux minutes en simple disponibilité, où
+seule la zone compte. La permission est demandée au moment où elle sert, pas au
+premier lancement.
+
+**Conséquence.** Personne n'est suivi sans raison. Un interrupteur laisserait un
+technicien pisté toute la nuit pour avoir oublié de le couper — et le reproche
+serait justifié. Demander la permission au lancement, avant d'avoir montré à
+quoi elle sert, produit un refus définitif difficile à rattraper.
+
+Corollaire : **un échec d'envoi ne remonte jamais à l'écran**. Le GPS met
+parfois trente secondes à accrocher, le réseau coupe. Une position perdue est un
+désagrément ; une exception au milieu d'un écran d'intervention est une panne.
+Deux envois ne se chevauchent jamais — sur un réseau lent, la file grossirait
+plus vite qu'elle ne se vide et le serveur recevrait des positions périmées dans
+le désordre.
+
+---
+
+## ADR-0039 — Le SDK Android est installé par le binaire `android`, jamais par AGP
+**8 septembre 2026 · acceptée**
+
+Sur cette machine, le `sdkmanager` livré avec les *command-line tools* est
+déprécié et **plante en sortie** (NTSTATUS 0xC0000409) : l'installation
+aboutit, le processus meurt après. AGP l'appelle pour installer ce qui manque,
+prend le plantage pour un échec, et fait échouer le build sur une erreur qui ne
+nomme pas la pièce absente. Il installe au passage une plateforme corrompue —
+`platforms/android-37.0` avec un `ApiLevel` invalide.
+
+**Décision.** Toutes les pièces du SDK sont installées explicitement, par le
+binaire `android`, avant le premier build :
+
+```
+android sdk install platforms/android-36 build-tools/36.1.0 ndk/28.2.13676358
+```
+
+Le NDK y figure bien qu'aucune ligne de C ne soit écrite : le plugin Gradle de
+Flutter impose sa version.
+
+**Conséquence.** `flutter_secure_storage` **11.0.0 compile contre l'API 37**,
+qui n'existe au dépôt Google que sous des noms mineurs — `android-37.0`,
+`37.1`… — qu'AGP ne sait pas résoudre depuis `compileSdk = 37`. La dépendance
+est fixée à `^10.3.1`, qui compile contre 36 ; l'API Dart utilisée est
+identique. À revoir quand AGP saura résoudre les versions mineures.

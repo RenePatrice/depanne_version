@@ -1,5 +1,5 @@
 import '../../../core/network/api_client.dart';
-import 'modeles.dart';
+import '../../shared/data/modeles.dart';
 
 /// Tous les appels du parcours client.
 ///

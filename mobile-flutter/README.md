@@ -9,31 +9,56 @@ consomme l'API `/api/v1` du backend Laravel, sans jamais toucher à la base.
 |---|---|---|
 | **D1** | Design system, thèmes, client Dio + refresh, auth, navigation, sélecteur de mode | ✅ terminée |
 | **D2** | Parcours client : catalogue → adresse → prix → publication → suivi → supplément → paiement → avis → historique | ✅ terminée |
-| D3 | Parcours technicien : disponibilité, réception, intervention, portefeuille | à faire |
+| **D3** | Parcours technicien : disponibilité, réception, intervention, supplément, portefeuille, position GPS | ✅ terminée |
 | D4 | Chat, push, temps réel, mode hors-ligne | à faire |
 | D5 | Build, signature, publication | à faire |
 
 ## Outillage
 
-Flutter **3.47.2** (Dart 3.13.2), installé en portable dans
-`%USERPROFILE%\devtools\flutter`. Aucun droit administrateur, aucune variable
-d'environnement système.
+Flutter **3.47.2** (Dart 3.13.2) et le **SDK Android** (plateforme 36,
+build-tools 36.1.0, NDK 28.2.13676358), installés en portable dans
+`%USERPROFILE%\devtools`. Aucun droit administrateur, aucune variable
+d'environnement système, pas d'Android Studio.
 
 ```cmd
 scripts\flutter.cmd --version      :: n'importe quelle commande flutter
+scripts\flutter.cmd build apk --debug
 scripts\mobile-verifier.cmd        :: format + analyse + tests
 ```
 
-> **Le chemin du SDK passe par le nom court 8.3.** L'outillage de Flutter
-> compile ses greffons natifs en appelant `dart` sans guillemets : le profil
-> utilisateur de cette machine contient un espace, et la compilation échoue si
-> `FLUTTER_ROOT` l'expose. Les deux scripts s'en chargent ; en cas d'appel
-> direct, prévoir `for %%I in ("%USERPROFILE%\devtools\flutter") do set FLUTTER_ROOT=%%~sI`.
+> **Les chemins des SDK passent par le nom court 8.3.** L'outillage de Flutter
+> et celui d'Android compilent leurs greffons natifs en appelant `dart` et
+> `aapt2` sans guillemets : le profil utilisateur de cette machine contient un
+> espace, et la compilation échoue si `FLUTTER_ROOT` ou `ANDROID_HOME`
+> l'exposent. Les deux scripts s'en chargent ; en cas d'appel direct, prévoir
+> `for %%I in ("%USERPROFILE%\devtools\flutter") do set FLUTTER_ROOT=%%~sI`.
 
-Le SDK Android **n'est pas installé** : il n'est nécessaire que pour lancer
-l'application sur un appareil ou produire un APK. `flutter analyze` et
-`flutter test` tournent sans lui, et c'est ce que vérifie
-`scripts\mobile-verifier.cmd`.
+
+### Réinstaller le SDK Android
+
+Les *command-line tools* seules suffisent. Trois pièges, dans l'ordre où on les
+rencontre :
+
+1. **`sdkmanager` est déprécié et plante en sortie** sur cette machine
+   (NTSTATUS 0xC0000409). L'installation aboutit, le processus meurt après —
+   et Gradle, lui, prend le plantage pour un échec. Tout passe donc par le
+   binaire `android` :
+
+   ```cmd
+   android sdk install platforms/android-36 build-tools/36.1.0 ndk/28.2.13676358
+   ```
+
+   Laisser AGP installer ce qui manque échoue sur une erreur qui ne nomme pas
+   la pièce absente, et installe au passage une plateforme corrompue.
+2. **Le NDK est obligatoire** alors qu'aucune ligne de C n'est écrite : le
+   plugin Gradle de Flutter impose sa version. 2,5 Go, une fois.
+3. **Télécharger avec `curl.exe`**, jamais `Invoke-WebRequest` : en PowerShell
+   5.1, celui-ci bufferise toute la réponse en mémoire et met vingt minutes là
+   où curl en met quarante secondes.
+
+`flutter analyze` et `flutter test` tournent sans le SDK Android — c'est ce que
+vérifie `scripts\mobile-verifier.cmd`. Il n'est nécessaire que pour produire un
+APK ou lancer sur un appareil.
 
 ## Lancer
 
@@ -63,11 +88,17 @@ lib/
   features/
     onboarding/            trois écrans d'introduction
     auth/                  inscription, connexion, mot de passe oublié, dossier
-    shared/                démarrage, accueil, sélecteur de mode
+    shared/
+      data/                modèles partagés par les deux parcours
+      ...                  démarrage, accueil, sélecteur de mode
     client/
-      data/                modèles JSON et ClientRepository
+      data/                ClientRepository
       application/         fournisseurs Riverpod et brouillon de demande
       presentation/        catalogue, demande, suivi, paiement, avis, profil
+    technicien/
+      data/                TechnicienRepository, sollicitation, portefeuille
+      application/         fournisseurs, disponibilité, service de position
+      presentation/        demandes, intervention, diagnostic, portefeuille
     chat/                  messagerie — annoncée, livrée en D4
 ```
 
@@ -108,6 +139,25 @@ l'encaissement puis interroge `/paiements/{reference}` jusqu'à ce que le serveu
 tranche : le webhook est la seule autorité (ADR-0032). Une interrogation qui
 échoue est ignorée — le réseau a hoqueté, la suivante réessaiera.
 
+**Le technicien nomme un geste, jamais un état.** « Je pars », « je suis
+arrivé » : c'est la machine à états du serveur qui décide si le geste est
+possible. Une liste d'états recopiée dans l'application finirait par diverger de
+la sienne, et l'écran proposerait des boutons qui échouent.
+
+**Une seule route mobile envoie un montant : le supplément après diagnostic.**
+Et elle propose — le total ne bouge qu'après accord du client. Les trois gardes
+(plafond au double de la prestation, diagnostic écrit, décision du client) sont
+annoncées par l'écran et tenues par le serveur. Le retrait fait exception à la
+règle sans la contredire : c'est l'argent du technicien, pas un prix
+d'intervention.
+
+**Le GPS ne tourne que pendant une intervention.** Le flux démarre quand une
+intervention active apparaît et s'arrête avec elle — huit secondes de cadence
+pendant, deux minutes en simple disponibilité. Lier le suivi à un interrupteur
+laisserait quelqu'un pisté toute la nuit pour avoir oublié de le couper. Un
+échec d'envoi est avalé : une position perdue est un désagrément, une exception
+au milieu d'une intervention est une panne.
+
 **Les messages d'erreur viennent du serveur.** L'API les rédige en français pour
 être affichés tels quels. `ApiException` ne fabrique un texte que lorsque le
 serveur n'a rien pu dire.
@@ -116,8 +166,7 @@ serveur n'a rien pu dire.
 
 | Élément | Nécessaire pour |
 |---|---|
-| SDK Android | build de l'APK, lancement sur appareil |
 | Compte Apple Developer + machine macOS ou CI | build iOS — **impossible depuis Windows** |
 | Polices Poppins et Inter dans `assets/fonts/` | typographie de la maquette |
-| Clés Google Maps Android et iOS | carte, suivi, et remplacer la liste de quartiers par un sélecteur sur carte |
+| Clés Google Maps Android et iOS | carte embarquée, et remplacer la liste de quartiers par un sélecteur sur carte. **Aucune clé n'a été créée** : cela demande un compte Google Cloud et une facturation active. Le câblage attend : `MAPS_API_KEY` dans `android/local.properties` (non versionné) ou en variable d'environnement |
 | Projet Firebase | notifications push |

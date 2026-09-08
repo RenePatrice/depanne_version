@@ -8,8 +8,8 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
+import '../../shared/data/modeles.dart';
 import '../data/client_repository.dart';
-import '../data/modeles.dart';
 
 final Provider<ClientRepository> clientRepositoryProvider =
     Provider<ClientRepository>(

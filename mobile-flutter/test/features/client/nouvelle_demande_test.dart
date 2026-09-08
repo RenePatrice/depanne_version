@@ -2,7 +2,7 @@ import 'package:depanne_moi/core/app_mode.dart';
 import 'package:depanne_moi/design_system/app_theme.dart';
 import 'package:depanne_moi/features/client/application/client_providers.dart';
 import 'package:depanne_moi/features/client/data/client_repository.dart';
-import 'package:depanne_moi/features/client/data/modeles.dart';
+import 'package:depanne_moi/features/shared/data/modeles.dart';
 import 'package:depanne_moi/features/client/presentation/nouvelle_demande_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

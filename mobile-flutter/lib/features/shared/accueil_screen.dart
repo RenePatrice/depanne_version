@@ -3,22 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_mode.dart';
 import '../../core/providers.dart';
-import '../../design_system/components/dm_composants.dart';
 import '../auth/application/session_controller.dart';
 import '../client/presentation/catalogue_screen.dart';
 import '../client/presentation/historique_screen.dart';
 import '../client/presentation/profil_client_screen.dart';
+import '../technicien/presentation/demandes_screen.dart';
+import '../technicien/presentation/mes_interventions_screen.dart';
+import '../technicien/presentation/portefeuille_screen.dart';
+import '../technicien/presentation/profil_technicien_screen.dart';
 import 'mode/selecteur_mode.dart';
 
 /// Coquille d'accueil, commune aux deux modes.
 ///
-/// Elle porte la navigation, l'identité visuelle du mode et la bascule. Les
-/// onglets client sont livrés depuis la phase D2 ; ceux du technicien
-/// annoncent encore ce qu'ils contiendront, et arrivent en D3 — les remplir à
-/// moitié donnerait l'illusion d'une application terminée.
+/// Elle porte la navigation, l'identité visuelle du mode et la bascule ; les
+/// deux jeux d'onglets sont livrés — client en D2, technicien en D3.
 ///
-/// Les libellés d'onglets ne bougent pas d'une phase à l'autre : personne n'a à
-/// réapprendre où sont les choses quand le contenu arrive.
+/// Le changement de mode remet l'onglet à zéro et change la couleur d'accent :
+/// c'est ce qui permet de savoir dans quel mode on se trouve sans lire. Un
+/// technicien qui se croit en mode client cherche un bouton qui n'existe pas.
 class AccueilScreen extends ConsumerStatefulWidget {
   const AccueilScreen({super.key});
 
@@ -64,9 +66,11 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
           ),
         ],
       ),
-      // Les onglets client sont conservés vivants d'un passage à l'autre :
-      // revenir sur « Mes demandes » ne doit pas relancer un chargement que
-      // l'on vient de payer, ni perdre la position dans la liste.
+      // Les onglets sont conservés vivants d'un passage à l'autre : revenir
+      // sur « Mes demandes » ne doit pas relancer un chargement que l'on vient
+      // de payer, ni perdre la position dans la liste. Côté technicien, cela
+      // garde aussi vivants le compte à rebours d'une sollicitation et le
+      // suivi GPS d'une intervention en cours.
       body: mode == AppMode.client
           ? IndexedStack(
               index: index,
@@ -76,10 +80,14 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
                 ProfilClientScreen(),
               ],
             )
-          : DmVide(
-              icone: onglets[index].icone,
-              titre: onglets[index].libelle,
-              texte: onglets[index].aVenir,
+          : IndexedStack(
+              index: index,
+              children: const <Widget>[
+                DemandesScreen(),
+                MesInterventionsScreen(),
+                PortefeuilleScreen(),
+                ProfilTechnicienScreen(),
+              ],
             ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
@@ -92,46 +100,23 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
     );
   }
 
-  // Le texte « à venir » ne sert plus côté client : les trois onglets ont leur
-  // écran. Il est conservé sur la structure pour le mode technicien, livré en
-  // D3, et disparaîtra avec le dernier onglet vide.
   static const List<_Onglet> _ongletsClient = <_Onglet>[
-    _Onglet(Icons.add_circle_outline, 'Demander', ''),
-    _Onglet(Icons.receipt_long_outlined, 'Mes demandes', ''),
-    _Onglet(Icons.person_outline, 'Profil', ''),
+    _Onglet(Icons.add_circle_outline, 'Demander'),
+    _Onglet(Icons.receipt_long_outlined, 'Mes demandes'),
+    _Onglet(Icons.person_outline, 'Profil'),
   ];
 
   static const List<_Onglet> _ongletsTechnicien = <_Onglet>[
-    _Onglet(
-      Icons.notifications_active_outlined,
-      'Demandes',
-      'La réception des demandes et la fenêtre de réponse de 45 secondes '
-          'arrivent en phase D3.',
-    ),
-    _Onglet(
-      Icons.build_outlined,
-      'Intervention',
-      'Le suivi d\'intervention — en route, sur place, terminée — arrive en '
-          'phase D3.',
-    ),
-    _Onglet(
-      Icons.account_balance_wallet_outlined,
-      'Portefeuille',
-      'Ton solde, tes mouvements et tes demandes de retrait arrivent en '
-          'phase D3.',
-    ),
-    _Onglet(
-      Icons.person_outline,
-      'Profil',
-      'Spécialités, zone d\'intervention et statistiques arrivent en phase D3.',
-    ),
+    _Onglet(Icons.notifications_active_outlined, 'Demandes'),
+    _Onglet(Icons.build_outlined, 'Intervention'),
+    _Onglet(Icons.account_balance_wallet_outlined, 'Portefeuille'),
+    _Onglet(Icons.person_outline, 'Profil'),
   ];
 }
 
 class _Onglet {
-  const _Onglet(this.icone, this.libelle, this.aVenir);
+  const _Onglet(this.icone, this.libelle);
 
   final IconData icone;
   final String libelle;
-  final String aVenir;
 }

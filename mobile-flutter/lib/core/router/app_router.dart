@@ -14,6 +14,7 @@ import '../../features/client/presentation/catalogue_screen.dart';
 import '../../features/client/presentation/nouvelle_demande_screen.dart';
 import '../../features/client/presentation/suivi_ticket_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
+import '../../features/technicien/presentation/intervention_screen.dart';
 import '../../features/shared/accueil_screen.dart';
 import '../../features/shared/demarrage_screen.dart';
 import '../providers.dart';
@@ -123,6 +124,22 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
       ),
       GoRoute(
         path: '/client/chat/:id',
+        builder: (_, GoRouterState state) =>
+            ChatScreen(ticketId: _identifiant(state)),
+      ),
+
+      // --- Parcours technicien --------------------------------------------
+      //
+      // Les deux modes gardent des adresses distinctes pour le même ticket :
+      // ce n'est pas le même écran, et un lien partagé doit mener à celui de
+      // la personne qui l'ouvre.
+      GoRoute(
+        path: '/technicien/intervention/:id',
+        builder: (_, GoRouterState state) =>
+            InterventionScreen(ticketId: _identifiant(state)),
+      ),
+      GoRoute(
+        path: '/technicien/chat/:id',
         builder: (_, GoRouterState state) =>
             ChatScreen(ticketId: _identifiant(state)),
       ),

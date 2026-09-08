@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
+import '../../shared/data/modeles.dart';
 import '../application/client_providers.dart';
-import '../data/modeles.dart';
 
 /// Le supplément proposé par le technicien, et la décision du client (§8.1).
 ///

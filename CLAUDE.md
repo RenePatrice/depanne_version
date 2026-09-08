@@ -25,8 +25,9 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | | **C6** — intégration bout en bout, durcissement, doc finale | ✅ terminée |
 | D — Mobile Flutter | **D1** — design system, auth, navigation, client Dio | ✅ terminée |
 | | **D2** — parcours client complet | ✅ terminée |
-| | **D3** — parcours technicien | ⏳ suivante |
-| | D4 → D5 | à faire |
+| | **D3** — parcours technicien | ✅ terminée |
+| | **D4** — chat, push, temps réel, hors-ligne | ⏳ suivante |
+| | D5 | à faire |
 
 ## 2. Décisions du client (5 septembre 2026)
 
@@ -671,19 +672,61 @@ une donnée attendue par l'écran suivant et jamais renvoyée. Il a trouvé troi
 
 ## 7 ter. Application mobile (bloc D)
 
-Flutter **3.47.2** / Dart 3.13.2, installé en portable dans
-`%USERPROFILE%\devtools\flutter`. Riverpod pour l'état, go_router pour la
-navigation, Dio pour le réseau.
+Flutter **3.47.2** / Dart 3.13.2 et le **SDK Android** (plateforme 36,
+build-tools 36.1.0, NDK 28.2.13676358), tous deux en portable dans
+`%USERPROFILE%\devtools`. Riverpod pour l'état, go_router pour la navigation,
+Dio pour le réseau, geolocator pour la position, url_launcher pour l'itinéraire.
 
 ```cmd
 scripts\flutter.cmd run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+scripts\flutter.cmd build apk --debug
 scripts\mobile-verifier.cmd        :: format + analyse + tests
 ```
 
-> ⚠️ **Le chemin du SDK doit passer par le nom court 8.3.** L'outillage Flutter
-> compile ses greffons natifs en appelant `dart` sans guillemets ; le profil
-> utilisateur de cette machine contient un espace, et `flutter test` échoue si
-> `FLUTTER_ROOT` l'expose. Les deux scripts s'en chargent.
+> ⚠️ **Les chemins des SDK passent par le nom court 8.3.** L'outillage Flutter
+> et celui d'Android compilent les greffons natifs en appelant `dart` et
+> `aapt2` sans guillemets ; le profil utilisateur de cette machine contient un
+> espace, et la compilation échoue si `FLUTTER_ROOT` ou `ANDROID_HOME`
+> l'exposent. Les deux scripts s'en chargent.
+
+### Le SDK Android, et ses trois pièges
+Installé par les **command-line tools** dans
+`%USERPROFILE%\devtools\android-sdk`, sans Android Studio ni droits
+administrateur.
+
+- Le `sdkmanager` est **déprécié et plante en sortie** sur cette machine
+  (NTSTATUS 0xC0000409) — l'installation aboutit, le processus meurt après.
+  Tout passe donc par le binaire `android` :
+  `android sdk install platforms/android-36 build-tools/36.1.0 ndk/28.2.13676358`.
+  Laisser AGP l'installer lui-même échoue sur une erreur qui ne nomme pas la
+  pièce manquante, et il installe au passage une plateforme corrompue.
+- Le **NDK est obligatoire** bien qu'aucune ligne de C ne soit écrite : le
+  plugin Gradle de Flutter impose sa version. 2,5 Go, une fois.
+- `flutter_secure_storage` **11.0.0 compile contre l'API 37**, qui n'existe au
+  dépôt Google que sous des noms mineurs — `android-37.0`, `37.1`… — qu'AGP ne
+  sait pas résoudre depuis `compileSdk = 37`. La dépendance est donc **fixée à
+  `^10.3.1`**, qui compile contre 36 ; l'API Dart utilisée est identique. À
+  revoir quand AGP saura résoudre les versions mineures.
+
+Téléchargements : utiliser `curl.exe`, jamais `Invoke-WebRequest` — en
+PowerShell 5.1 celui-ci bufferise toute la réponse en mémoire et met plus de
+vingt minutes là où curl met quarante secondes.
+
+### La clé Google Maps
+**Aucune clé n'est fournie et aucune n'a été créée** : cela demande un compte
+Google Cloud, une facturation active et l'accord du client. Le câblage est en
+place et n'attend qu'elle :
+
+- côté mobile, `MAPS_API_KEY` se pose dans `android/local.properties` — non
+  versionné — ou dans la variable d'environnement du même nom ; Gradle
+  l'injecte dans le manifeste. Vide, l'application compile et tourne, car rien
+  du parcours n'en dépend aujourd'hui ;
+- côté serveur, `GOOGLE_MAPS_SERVER_KEY` active le calcul de distance routière
+  réel ; sans elle le conteneur lie directement le pilote Haversine.
+
+L'itinéraire du technicien passe par le schéma `geo:` et l'application de
+cartographie du téléphone : elle guide mieux qu'une carte embarquée, connaît le
+trafic, et ne demande aucune clé.
 
 ### Le design system est en double, à dessein
 `mobile-flutter/lib/design_system/design_tokens.dart` et
@@ -753,19 +796,71 @@ trouver la zone et à mesurer une distance, tous deux à l'échelle du kilomètr
 et c'est le **point de repère écrit** qui amène réellement quelqu'un devant la
 bonne porte. Le jour où la carte arrive, seul `adresse_form_screen.dart` change.
 
-### Ce que D2 ne fait pas
-Les onglets du mode technicien sont vides et le disent : ils arrivent en D3.
-Leurs libellés sont déjà les bons, si bien que la navigation ne bougera pas.
+### Le parcours technicien (D3)
+Disponibilité, sollicitation, intervention, supplément, portefeuille, retrait —
+le §7.3 en entier, par l'API seule. Quatre onglets : Demandes, Intervention,
+Portefeuille, Profil.
 
-La messagerie répond sous son adresse définitive — `/client/chat/:id` — en
-annonçant qu'elle arrive en D4, pour la même raison qu'en back-office
-(ADR-0015) : le bouton « Discuter » du suivi mène quelque part qui explique,
-plutôt que nulle part.
+- **`demandes_screen.dart`** — l'interrupteur en ligne / hors ligne et la
+  sollicitation vivante. Une seule à la fois, jamais une file : le matching est
+  séquentiel (§8.3), et afficher plusieurs demandes concurrentes serait un
+  mensonge sur ce que le technicien peut réellement accepter. Le compte à
+  rebours part de l'`expire_dans_s` **recalculé par le serveur à chaque
+  lecture** et s'y recale : l'horloge d'un téléphone peut être décalée de
+  plusieurs minutes, et un chrono fondé dessus se tromperait de fenêtre.
+- **`intervention_screen.dart`** — le technicien nomme un geste, « je pars »,
+  « je suis arrivé », et jamais un état. Une liste d'états recopiée dans
+  l'application finirait par diverger de la machine à états du serveur, et
+  l'écran proposerait des boutons qui échouent.
+- **`diagnostic_feuille.dart`** — la **seule** route de l'application mobile
+  qui envoie un montant. Elle propose : le total ne bouge qu'après accord du
+  client. Les trois gardes — plafond au double de la prestation, diagnostic
+  écrit de vingt caractères, décision du client — sont **annoncées** ici et
+  **tenues** par le serveur. Les rejouer donnerait deux jeux de règles, et
+  c'est celui de l'application qui finirait par se tromper.
+- **`portefeuille_screen.dart`** — deux chiffres, jamais un : le solde est ce
+  qui a été gagné, le retirable est ce qui peut sortir aujourd'hui. Le second
+  retranche ce qui est déjà engagé dans une demande non versée.
 
-Le dépôt du dossier technicien est annoncé pour D3 — il demande l'appareil
-photo, la carte et le téléversement. L'écran existe malgré tout : un technicien
-qui vient de s'inscrire doit savoir où en est son dossier, pas se retrouver
-devant un tableau de bord vide.
+Le refus du serveur — dossier non validé, mise hors ligne pendant une
+intervention — est affiché **tel quel** : « ton dossier est en cours de
+validation » est une phrase utile, « échec » ne l'est pas.
+
+### La position remonte, enfin
+`PositionService` émet exactement l'événement que `php artisan demo:positions`
+simulait depuis B6 : la carte live du back-office reçoit désormais de vraies
+positions, et la simulation peut s'arrêter sans que rien change côté
+supervision.
+
+- **On ne suit que quand il y a une raison de suivre.** Le flux démarre à
+  l'apparition d'une intervention active et s'arrête avec elle. Lier le suivi à
+  un interrupteur laisserait un technicien pisté toute la nuit pour avoir
+  oublié de le couper.
+- **Le rythme suit l'enjeu** : huit secondes pendant une intervention, où le
+  client regarde le point avancer ; deux minutes en simple disponibilité, où
+  seule la zone compte.
+- **Un échec ne remonte jamais à l'écran.** Le GPS met parfois trente secondes
+  à accrocher et le réseau coupe : une position perdue est un désagrément, une
+  exception au milieu d'une intervention est une panne. Deux envois ne se
+  chevauchent jamais — sur un réseau lent, la file grossirait plus vite qu'elle
+  ne se vide et le serveur recevrait des positions périmées dans le désordre.
+- La permission est demandée **au moment où elle sert**, pas au lancement :
+  quelqu'un à qui on demande sa position avant de lui avoir montré pourquoi
+  refuse, et un refus définitif est difficile à rattraper.
+
+### Ce que D3 ne fait pas
+La messagerie répond sous ses adresses définitives — `/client/chat/:id` et
+`/technicien/chat/:id` — en annonçant qu'elle arrive en D4, pour la même raison
+qu'en back-office (ADR-0015) : le bouton « Discuter » mène quelque part qui
+explique, plutôt que nulle part.
+
+Le dépôt des pièces du dossier technicien reste à faire : il demande l'appareil
+photo et le téléversement, et arrive avec eux. L'écran existe malgré tout et dit
+où en est la validation.
+
+Les cinq écrans interrogent le serveur toutes les dix secondes. C'est le repli :
+Reverb prend le relais en D4, et cette boucle reste la roue de secours — sur le
+réseau de Conakry, le WebSocket ne s'ouvrira pas toujours.
 
 ## 8. Conventions de code
 
@@ -843,6 +938,9 @@ devant un tableau de bord vide.
 | 0034 | **Orange Money est écrit mais jamais branché sans ses clés** — chaque champ à confirmer est marqué |
 | 0035 | **La Policy garde la porte, le domaine garde la règle** — 404 pour l'accès, 422 pour le métier |
 | 0036 | **Les pièces d'identité passent par une route signée** — aucune adresse publique vers une carte d'identité |
+| 0037 | **L'itinéraire passe par l'application de cartographie du téléphone** — elle guide mieux, connaît le trafic, et ne demande aucune clé |
+| 0038 | **Le suivi GPS est lié à l'intervention, jamais à un interrupteur** — personne n'est suivi sans raison |
+| 0039 | **Le SDK Android s'installe par le binaire `android`, jamais par AGP** — le sdkmanager déprécié plante et laisse une plateforme corrompue |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

@@ -19,6 +19,7 @@ class Utilisateur {
     this.avatarUrl,
     this.verificationTechnicien,
     this.peutTravailler = false,
+    this.profilTechnicien,
   });
 
   final int id;
@@ -50,6 +51,16 @@ class Utilisateur {
   /// appartient au domaine, et un état ajouté côté serveur — une suspension
   /// temporaire, par exemple — se propagerait ici sans qu'on y touche.
   final bool peutTravailler;
+
+  /// Spécialités, zone et statistiques, quand la casquette technicien existe.
+  final ProfilTechnicien? profilTechnicien;
+
+  /// Disponibilité connue du serveur au moment de la connexion.
+  ///
+  /// Elle amorce l'interrupteur de l'écran Demandes : sans elle, un technicien
+  /// déjà en ligne verrait « hors ligne » au lancement et se remettrait en
+  /// ligne pour rien.
+  bool? get enLigne => profilTechnicien?.enLigne;
 
   bool get aLesDeuxCasquettes => estClient && estTechnicien;
 
@@ -86,6 +97,79 @@ class Utilisateur {
       estTechnicien: casquettes['technicien'] as bool? ?? false,
       verificationTechnicien: verification?['statut'] as String?,
       peutTravailler: verification?['peut_travailler'] as bool? ?? false,
+      profilTechnicien: profilTechnicien == null
+          ? null
+          : ProfilTechnicien.depuisJson(profilTechnicien),
+    );
+  }
+}
+
+/// Le dossier technicien tel que le serveur le présente.
+///
+/// Les statistiques ne sont pas décoratives : elles décident de qui reçoit les
+/// courses. Les montrer au technicien, c'est lui donner les moyens de
+/// comprendre pourquoi il en reçoit plus ou moins — et lui éviter d'imaginer
+/// une raison qui n'existe pas.
+class ProfilTechnicien {
+  const ProfilTechnicien({
+    required this.specialites,
+    required this.enLigne,
+    required this.noteMoyenne,
+    required this.noteAppliquee,
+    required this.avis,
+    required this.interventions,
+    required this.tauxAcceptation,
+    required this.tauxAnnulation,
+    required this.debutant,
+    this.rayonKm,
+  });
+
+  /// Codes et libellés, tels que l'API les envoie.
+  final List<(String code, String libelle)> specialites;
+
+  final bool enLigne;
+  final int? rayonKm;
+
+  /// La moyenne réelle des avis reçus.
+  final double noteMoyenne;
+
+  /// Celle que le scoring utilise : un technicien sans historique part à une
+  /// note neutre, sinon il ne serait jamais sollicité, donc n'aurait jamais
+  /// d'historique. Les deux sont distinctes à dessein — afficher la note
+  /// neutre comme si c'était la sienne serait faux.
+  final double noteAppliquee;
+
+  final int avis;
+  final int interventions;
+  final double tauxAcceptation;
+  final double tauxAnnulation;
+  final bool debutant;
+
+  factory ProfilTechnicien.depuisJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> stats =
+        (json['statistiques'] as Map<String, dynamic>?) ??
+        const <String, dynamic>{};
+    final Map<String, dynamic> zone =
+        (json['zone'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+
+    return ProfilTechnicien(
+      specialites:
+          ((json['specialites'] as List<dynamic>?) ?? const <dynamic>[]).map((
+            dynamic s,
+          ) {
+            final Map<String, dynamic> m = s as Map<String, dynamic>;
+
+            return (m['code'] as String? ?? '', m['libelle'] as String? ?? '');
+          }).toList(),
+      enLigne: json['en_ligne'] as bool? ?? false,
+      rayonKm: (zone['rayon_km'] as num?)?.toInt(),
+      noteMoyenne: (stats['note_moyenne'] as num?)?.toDouble() ?? 0,
+      noteAppliquee: (stats['note_appliquee'] as num?)?.toDouble() ?? 0,
+      avis: (stats['avis'] as num?)?.toInt() ?? 0,
+      interventions: (stats['interventions'] as num?)?.toInt() ?? 0,
+      tauxAcceptation: (stats['taux_acceptation'] as num?)?.toDouble() ?? 0,
+      tauxAnnulation: (stats['taux_annulation'] as num?)?.toDouble() ?? 0,
+      debutant: stats['debutant'] as bool? ?? false,
     );
   }
 }

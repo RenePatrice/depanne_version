@@ -193,6 +193,7 @@ class PrixTicket {
     required this.supplementGnf,
     required this.majorationProximiteGnf,
     required this.ferme,
+    this.netTechnicienGnf,
   });
 
   final int totalGnf;
@@ -203,6 +204,14 @@ class PrixTicket {
   final int majorationProximiteGnf;
   final bool ferme;
 
+  /// Ce que le technicien touchera, commission déduite.
+  ///
+  /// Le serveur ne l'envoie **qu'à lui** : la réponse servie au client ne
+  /// contient pas cette clé, et le champ reste nul de ce côté. C'est cette
+  /// séparation qui fait qu'un client ne lit pas la marge de la plateforme
+  /// dans sa propre facture.
+  final int? netTechnicienGnf;
+
   factory PrixTicket.depuisJson(Map<String, dynamic> json) => PrixTicket(
     totalGnf: json['total_gnf'] as int? ?? 0,
     totalFormate: json['total_formate'] as String? ?? '',
@@ -211,6 +220,7 @@ class PrixTicket {
     supplementGnf: json['supplement_gnf'] as int? ?? 0,
     majorationProximiteGnf: json['majoration_proximite_gnf'] as int? ?? 0,
     ferme: json['ferme'] as bool? ?? false,
+    netTechnicienGnf: json['net_technicien_gnf'] as int?,
   );
 }
 
@@ -252,6 +262,7 @@ class Ticket {
     this.prestation,
     this.description,
     this.adresse,
+    this.client,
     this.technicien,
     this.diagnostic,
     this.fraisAnnulationGnf = 0,
@@ -274,7 +285,14 @@ class Ticket {
   /// peut l'avoir supprimée, l'historique doit rester lisible.
   final Map<String, dynamic>? adresse;
 
+  /// L'autre partie, selon qui regarde : le serveur envoie `client` au
+  /// technicien et `technicien` au client, jamais les deux. Deux champs
+  /// distincts plutôt qu'une « autre partie » générique, parce que les écrans
+  /// n'en disent pas la même chose — on n'appelle pas son client comme on
+  /// appelle son dépanneur.
+  final PartieTicket? client;
   final PartieTicket? technicien;
+
   final String? diagnostic;
   final int fraisAnnulationGnf;
 
@@ -309,6 +327,8 @@ class Ticket {
         json['prestation'] as Map<String, dynamic>?;
     final Map<String, dynamic>? technicien =
         json['technicien'] as Map<String, dynamic>?;
+    final Map<String, dynamic>? client =
+        json['client'] as Map<String, dynamic>?;
 
     return Ticket(
       id: json['id'] as int,
@@ -324,6 +344,7 @@ class Ticket {
       prestation: prestation == null ? null : Prestation.depuisJson(prestation),
       description: json['description'] as String?,
       adresse: json['adresse'] as Map<String, dynamic>?,
+      client: client == null ? null : PartieTicket.depuisJson(client),
       technicien: technicien == null
           ? null
           : PartieTicket.depuisJson(technicien),

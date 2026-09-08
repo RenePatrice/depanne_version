@@ -4,6 +4,23 @@
          qu'en debug et en profile, et l'oubli ne se voit qu'apres signature. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Position du technicien : elle alimente le matching (§8.3) et la carte
+         live du back-office. COARSE est declaree en plus de FINE parce qu'un
+         utilisateur peut n'accorder que l'approximative ; l'application doit
+         alors fonctionner en degrade plutot que d'echouer. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Ouvrir un itineraire dans l'application Maps installee. Sans cette
+         requete, Android 11+ repond "aucune application" meme quand Maps est
+         la : la visibilite des paquets est filtree depuis l'API 30. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+    </queries>
+
     <application
         android:label="Dépanne-Moi"
         android:name="${applicationName}"
@@ -35,6 +52,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Cle Google Maps Android, injectee par Gradle depuis
+             android/local.properties (non versionne) ou la variable
+             d'environnement MAPS_API_KEY. Vide tant que le pilote n'a pas de
+             compte Google Cloud : rien du parcours n'en depend aujourd'hui. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
