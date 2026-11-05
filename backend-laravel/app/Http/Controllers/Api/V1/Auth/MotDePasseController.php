@@ -51,17 +51,42 @@ final class MotDePasseController extends Controller
             'wa_support_url' => $support === '' ? null : 'https://wa.me/'.$support,
         ];
 
-        // Mode test SEULEMENT (jamais en production) : le code est renvoyé pour
-        // pouvoir le saisir sur l'appareil sans passerelle. Ce flag affaiblit la
-        // garde anti-énumération — à n'activer que sur un environnement de test.
+        // Mode test SEULEMENT : le code est renvoyé pour pouvoir le saisir sur
+        // l'appareil sans passerelle. Trois gardes cumulées, pour qu'un
+        // environnement de test joignable depuis Internet ne fuite rien :
+        //   1. jamais en production ;
+        //   2. flag explicite, à false par défaut ;
+        //   3. requête venue d'un réseau local/privé (émulateur, LAN) — jamais
+        //      d'une IP publique. Sans cela, un inconnu pouvait lire le code
+        //      d'un numéro cible et prendre le compte.
         if ($code !== null
             && ! app()->isProduction()
             && config('depanne.sms.expose_test_code') === true
+            && $this->depuisReseauLocal($request)
         ) {
             $reponse['code_test'] = $code;
         }
 
         return response()->json($reponse);
+    }
+
+    /**
+     * La requête vient-elle d'un réseau local/privé (loopback, RFC 1918…) ?
+     *
+     * Une IP **publique** fait échouer la validation avec les deux drapeaux
+     * d'exclusion : on la refuse. Laravel résout `ip()` depuis la socket tant
+     * qu'aucun proxy de confiance n'est déclaré, donc elle n'est pas
+     * falsifiable par un simple en-tête `X-Forwarded-For`.
+     */
+    private function depuisReseauLocal(Request $request): bool
+    {
+        $ip = (string) $request->ip();
+
+        return filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
+        ) === false;
     }
 
     /**

@@ -68,8 +68,9 @@ return [
     //   log      : écrit dans laravel.log, pour les tests automatisés.
     // `expose_test_code` : en mode test SEULEMENT (jamais en production), le
     // code est renvoyé dans la réponse pour pouvoir tester sur l'appareil sans
-    // passerelle. Il affaiblit la garde anti-énumération — à laisser à false
-    // partout sauf sur un environnement de test qu'on maîtrise.
+    // passerelle. Même actif, il ne sort que pour une requête venue d'un réseau
+    // local/privé (émulateur, LAN) — jamais d'une IP publique. À laisser à
+    // false partout sauf sur un environnement de test qu'on maîtrise.
     'sms' => [
         'provider' => env('SMS_PROVIDER', 'whatsapp'),
         'sender_id' => env('SMS_SENDER_ID', 'ParemaConnect'),

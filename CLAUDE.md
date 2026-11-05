@@ -80,8 +80,10 @@ lots, **sans casser l'existant** (chaque refonte remplace l'ADR concerné).
   (Baileys, whatsapp-web.js) l'enverra en production. L'app reformule « par
   WhatsApp » et propose un lien support `wa.me`. **Mode test** (flag
   `SMS_EXPOSE_TEST_CODE`, hors production) : le code est renvoyé et pré-rempli
-  pour tester sur l'appareil sans passerelle — ce flag affaiblit la garde
-  anti-énumération, à laisser à `false` ailleurs.
+  pour tester sur l'appareil sans passerelle. Trois gardes cumulées : hors
+  production, flag à `false` par défaut, **et requête venue d'un réseau
+  local/privé** (émulateur, LAN) — jamais d'une IP publique, pour qu'un
+  environnement de test joignable depuis Internet ne fuite pas le code.
 - **#9 Back-office durci** : fin de l'admin en dur, changement de mot de passe
   au dashboard, CRUD utilisateurs, cloisonnement des modules admin, revue des
   failles (injection SQL, XSS, SSRF, path traversal, élévation de privilèges

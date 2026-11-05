@@ -64,3 +64,17 @@ it('renvoie le code en mode test, et seulement pour un numero inscrit', function
         ->and($inconnu->json('code_test'))->toBeNull()
         ->and(PasswordResetCode::query()->count())->toBe(1);
 });
+
+it('ne renvoie jamais le code a une IP publique, meme flag actif', function (): void {
+    config(['depanne.sms.expose_test_code' => true]);
+
+    $this->postJson(route('api.inscription'), inscriptionOtp())->assertCreated();
+
+    // Requete vue comme venant d'Internet : le garde reseau local bloque la
+    // fuite, sans quoi un inconnu lirait le code et prendrait le compte.
+    $reponse = $this->withServerVariables(['REMOTE_ADDR' => '8.8.8.8'])
+        ->postJson(route('api.mot-de-passe.demander'), ['phone' => '620123456'])
+        ->assertOk();
+
+    expect($reponse->json('code_test'))->toBeNull();
+});
