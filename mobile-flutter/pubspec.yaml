@@ -60,19 +60,38 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
 
 # Icône de lanceur (D5). Généré depuis le logo de marque :
 #   dart run flutter_launcher_icons
-# Source : assets/images/icon.png (carré, fond bleu) et icon_foreground.png
-# (premier plan transparent pour l'icône adaptative Android). À remplacer par un
-# master 1024×1024 haute définition avant publication sur le store.
+# Source : assets/images/icon.png (carré, fond BLANC — comme le back-office) et
+# icon_foreground.png (premier plan transparent pour l'icône adaptative Android).
+# Le lanceur applique lui-même le masque (carré arrondi / cercle) : fond blanc +
+# marque = carré arrondi blanc. À remplacer par un master 1024×1024 haute
+# définition avant publication sur le store.
 flutter_launcher_icons:
   android: true
   ios: false
   image_path: "assets/images/icon.png"
-  adaptive_icon_background: "#1B6FF3"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/icon_foreground.png"
   min_sdk_android: 21
+
+# Écran de lancement natif (avant le premier rendu Flutter). Fond BLANC + logo
+# centré, identiques à l'écran de démarrage Dart : plus de « logo bleu puis
+# second logo » — une seule marque, sur blanc, du système jusqu'à l'app.
+#   dart run flutter_native_splash:create
+# `image` sert aux versions < Android 12 ; `android_12.image` est masqué en
+# cercle par le système, d'où la marque seule (sans texte) centrée.
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/logo.png
+  android: true
+  ios: false
+  web: false
+  android_12:
+    color: "#FFFFFF"
+    image: assets/images/splash_android12.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

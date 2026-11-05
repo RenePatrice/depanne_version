@@ -31,19 +31,11 @@
     <div class="dm-auth__card">
 
         <div class="dm-auth__brand">
-            <span class="dm-sidebar__logo" aria-hidden="true">
-                <img src="{{ asset('images/logo-mark.png') }}" alt="" width="28" height="28">
-            </span>
-            <span>
-                <span class="d-block fw-semibold" style="font-family:Poppins,sans-serif">Parema Connect</span>
-                <span class="d-block small text-body-secondary">Back-office · Conakry</span>
-            </span>
+            <img src="{{ asset('images/logo-mark.png') }}" alt="Parema Connect">
+            <span class="fw-semibold" style="font-family:Poppins,sans-serif">Parema Connect</span>
         </div>
 
-        <h1 class="h5 mb-1">Connexion</h1>
-        <p class="text-body-secondary small mb-4">
-            Cet espace est réservé à l'équipe. Les clients et les techniciens passent par l'application mobile.
-        </p>
+        <h1 class="h5 text-center mb-4">Connexion</h1>
 
         @if (session('statut'))
             <div class="alert alert-success py-2 small" role="status">{{ session('statut') }}</div>
@@ -85,10 +77,6 @@
                 <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i> Se connecter
             </button>
         </form>
-
-        <p class="text-body-secondary mt-4 mb-0" style="font-size:.75rem">
-            Cinq tentatives infructueuses bloquent la connexion pendant quinze minutes.
-        </p>
     </div>
 </div>
 
