@@ -146,6 +146,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/technicien/sollicitations', [TechnicienController::class, 'sollicitations'])
             ->name('api.technicien.sollicitations');
 
+        // Tarifs propres du technicien (#2) : le catalogue n'est qu'un défaut.
+        Route::get('/technicien/tarifs', [TechnicienController::class, 'tarifs'])
+            ->name('api.technicien.tarifs');
+        Route::post('/technicien/tarifs', [TechnicienController::class, 'definirTarifs'])
+            ->name('api.technicien.tarifs.definir');
+
         Route::post('/sollicitations/{sollicitation}/accepter', [TechnicienController::class, 'accepter'])
             ->name('api.sollicitations.accepter');
 

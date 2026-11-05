@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Accounts\Actions\UpdateTechnicianPresence;
 use App\Domain\Accounts\Models\User;
+use App\Domain\Catalog\Actions\SetTechnicianRates;
+use App\Domain\Catalog\Models\Service;
 use App\Domain\Matching\Actions\RespondToMatch;
 use App\Domain\Matching\Data\MatchResponse;
 use App\Domain\Matching\Models\MatchAttempt;
@@ -14,6 +16,7 @@ use App\Domain\Tickets\Models\Ticket;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SollicitationResource;
 use App\Http\Resources\TicketResource;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -177,6 +180,69 @@ final class TechnicienController extends Controller
             'message' => 'Étape enregistrée. Le client a été prévenu.',
             'ticket' => new TicketResource($ticket),
         ]);
+    }
+
+    /**
+     * Mes tarifs.
+     *
+     * Une ligne par prestation que le technicien peut servir (selon ses
+     * spécialités). Le prix catalogue est le défaut ; `mon_prix_gnf` le prix
+     * propre, s'il en a fixé un. Les bornes guident la saisie côté application.
+     */
+    public function tarifs(Request $request): JsonResponse
+    {
+        $technicien = $this->technicien($request);
+        $profil = $technicien->technicianProfile;
+        $specialites = $profil === null ? [] : (array) $profil->specialties;
+
+        $services = Service::query()
+            ->where('is_active', true)
+            ->whereHas('category', fn ($q) => $q->whereIn('code', $specialites)->where('is_active', true))
+            ->with(['category:id,name,code', 'rates' => fn ($q) => $q->where('user_id', $technicien->getKey())])
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'tarifs' => $services->map(function (Service $service): array {
+                $bornes = SetTechnicianRates::bornes($service);
+                $mien = $service->rates->first();
+
+                return [
+                    'service_id' => $service->id,
+                    'prestation' => $service->name,
+                    'categorie' => $service->category->name,
+                    'type' => $service->type->value,
+                    'prix_catalogue_gnf' => (int) $service->base_price_gnf,
+                    'prix_catalogue_formate' => Money::format((int) $service->base_price_gnf),
+                    'mon_prix_gnf' => $mien?->price_gnf,
+                    'min_gnf' => $bornes['min'],
+                    'max_gnf' => $bornes['max'],
+                ];
+            })->all(),
+        ]);
+    }
+
+    /** Fixer ou réinitialiser ses tarifs. */
+    public function definirTarifs(Request $request, SetTechnicianRates $action): JsonResponse
+    {
+        $valide = $request->validate([
+            'tarifs' => ['required', 'array', 'min:1'],
+            'tarifs.*.service_id' => ['required', 'integer'],
+            'tarifs.*.prix_gnf' => ['present', 'nullable', 'integer', 'min:1'],
+        ]);
+
+        $tarifs = [];
+        foreach ($valide['tarifs'] as $ligne) {
+            $tarifs[(int) $ligne['service_id']] = $ligne['prix_gnf'] === null ? null : (int) $ligne['prix_gnf'];
+        }
+
+        try {
+            $action->execute($this->technicien($request), $tarifs);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['message' => 'Tarifs enregistrés.']);
     }
 
     private function technicien(Request $request): User
