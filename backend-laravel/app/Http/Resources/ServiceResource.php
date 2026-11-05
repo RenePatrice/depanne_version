@@ -33,6 +33,11 @@ final class ServiceResource extends JsonResource
             'prix_gnf' => $this->base_price_gnf,
             'prix_formate' => Money::format($this->base_price_gnf),
             'duree_estimee_min' => $this->estimated_duration_min,
+            // Type et photos autorisées (#2) : l'application n'affiche le bouton
+            // photo que pour un dépannage, où elles aident à estimer la panne.
+            'type' => $this->type->value,
+            'type_libelle' => $this->type->label(),
+            'photos_autorisees' => $this->type->photosAutorisees(),
         ];
     }
 }

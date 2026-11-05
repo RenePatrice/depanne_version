@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders\Demo;
 
+use App\Domain\Catalog\Data\ServiceType;
 use App\Domain\Catalog\Data\Specialty;
 use App\Domain\Catalog\Models\Service;
 use App\Domain\Catalog\Models\ServiceCategory;
@@ -57,6 +58,9 @@ final class CatalogSeeder extends Seeder
                     'category_id' => $categoryId,
                     'name' => $service['name'],
                     'description' => $service['description'],
+                    // Dépannage par défaut (#2) : une installation n'a rien à
+                    // photographier avant la venue du technicien.
+                    'type' => $service['type'] ?? ServiceType::DEPANNAGE->value,
                     'included' => $service['included'],
                     'excluded' => $service['excluded'],
                     'base_price_gnf' => $service['price'],
@@ -96,13 +100,13 @@ final class CatalogSeeder extends Seeder
             ['name' => 'Remplacement de siphon', 'price' => 60_000, 'duration' => 30,
                 'description' => 'Siphon fissuré, corrodé ou qui fuit : dépose et remplacement.',
                 'included' => $mainOeuvre, 'excluded' => ['Siphon (fourni par le client)']],
-            ['name' => 'Installation de douche', 'price' => 200_000, 'duration' => 180,
+            ['name' => 'Installation de douche', 'price' => 200_000, 'duration' => 180, 'type' => ServiceType::INSTALLATION->value,
                 'description' => "Pose complète d'un ensemble de douche : receveur, robinetterie, flexible et raccordements.",
                 'included' => array_merge($mainOeuvre, ['Raccordements eau chaude et froide']), 'excluded' => ['Équipement de douche', 'Carrelage', 'Travaux de maçonnerie']],
             ['name' => 'Réparation de chauffe-eau', 'price' => 180_000, 'duration' => 120,
                 'description' => 'Chauffe-eau qui ne chauffe plus, qui fuit ou qui disjoncte : diagnostic et réparation.',
                 'included' => array_merge($mainOeuvre, ['Détartrage léger']), 'excluded' => ['Résistance, thermostat ou cuve', 'Remplacement complet']],
-            ['name' => 'Installation de lavabo', 'price' => 150_000, 'duration' => 120,
+            ['name' => 'Installation de lavabo', 'price' => 150_000, 'duration' => 120, 'type' => ServiceType::INSTALLATION->value,
                 'description' => "Pose et raccordement d'un lavabo avec sa robinetterie et son évacuation.",
                 'included' => $mainOeuvre, 'excluded' => ['Lavabo et robinetterie', 'Percement de mur porteur']],
         ];
@@ -120,28 +124,28 @@ final class CatalogSeeder extends Seeder
             ['name' => 'Remplacement de disjoncteur', 'price' => 110_000, 'duration' => 60,
                 'description' => 'Disjoncteur qui saute sans raison ou qui ne réarme plus : dépose et remplacement.',
                 'included' => $mainOeuvre, 'excluded' => ['Disjoncteur (fourni par le client)']],
-            ['name' => 'Installation de prise électrique', 'price' => 55_000, 'duration' => 45,
+            ['name' => 'Installation de prise électrique', 'price' => 55_000, 'duration' => 45, 'type' => ServiceType::INSTALLATION->value,
                 'description' => "Ajout ou remplacement d'une prise, avec contrôle de la mise à la terre.",
                 'included' => $mainOeuvre, 'excluded' => ['Prise', 'Saignée dans le mur']],
             ['name' => "Remplacement d'interrupteur", 'price' => 45_000, 'duration' => 30,
                 'description' => "Interrupteur cassé, qui chauffe ou qui ne commande plus l'éclairage.",
                 'included' => $mainOeuvre, 'excluded' => ['Interrupteur (fourni par le client)']],
-            ['name' => 'Installation de luminaire', 'price' => 65_000, 'duration' => 45,
+            ['name' => 'Installation de luminaire', 'price' => 65_000, 'duration' => 45, 'type' => ServiceType::INSTALLATION->value,
                 'description' => "Pose et raccordement d'un plafonnier ou d'une applique, fixation comprise.",
                 'included' => array_merge($mainOeuvre, ['Fixation au plafond']), 'excluded' => ['Luminaire', 'Reprise du câblage']],
             ['name' => 'Recherche de court-circuit', 'price' => 100_000, 'duration' => 90,
                 'description' => 'Court-circuit récurrent : identification du circuit fautif et sécurisation.',
                 'included' => array_merge($mainOeuvre, ['Contrôle circuit par circuit']), 'excluded' => ['Réparation lourde', 'Pièces de rechange']],
-            ['name' => 'Installation de ventilateur de plafond', 'price' => 120_000, 'duration' => 90,
+            ['name' => 'Installation de ventilateur de plafond', 'price' => 120_000, 'duration' => 90, 'type' => ServiceType::INSTALLATION->value,
                 'description' => "Fixation, raccordement et équilibrage d'un ventilateur de plafond.",
                 'included' => array_merge($mainOeuvre, ['Fixation renforcée']), 'excluded' => ['Ventilateur', 'Renforcement de la structure du plafond']],
-            ['name' => 'Remplacement de tableau électrique', 'price' => 350_000, 'duration' => 240,
+            ['name' => 'Remplacement de tableau électrique', 'price' => 350_000, 'duration' => 240, 'type' => ServiceType::INSTALLATION->value,
                 'description' => 'Tableau vétuste ou sous-dimensionné : remplacement complet et repérage des circuits.',
                 'included' => array_merge($mainOeuvre, ['Repérage et étiquetage des circuits']), 'excluded' => ['Tableau et disjoncteurs', 'Mise aux normes du réseau']],
-            ['name' => 'Raccordement de climatiseur', 'price' => 250_000, 'duration' => 180,
+            ['name' => 'Raccordement de climatiseur', 'price' => 250_000, 'duration' => 180, 'type' => ServiceType::INSTALLATION->value,
                 'description' => "Alimentation dédiée et raccordement électrique d'un climatiseur déjà posé.",
                 'included' => array_merge($mainOeuvre, ['Ligne dédiée', 'Protection dédiée']), 'excluded' => ['Climatiseur', 'Pose du groupe extérieur', 'Charge en gaz']],
-            ['name' => 'Mise à la terre', 'price' => 180_000, 'duration' => 150,
+            ['name' => 'Mise à la terre', 'price' => 180_000, 'duration' => 150, 'type' => ServiceType::INSTALLATION->value,
                 'description' => "Installation ou reprise d'une prise de terre, avec mesure de la résistance.",
                 'included' => array_merge($mainOeuvre, ['Mesure de résistance']), 'excluded' => ['Piquet de terre et câble', 'Terrassement']],
         ];

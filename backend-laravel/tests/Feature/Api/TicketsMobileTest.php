@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Accounts\Models\Address;
 use App\Domain\Accounts\Models\User;
+use App\Domain\Catalog\Data\ServiceType;
 use App\Domain\Catalog\Models\Service;
 use App\Domain\Matching\Models\MatchAttempt;
 use App\Domain\Tickets\Actions\TransitionTicket;
@@ -292,6 +293,24 @@ it('n\'accepte que trois photos', function (): void {
         'address_id' => $adresse->id,
         'photos' => ['a.jpg', 'b.jpg', 'c.jpg', 'd.jpg'],
     ])->assertStatus(422)->assertJsonValidationErrors('photos');
+});
+
+it('n\'enregistre aucune photo pour une installation', function (): void {
+    [, $adresse] = clientAvecAdresse();
+
+    // Une installation n'a rien à photographier avant la venue du technicien
+    // (#2) : les photos jointes sont silencieusement écartées.
+    $installation = Service::query()
+        ->where('type', ServiceType::INSTALLATION->value)
+        ->firstOrFail();
+
+    $id = $this->postJson('/api/v1/tickets', [
+        'service_id' => $installation->id,
+        'address_id' => $adresse->id,
+        'photos' => ['a.jpg', 'b.jpg'],
+    ])->assertCreated()->json('ticket.id');
+
+    expect(Ticket::query()->findOrFail($id)->photos)->toBeNull();
 });
 
 it('ne montre pas le ticket d\'un autre', function (): void {

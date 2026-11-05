@@ -70,7 +70,11 @@ final class CreateTicket
         // l'acceptation, depuis la position réelle du technicien (ADR-0026).
         $devis = $this->tarification->estimation($service, $zone, $point);
 
-        $photos = array_slice($donnees['photos'] ?? [], 0, self::MAX_PHOTOS);
+        // Le nombre de photos suit le type de prestation (#2) : trois pour un
+        // dépannage, aucune pour une installation, où il n'y a encore rien à
+        // photographier. Le surplus est silencieusement écarté — l'application
+        // n'offre déjà pas le bouton pour une installation.
+        $photos = array_slice($donnees['photos'] ?? [], 0, $service->type->photosAutorisees());
 
         return DB::transaction(function () use ($client, $service, $adresse, $zone, $point, $devis, $donnees, $photos): Ticket {
             /** @var Ticket $ticket */

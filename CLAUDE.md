@@ -457,6 +457,11 @@ un aller-retour réseau inutile.
   valeur et la seconde échouerait sur l'unicité, au pire moment.
 - L'adresse est figée en instantané : le client peut la supprimer, l'historique
   reste lisible.
+- **Les photos suivent le type de prestation (#2).** `CreateTicket` tronque au
+  `photosAutorisees()` du `ServiceType` : trois pour un dépannage (elles aident
+  à estimer la panne avant le déplacement), **zéro pour une installation** où il
+  n'y a encore rien à photographier. Le catalogue expose `type` et
+  `photos_autorisees`, et l'application n'affiche le bouton que quand il y a lieu.
 - Les frais d'annulation ne démarrent qu'à EN_ROUTE — tant que personne n'a
   bougé, annuler ne coûte rien — et sont **figés sur le ticket** au moment de
   l'annulation, pas relus à l'encaissement.
