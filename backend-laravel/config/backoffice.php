@@ -114,6 +114,12 @@ return [
                     'icone' => 'bi-clock-history',
                     'permission' => 'journal-audit.voir',
                 ],
+                [
+                    'cle' => 'administrateurs',
+                    'libelle' => 'Administrateurs',
+                    'icone' => 'bi-shield-lock',
+                    'permission' => 'administrateurs.gerer',
+                ],
             ],
         ],
 

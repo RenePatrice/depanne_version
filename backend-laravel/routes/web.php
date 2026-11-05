@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Web\AdministrateurController;
 use App\Http\Controllers\Web\Auth\LoginController;
 use App\Http\Controllers\Web\CarteLiveController;
 use App\Http\Controllers\Web\CatalogueController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Web\FinanceController;
 use App\Http\Controllers\Web\HealthController;
 use App\Http\Controllers\Web\JournalAuditController;
 use App\Http\Controllers\Web\LitigeController;
+use App\Http\Controllers\Web\MonProfilController;
 use App\Http\Controllers\Web\RetraitController;
 use App\Http\Controllers\Web\SystemeController;
 use App\Http\Controllers\Web\TechnicienController;
@@ -195,5 +197,26 @@ Route::middleware('auth:admin')->group(function (): void {
         Route::get('/carte-live', [CarteLiveController::class, 'index'])->name('carte-live');
         Route::get('/carte-live/donnees', [CarteLiveController::class, 'donnees'])->name('carte-live.donnees');
         Route::get('/carte-live/compteurs', [CarteLiveController::class, 'compteursLive'])->name('carte-live.compteurs');
+    });
+
+    /*
+     * Mon profil : accessible à tout compte du back-office. Chacun change son
+     * propre mot de passe depuis le dashboard (#9), le mot de passe actuel à
+     * l'appui.
+     */
+    Route::get('/profil', [MonProfilController::class, 'show'])->name('profil');
+    Route::post('/profil/mot-de-passe', [MonProfilController::class, 'motDePasse'])->name('profil.mot-de-passe');
+
+    /*
+     * Gestion des comptes du back-office (#9). Module réservé à l'ADMIN par la
+     * permission `administrateurs.gerer` : SUPPORT et FINANCE n'en voient ni le
+     * lien ni les routes. Les comptes ne se suppriment pas, ils se désactivent.
+     */
+    Route::middleware('permission:administrateurs.gerer')->group(function (): void {
+        Route::get('/administrateurs', [AdministrateurController::class, 'index'])->name('administrateurs');
+        Route::post('/administrateurs', [AdministrateurController::class, 'store'])->name('administrateurs.creer');
+        Route::put('/administrateurs/{administrateur}', [AdministrateurController::class, 'update'])->name('administrateurs.modifier');
+        Route::post('/administrateurs/{administrateur}/mot-de-passe', [AdministrateurController::class, 'motDePasse'])->name('administrateurs.mot-de-passe');
+        Route::post('/administrateurs/{administrateur}/statut', [AdministrateurController::class, 'statut'])->name('administrateurs.statut');
     });
 });

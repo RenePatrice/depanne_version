@@ -332,6 +332,32 @@ est indispensable.
   le détail — versions, message d'erreur — n'apparaît que pour un administrateur
   connecté. `/systeme` est entièrement derrière le guard.
 
+### Comptes du back-office et revue de sécurité (#9)
+- **Plus d'admin en dur en production.** `php artisan admin:create` crée les
+  rôles (via `RolesPermissionsSeeder`, séparé de la démo) et le premier compte,
+  mot de passe saisi masqué. Les comptes `@depanne-moi.gn` restent **de démo**.
+- **Gestion des comptes** (`ManageAdminUsers`, module `/administrateurs`)
+  réservée à la permission `administrateurs.gerer`, que seul l'ADMIN porte :
+  cloisonnement, SUPPORT/FINANCE n'en voient ni le lien ni les routes. Création,
+  modification, réinitialisation de mot de passe, activation — **jamais de
+  suppression** (désactivation). Garde-fous : on ne se désactive ni ne se
+  rétrograde soi-même, et le **dernier ADMIN actif** est protégé.
+- **Mot de passe au dashboard** : chacun change le sien (`/profil`), l'actuel
+  exigé, session régénérée.
+- Posture sur les failles listées :
+  - **Hachage** argon2id + salt (ADR-0003), cast `hashed` — plus fort que bcrypt.
+  - **Élévation de privilèges** : permissions spatie côté back-office ; Policies
+    + 404 (jamais 403) côté API (ADR-0035). Un lien affiché est toujours ouvrable.
+  - **Injection SQL** : tout passe par Eloquent / requêtes liées, aucune
+    concaténation ; `filterColumn` neutre sur les colonnes calculées.
+  - **XSS** : Blade échappe par défaut ; les îlots React reçoivent des données
+    typées, pas du HTML.
+  - **RCE** : aucun `eval`/`exec`/désérialisation de données externes.
+  - **SSRF** : les seuls appels sortants (carte, paiement) visent des hôtes
+    **configurés**, jamais une URL fournie par l'utilisateur.
+  - **Path traversal** : la route des pièces liste blanche la pièce et sert
+    depuis la racine du disque (Flysystem), chemin issu de la base, pas de l'URL.
+
 ## 7. API mobile
 
 Préfixe `/api/v1`, documentation OpenAPI générée par Scramble sur **`/docs/api`**

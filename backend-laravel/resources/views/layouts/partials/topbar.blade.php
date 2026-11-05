@@ -51,6 +51,11 @@
             </li>
             <li><hr class="dropdown-divider"></li>
             <li>
+                <a class="dropdown-item" href="{{ route('profil') }}">
+                    <i class="bi bi-person-gear me-2" aria-hidden="true"></i>Mon profil
+                </a>
+            </li>
+            <li>
                 <form method="POST" action="{{ route('deconnexion') }}">
                     @csrf
                     <button type="submit" class="dropdown-item text-danger">
