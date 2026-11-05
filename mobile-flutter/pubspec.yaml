@@ -59,6 +59,20 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
+  flutter_launcher_icons: ^0.14.4
+
+# Icône de lanceur (D5). Généré depuis le logo de marque :
+#   dart run flutter_launcher_icons
+# Source : assets/images/icon.png (carré, fond bleu) et icon_foreground.png
+# (premier plan transparent pour l'icône adaptative Android). À remplacer par un
+# master 1024×1024 haute définition avant publication sur le store.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/icon.png"
+  adaptive_icon_background: "#1B6FF3"
+  adaptive_icon_foreground: "assets/images/icon_foreground.png"
+  min_sdk_android: 21
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
