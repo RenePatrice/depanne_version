@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Matching\Jobs;
 
 use App\Domain\Matching\Actions\RecalculateTechnicianStats;
-use App\Domain\Matching\Actions\SolicitNextTechnician;
 use App\Domain\Matching\Data\MatchResponse;
 use App\Domain\Matching\Models\MatchAttempt;
 use App\Domain\Notifications\Actions\SendNotification;
@@ -34,7 +33,6 @@ final class HandleMatchTimeoutJob implements ShouldQueue
     public function __construct(private readonly int $tentativeId) {}
 
     public function handle(
-        SolicitNextTechnician $suivant,
         SendNotification $notifier,
         RecalculateTechnicianStats $statistiques,
     ): void {
@@ -62,6 +60,14 @@ final class HandleMatchTimeoutJob implements ShouldQueue
             ['ticket_id' => $tentative->ticket->getKey()],
         );
 
-        $suivant->execute($tentative->ticket);
+        // Place de marché : la fenêtre expirée ne pousse plus vers un autre
+        // technicien. Le ticket reste PUBLIEE et le client en rechoisit un — on
+        // le prévient que sa sélection n'a pas abouti.
+        $notifier->execute(
+            $tentative->ticket->client,
+            NotificationType::TECHNICIEN_INDISPONIBLE,
+            ['reference' => $tentative->ticket->reference, 'technicien' => $tentative->technician->full_name],
+            ['ticket_id' => $tentative->ticket->getKey(), 'reference' => $tentative->ticket->reference],
+        );
     }
 }

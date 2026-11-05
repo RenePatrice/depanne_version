@@ -7,10 +7,7 @@ use App\Domain\Accounts\Models\Address;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Catalog\Models\Service;
-use App\Domain\Matching\Actions\SolicitNextTechnician;
-use App\Domain\Matching\Jobs\StartMatchingJob;
 use App\Domain\Matching\Models\MatchAttempt;
-use App\Domain\Notifications\Models\AppNotification;
 use App\Domain\Payments\Data\PaymentMethod;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Providers\MockPaymentProvider;
@@ -110,7 +107,7 @@ it('mène une intervention de l’inscription au retrait, par l’API seule', fu
         'problem_description' => 'Fuite sous l’évier de la cuisine depuis hier soir.',
     ])->assertCreated()->assertJsonPath('ticket.etat', 'PUBLIEE')->json('ticket.id');
 
-    Queue::assertPushed(StartMatchingJob::class);
+    // Place de marché : aucune sollicitation automatique, le client choisira.
 
     // ─── 5. Un technicien s'inscrit et complète son dossier ───────────────
 
@@ -161,10 +158,19 @@ it('mène une intervention de l’inscription au retrait, par l’API seule', fu
     $this->postJson('/api/v1/technicien/position', ['latitude' => 9.597, 'longitude' => -13.642])
         ->assertOk();
 
-    // ─── 7. Le matching le sollicite ──────────────────────────────────────
+    // ─── 7. Le client voit le technicien disponible et le choisit ─────────
 
-    $ticket = Ticket::query()->findOrFail($ticketId);
-    app(SolicitNextTechnician::class)->execute($ticket);
+    Sanctum::actingAs($client);
+
+    $this->getJson("/api/v1/tickets/{$ticketId}/techniciens-disponibles")
+        ->assertOk()
+        ->assertJsonPath('techniciens.0.technicien_id', $technicien->id);
+
+    $this->postJson("/api/v1/tickets/{$ticketId}/choisir", ['technicien_id' => $technicien->id])
+        ->assertCreated();
+
+    // Retour côté technicien : il voit la sollicitation et va l'accepter.
+    Sanctum::actingAs($technicien->fresh());
 
     $sollicitations = $this->getJson('/api/v1/technicien/sollicitations')->assertOk();
 
@@ -292,9 +298,9 @@ it('mène une intervention de l’inscription au retrait, par l’API seule', fu
         ->assertJsonPath('retirable_gnf', $net - 50_000);
 });
 
-it('mène une demande sans technicien jusqu’à son terme', function (): void {
-    // Personne n'est en ligne : la recherche doit conclure proprement plutôt
-    // que de laisser le client devant un écran qui tourne.
+it('laisse une demande ouverte quand aucun technicien n’est disponible', function (): void {
+    // Place de marché : personne n'est en ligne, la liste est vide. La demande
+    // reste ouverte — le client réessaie plus tard ou l'annule.
 
     $client = User::factory()->create();
 
@@ -313,19 +319,13 @@ it('mène une demande sans technicien jusqu’à son terme', function (): void {
         'address_id' => Address::query()->value('id'),
     ])->assertCreated()->json('ticket.id');
 
-    app(SolicitNextTechnician::class)
-        ->execute(Ticket::query()->findOrFail($ticketId));
+    // Aucun technicien à proposer, et la demande reste publiée.
+    $this->getJson("/api/v1/tickets/{$ticketId}/techniciens-disponibles")
+        ->assertOk()
+        ->assertJsonCount(0, 'techniciens');
 
     $this->getJson("/api/v1/tickets/{$ticketId}")
         ->assertOk()
-        ->assertJsonPath('ticket.etat', 'SANS_REPONSE')
-        ->assertJsonPath('ticket.etat_final', true);
-
-    // Le client a été prévenu, et il peut republier.
-    expect(AppNotification::query()->pour($client)->count())->toBe(1);
-
-    $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
-        'address_id' => Address::query()->value('id'),
-    ])->assertCreated();
+        ->assertJsonPath('ticket.etat', 'PUBLIEE')
+        ->assertJsonPath('ticket.etat_final', false);
 });

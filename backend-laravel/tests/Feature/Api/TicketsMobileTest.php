@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Domain\Accounts\Models\Address;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Catalog\Models\Service;
-use App\Domain\Matching\Jobs\StartMatchingJob;
+use App\Domain\Matching\Models\MatchAttempt;
 use App\Domain\Tickets\Actions\TransitionTicket;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
@@ -220,15 +220,17 @@ it('publie une demande au prix exact annoncé par le devis', function (): void {
         ->assertJsonPath('ticket.prix.total_gnf', $devis);
 });
 
-it('met la recherche de technicien en file dès la publication', function (): void {
+it('ne lance aucune recherche automatique à la publication', function (): void {
+    // Place de marché : la publication n'attribue ni ne sollicite personne.
+    // Le client choisira un technicien dans la liste des disponibles.
     [, $adresse] = clientAvecAdresse();
 
-    $this->postJson('/api/v1/tickets', [
+    $id = $this->postJson('/api/v1/tickets', [
         'service_id' => Service::query()->value('id'),
         'address_id' => $adresse->id,
-    ])->assertCreated();
+    ])->assertCreated()->assertJsonPath('ticket.etat', 'PUBLIEE')->json('ticket.id');
 
-    Queue::assertPushed(StartMatchingJob::class);
+    expect(MatchAttempt::query()->where('ticket_id', $id)->count())->toBe(0);
 });
 
 it('horodate la publication et journalise la transition d\'origine', function (): void {
@@ -353,6 +355,7 @@ it('n’expose aucune route permettant de modifier le prix d’un ticket', funct
         'POST api/v1/tickets/{ticket}/appel',                 // mise en relation
         'POST api/v1/tickets/{ticket}/avancer',               // jalon d'intervention
         'POST api/v1/tickets/{ticket}/avis',                  // noter
+        'POST api/v1/tickets/{ticket}/choisir',               // choix du technicien — technicien_id, sans montant
         'POST api/v1/tickets/{ticket}/diagnostic',            // supplément — SEULE à prendre un montant
         'POST api/v1/tickets/{ticket}/diagnostic/reponse',    // décision du client, sans montant
         'POST api/v1/tickets/{ticket}/messages',              // chat

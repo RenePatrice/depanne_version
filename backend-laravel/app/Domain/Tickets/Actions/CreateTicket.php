@@ -7,7 +7,6 @@ namespace App\Domain\Tickets\Actions;
 use App\Domain\Accounts\Models\Address;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Catalog\Models\Service;
-use App\Domain\Matching\Jobs\StartMatchingJob;
 use App\Domain\Pricing\Services\PricingService;
 use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
@@ -96,12 +95,10 @@ final class CreateTicket
                 ['total_gnf' => $devis->totalGnf, 'distance_km' => $devis->distance->km],
             );
 
-            // La recherche part après le commit : lancée dedans, elle
-            // solliciterait un technicien pour un ticket qu'un rollback
-            // effacerait aussitôt.
-            DB::afterCommit(static function () use ($ticket): void {
-                StartMatchingJob::dispatch((int) $ticket->getKey());
-            });
+            // Place de marché (#2) : plus de sollicitation automatique. Le ticket
+            // publié est ouvert à la sélection — le client voit les techniciens
+            // disponibles et en choisit un. C'est ce choix qui crée la
+            // sollicitation (voir SelectTechnician).
 
             return $ticket;
         });

@@ -123,6 +123,13 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/tickets', [TicketController::class, 'index'])->name('api.tickets');
         Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('api.tickets.detail');
 
+        // Place de marché (#2) : le client voit les techniciens disponibles et
+        // en choisit un, qui dispose alors de 45 s pour confirmer.
+        Route::get('/tickets/{ticket}/techniciens-disponibles', [TicketController::class, 'techniciensDisponibles'])
+            ->name('api.tickets.techniciens');
+        Route::post('/tickets/{ticket}/choisir', [TicketController::class, 'choisir'])
+            ->name('api.tickets.choisir');
+
         Route::post('/tickets', [TicketController::class, 'store'])
             ->middleware('throttle:publication')
             ->name('api.tickets.creer');

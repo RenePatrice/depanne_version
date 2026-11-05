@@ -469,45 +469,48 @@ un aller-retour réseau inutile.
 - La part technicien n'apparaît pas dans la réponse servie au client, et la
   commission ne figure pas dans le détail du devis : le client paie un total.
 
-### Matching séquentiel
-Le §8.3 en trois pièces : `TechnicianFinder` présélectionne, `MatchScorer`
-classe, `SolicitNextTechnician` sollicite.
+### Sélection par le client — place de marché (ADR-0042)
+> **Changement de modèle (5 novembre 2026).** Le push séquentiel « un
+> technicien à la fois » a été remplacé par une **place de marché** : le client
+> voit plusieurs techniciens et choisit. `SolicitNextTechnician`,
+> `StartMatchingJob` et `AbandonMatching` sont supprimés ; `TechnicianFinder` et
+> `MatchScorer` sont réutilisés.
 
-- **Un seul technicien à la fois.** C'est ce qui distingue Dépanne-Moi d'une
-  place de marché où dix techniciens reçoivent la même demande et où neuf
-  perdent leur temps. Une sollicitation vivante interdit d'en ouvrir une
-  seconde.
-- Le filtrage et le tri par distance sont **en SQL**. `ST_DWithin` s'appuie sur
-  l'index GiST posé en A1 ; un filtre PHP ne le pourrait pas, et la mémoire
-  grandirait avec le parc.
-- La position retenue est la **dernière connue si elle a moins de 15 minutes**,
-  sinon le point de rattachement. Un technicien qui a coupé son GPS il y a deux
-  heures n'est plus là où il était.
-- **Un technicien sollicité ne l'est jamais deux fois** pour le même ticket,
-  même au cycle suivant (ADR-0028).
-- L'expiration est portée par un **job différé**, pas par un balayage du
-  scheduler : la fenêtre doit se fermer à la seconde près. Le job est
-  idempotent — il n'agit que si la sollicitation est encore EN_ATTENTE.
-- `SolicitNextTechnician` est **rejouable** : appelée à la publication, à chaque
-  refus et à chaque expiration, elle repart à chaque fois de l'état du ticket.
-  Un job dupliqué par la file ne produit pas deux sollicitations.
-- Le score est normalisé composante par composante avant pondération — sans
-  cela une note sur 5 pèserait cinq fois son poids annoncé face à un taux. Le
-  **détail est conservé** sur la sollicitation : un technicien qui conteste son
-  classement obtient une réponse, pas une reconstitution.
-- La proximité est mesurée **relativement au rayon du cycle** : au troisième
-  cycle, être à 6 km n'est plus une mauvaise nouvelle.
+Deux pièces : `ListAvailableTechnicians` présente, `SelectTechnician` sollicite
+le technicien choisi.
+
+- **La publication ne sollicite plus personne.** `CreateTicket` publie, et le
+  ticket reste PUBLIEE, ouvert à la sélection.
+- `ListAvailableTechnicians` renvoie les techniciens disponibles
+  (`TechnicianFinder` : en ligne, validés, bonne spécialité, dans le rayon,
+  libres), **chacun avec son prix déjà ferme** — son tarif (#2) + le déplacement
+  depuis sa position — sa note et sa distance. L'ordre est donné par
+  `MatchScorer` (meilleurs d'abord), mais le client reste libre de choisir.
+- `SelectTechnician` ouvre au technicien choisi la **fenêtre de 45 s**
+  (maquette « Accepter / Refuser »). Trois gardes : une seule sélection vivante
+  à la fois, disponibilité revérifiée, et **un technicien déjà sollicité n'est
+  pas re-choisi** (ADR-0028 conservé). L'expiration reste un job différé
+  idempotent (`HandleMatchTimeoutJob`).
+- **Refus ou expiration ne poussent plus** vers un autre : le ticket revient à
+  PUBLIEE et le client en choisit un autre. Les deux parties sont prévenues
+  (`TECHNICIEN_INDISPONIBLE`).
+- Le filtrage et le tri par distance restent **en SQL** (`ST_DWithin`, index
+  GiST de A1). La position retenue est la dernière connue si elle a moins de
+  15 minutes, sinon le point de rattachement.
 
 ### L'attribution
-`RespondToMatch::accepter()` superpose trois protections (ADR-0027) : un verrou
-court, une mise à jour conditionnelle `WHERE state = 'PUBLIEE'` — c'est elle qui
-garantit réellement l'unicité — et la machine à états. Un second technicien
-reçoit un 409 explicite.
+`RespondToMatch::accepter()` superpose trois protections (ADR-0027, conservé) :
+un verrou court, une mise à jour conditionnelle `WHERE state = 'PUBLIEE'` — c'est
+elle qui garantit réellement l'unicité — et la machine à états. Un second
+technicien reçoit un 409 explicite.
 
-C'est aussi là que **le prix devient ferme** : la distance facturée est celle du
-technicien qui accepte. Le prix de la prestation, lui, vient de l'instantané du
-ticket et **jamais du catalogue** (ADR-0029) : une hausse de grille décidée
-entre la publication et l'acceptation ne doit pas rattraper le client.
+C'est aussi là que **le prix devient ferme** : le prix de la prestation est le
+**tarif propre du technicien** qui accepte (ADR-0043), celui que le client a vu
+en le choisissant ; sans tarif fixé, le prix catalogue sert de défaut. Le
+déplacement est calculé depuis la position réelle du technicien. L'ancien
+ADR-0029 (relire l'instantané plutôt que le catalogue) est remplacé : en place
+de marché, le prix est celui du technicien choisi, pas un instantané figé à la
+publication.
 
 Sans position connue pour le technicien, l'estimation est conservée telle
 quelle : mieux vaut facturer l'estimation que refuser l'attribution et laisser
@@ -1068,6 +1071,8 @@ ferait mentir l'historique. Le cache est vidé à chaque changement de compte.
 | 0039 | **Le SDK Android s'installe par le binaire `android`, jamais par AGP** — le sdkmanager déprécié plante et laisse une plateforme corrompue |
 | 0040 | **Le support réassigne tant que le technicien n'est pas sur place** — jamais resollicité, prix ramené à l'estimation |
 | 0041 | **Trancher un litige règle le séquestre, au prorata du remboursement** — plus aucun ticket gelé pour toujours |
+| 0042 | **Place de marché : le client choisit parmi les techniciens disponibles** — remplace le push séquentiel (0026/0027/0028 ajustés) |
+| 0043 | **Le prix ferme est le tarif propre du technicien choisi** — le catalogue n'est qu'un défaut ; remplace l'ADR-0029 |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Accounts\Models\Address;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Catalog\Models\Service;
+use App\Domain\Matching\Actions\ListAvailableTechnicians;
+use App\Domain\Matching\Actions\SelectTechnician;
 use App\Domain\Pricing\Services\PricingService;
 use App\Domain\Tickets\Actions\CancelTicketByClient;
 use App\Domain\Tickets\Actions\CreateTicket;
@@ -135,9 +137,47 @@ final class TicketController extends Controller
         $ticket->load(['service', 'technician']);
 
         return response()->json([
-            'message' => 'Demande publiée. On cherche un technicien près de chez toi.',
+            'message' => 'Demande publiée. Choisis un technicien parmi ceux disponibles près de chez toi.',
             'ticket' => new TicketResource($ticket),
         ], 201);
+    }
+
+    /**
+     * Les techniciens disponibles pour ma demande, avec leur prix (#2).
+     *
+     * Réservé au client : c'est lui qui choisit. Chaque technicien est présenté
+     * avec un prix déjà ferme pour lui, sa note et sa distance.
+     */
+    public function techniciensDisponibles(Request $request, Ticket $ticket, ListAvailableTechnicians $liste): JsonResponse
+    {
+        abort_unless($ticket->estLeClient($this->moi($request)), 404);
+
+        return response()->json(['techniciens' => $liste->execute($ticket)]);
+    }
+
+    /** Choisir un technicien : lui ouvre une fenêtre de réponse de 45 secondes. */
+    public function choisir(Request $request, Ticket $ticket, SelectTechnician $selection): JsonResponse
+    {
+        $valide = $request->validate(['technicien_id' => ['required', 'integer']]);
+
+        try {
+            $tentative = $selection->execute($ticket, $this->moi($request), (int) $valide['technicien_id']);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Technicien sollicité. Il a quelques secondes pour confirmer.',
+            'expire_dans_s' => max(0, (int) now()->diffInSeconds($tentative->expires_at, false)),
+        ], 201);
+    }
+
+    private function moi(Request $request): User
+    {
+        /** @var User $utilisateur */
+        $utilisateur = $request->user();
+
+        return $utilisateur;
     }
 
     /**

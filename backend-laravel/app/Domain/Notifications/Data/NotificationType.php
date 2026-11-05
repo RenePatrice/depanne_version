@@ -28,6 +28,7 @@ enum NotificationType: string
     case TICKET_ANNULE = 'TICKET_ANNULE';
     case AUCUN_TECHNICIEN = 'AUCUN_TECHNICIEN';
     case TECHNICIEN_REMPLACE = 'TECHNICIEN_REMPLACE';
+    case TECHNICIEN_INDISPONIBLE = 'TECHNICIEN_INDISPONIBLE';
 
     case NOUVELLE_DEMANDE = 'NOUVELLE_DEMANDE';
     case DEMANDE_EXPIREE = 'DEMANDE_EXPIREE';
@@ -48,6 +49,7 @@ enum NotificationType: string
             self::TICKET_ANNULE => 'Demande annulée',
             self::AUCUN_TECHNICIEN => 'Aucun technicien disponible',
             self::TECHNICIEN_REMPLACE => 'Nouveau technicien recherché',
+            self::TECHNICIEN_INDISPONIBLE => 'Technicien indisponible',
             self::NOUVELLE_DEMANDE => 'Nouvelle demande',
             self::DEMANDE_EXPIREE => 'Demande expirée',
             self::DEMANDE_ATTRIBUEE => 'Demande attribuée',
@@ -89,6 +91,8 @@ enum NotificationType: string
             self::DEMANDE_ATTRIBUEE => 'La demande {reference} a été attribuée à un autre technicien.',
             self::TECHNICIEN_REMPLACE => 'Ton technicien ne pourra pas venir pour {reference}. '
                 .'Nous en cherchons un autre, ta demande reste active.',
+            self::TECHNICIEN_INDISPONIBLE => '{technicien} n\'a pas confirmé pour {reference}. '
+                .'Choisis un autre technicien, ta demande reste active.',
             self::DEMANDE_RETIREE => 'Le support t\'a retiré la demande {reference}. Motif : {motif}',
         };
     }

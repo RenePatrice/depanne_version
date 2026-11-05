@@ -44,7 +44,6 @@ final class ReassignTicket
         private readonly TransitionTicket $transition,
         private readonly PricingService $tarification,
         private readonly SendNotification $notifier,
-        private readonly SolicitNextTechnician $suivant,
         private readonly RecalculateTechnicianStats $statistiques,
     ) {}
 
@@ -116,9 +115,9 @@ final class ReassignTicket
         $this->prevenir($ticket, $retire, $motif);
         $this->statistiques->execute($retire);
 
-        // Hors transaction : la sollicitation programme un job d'expiration, qui
-        // ne doit pas partir avant que le retour en PUBLIEE soit visible.
-        $this->suivant->execute($ticket);
+        // Place de marché : le ticket revient en PUBLIEE, ouvert à la sélection.
+        // Le client en choisit un autre ; le technicien retiré, déjà sollicité,
+        // n'apparaît plus dans sa liste (ADR-0028).
 
         return $ticket;
     }

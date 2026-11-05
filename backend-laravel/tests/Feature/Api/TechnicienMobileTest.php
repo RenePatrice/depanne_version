@@ -8,7 +8,8 @@ use App\Domain\Accounts\Events\TechnicianPositionUpdated;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Catalog\Models\Service;
-use App\Domain\Matching\Actions\SolicitNextTechnician;
+use App\Domain\Matching\Actions\ListAvailableTechnicians;
+use App\Domain\Matching\Actions\SelectTechnician;
 use App\Domain\Matching\Data\MatchResponse;
 use App\Domain\Matching\Models\MatchAttempt;
 use App\Domain\Notifications\Actions\SendNotification;
@@ -63,6 +64,18 @@ function technicienConnecte(float $lat = 9.596, float $lng = -13.641, array $att
     Sanctum::actingAs($user);
 
     return $user;
+}
+
+/** Sollicite le meilleur technicien disponible, comme le ferait un client. */
+function sollicitation(Ticket $ticket): MatchAttempt
+{
+    $disponibles = app(ListAvailableTechnicians::class)->execute($ticket);
+
+    return app(SelectTechnician::class)->execute(
+        $ticket,
+        $ticket->client,
+        (int) $disponibles[0]['technicien_id'],
+    );
 }
 
 // ------------------------------------------------------------- disponibilité --
@@ -142,7 +155,7 @@ it('présente la sollicitation vivante avec son compte à rebours', function ():
     $technicien = technicienConnecte();
     $ticket = ticketPublie();
 
-    app(SolicitNextTechnician::class)->execute($ticket);
+    sollicitation($ticket);
     Sanctum::actingAs($technicien);
 
     $reponse = $this->getJson('/api/v1/technicien/sollicitations')->assertOk();
@@ -154,7 +167,7 @@ it('présente la sollicitation vivante avec son compte à rebours', function ():
 
 it('ne livre pas l’adresse exacte avant acceptation', function (): void {
     $technicien = technicienConnecte();
-    app(SolicitNextTechnician::class)->execute(ticketPublie());
+    sollicitation(ticketPublie());
     Sanctum::actingAs($technicien);
 
     $sollicitation = $this->getJson('/api/v1/technicien/sollicitations')->json('sollicitations.0');
@@ -167,7 +180,7 @@ it('accepte une demande et attribue le ticket', function (): void {
     $technicien = technicienConnecte();
     $ticket = ticketPublie();
 
-    app(SolicitNextTechnician::class)->execute($ticket);
+    sollicitation($ticket);
     Sanctum::actingAs($technicien);
 
     $id = MatchAttempt::query()->value('id');
@@ -184,7 +197,7 @@ it('renvoie un conflit quand la demande a déjà été prise', function (): void
     $technicien = technicienConnecte();
     $ticket = ticketPublie();
 
-    app(SolicitNextTechnician::class)->execute($ticket);
+    sollicitation($ticket);
     Sanctum::actingAs($technicien);
 
     $id = MatchAttempt::query()->value('id');
@@ -193,11 +206,11 @@ it('renvoie un conflit quand la demande a déjà été prise', function (): void
     $this->postJson('/api/v1/sollicitations/'.$id.'/accepter')->assertStatus(409);
 });
 
-it('refuse une demande et la fait repartir', function (): void {
+it('refuse une demande et rouvre la demande à la sélection', function (): void {
     $technicien = technicienConnecte();
     $ticket = ticketPublie();
 
-    app(SolicitNextTechnician::class)->execute($ticket);
+    sollicitation($ticket);
     Sanctum::actingAs($technicien);
 
     $this->postJson('/api/v1/sollicitations/'.MatchAttempt::query()->value('id').'/refuser', [
@@ -205,7 +218,7 @@ it('refuse une demande et la fait repartir', function (): void {
     ])->assertOk();
 
     expect(MatchAttempt::query()->first()->response)->toBe(MatchResponse::REFUSE)
-        ->and($ticket->fresh()->state->etat())->toBe(TicketState::SANS_REPONSE);
+        ->and($ticket->fresh()->state->etat())->toBe(TicketState::PUBLIEE);
 });
 
 // -------------------------------------------------------------- intervention --
@@ -214,7 +227,7 @@ it('fait avancer l’intervention étape par étape', function (): void {
     $technicien = technicienConnecte();
     $ticket = ticketPublie();
 
-    app(SolicitNextTechnician::class)->execute($ticket);
+    sollicitation($ticket);
     Sanctum::actingAs($technicien);
 
     $this->postJson('/api/v1/sollicitations/'.MatchAttempt::query()->value('id').'/accepter')->assertOk();
@@ -237,7 +250,7 @@ it('refuse un saut d’étape', function (): void {
     $technicien = technicienConnecte();
     $ticket = ticketPublie();
 
-    app(SolicitNextTechnician::class)->execute($ticket);
+    sollicitation($ticket);
     Sanctum::actingAs($technicien);
 
     $this->postJson('/api/v1/sollicitations/'.MatchAttempt::query()->value('id').'/accepter')->assertOk();
@@ -251,7 +264,7 @@ it('refuse de faire avancer l’intervention d’un autre', function (): void {
     $titulaire = technicienConnecte();
     $ticket = ticketPublie();
 
-    app(SolicitNextTechnician::class)->execute($ticket);
+    sollicitation($ticket);
     Sanctum::actingAs($titulaire);
     $this->postJson('/api/v1/sollicitations/'.MatchAttempt::query()->value('id').'/accepter')->assertOk();
 
@@ -270,7 +283,7 @@ it('conserve une notification en base même sans push', function (): void {
     $technicien = technicienConnecte();
     $ticket = ticketPublie();
 
-    app(SolicitNextTechnician::class)->execute($ticket);
+    sollicitation($ticket);
 
     expect(AppNotification::query()->pour($technicien)->count())->toBe(1)
         ->and(AppNotification::query()->pour($technicien)->value('type'))
@@ -281,7 +294,7 @@ it('prévient le client avec le montant devenu ferme', function (): void {
     $technicien = technicienConnecte();
     $ticket = ticketPublie();
 
-    app(SolicitNextTechnician::class)->execute($ticket);
+    sollicitation($ticket);
     Sanctum::actingAs($technicien);
     $this->postJson('/api/v1/sollicitations/'.MatchAttempt::query()->value('id').'/accepter')->assertOk();
 
@@ -293,7 +306,7 @@ it('prévient le client avec le montant devenu ferme', function (): void {
 
 it('sert le centre de notifications et sait tout marquer comme lu', function (): void {
     $technicien = technicienConnecte();
-    app(SolicitNextTechnician::class)->execute(ticketPublie());
+    sollicitation(ticketPublie());
     Sanctum::actingAs($technicien);
 
     $this->getJson('/api/v1/notifications')->assertOk()->assertJsonPath('non_lues', 1);
@@ -305,7 +318,7 @@ it('sert le centre de notifications et sait tout marquer comme lu', function ():
 
 it('ne montre pas les notifications d’un autre', function (): void {
     $technicien = technicienConnecte();
-    app(SolicitNextTechnician::class)->execute(ticketPublie());
+    sollicitation(ticketPublie());
 
     Sanctum::actingAs(User::factory()->create());
 

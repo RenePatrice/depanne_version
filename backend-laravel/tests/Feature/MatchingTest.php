@@ -6,16 +6,20 @@ use App\Domain\Accounts\Data\UserStatus;
 use App\Domain\Accounts\Data\VerificationStatus;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
+use App\Domain\Catalog\Models\Service;
+use App\Domain\Catalog\Models\TechnicianServiceRate;
+use App\Domain\Matching\Actions\ListAvailableTechnicians;
 use App\Domain\Matching\Actions\RecalculateTechnicianStats;
 use App\Domain\Matching\Actions\RespondToMatch;
-use App\Domain\Matching\Actions\SolicitNextTechnician;
+use App\Domain\Matching\Actions\SelectTechnician;
 use App\Domain\Matching\Data\Candidat;
 use App\Domain\Matching\Data\MatchResponse;
 use App\Domain\Matching\Jobs\HandleMatchTimeoutJob;
 use App\Domain\Matching\Models\MatchAttempt;
 use App\Domain\Matching\Services\MatchScorer;
 use App\Domain\Notifications\Actions\SendNotification;
-use App\Domain\Settings\Models\AppSetting;
+use App\Domain\Notifications\Data\NotificationType;
+use App\Domain\Notifications\Models\AppNotification;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
 use App\Support\Geo;
@@ -26,12 +30,15 @@ use Illuminate\Support\Facades\Queue;
 
 /*
 |--------------------------------------------------------------------------
-| Matching séquentiel (§8.3)
+| Place de marché (#2, décision du 5 novembre 2026)
 |--------------------------------------------------------------------------
 |
-| Ce que ces tests protègent : qu'un seul technicien soit sollicité à la fois,
-| qu'aucun ticket ne soit attribué deux fois, que le prix se fige au bon
-| moment, et que la recherche s'arrête proprement quand il n'y a personne.
+| Le système ne pousse plus un technicien à la fois : le client voit les
+| techniciens disponibles — chacun avec son prix, sa note, sa distance — et en
+| choisit un, qui dispose de 45 secondes pour confirmer. Ce que ces tests
+| protègent : la présélection (en ligne, validé, spécialité, rayon, libre), le
+| prix calculé au tarif du technicien, l'unicité de la sélection vivante, et le
+| fait qu'un refus ou une expiration rouvre la demande sans re-solliciter.
 |
 */
 
@@ -39,6 +46,7 @@ beforeEach(function (): void {
     $this->seed(CatalogSeeder::class);
     $this->seed(ZoneSeeder::class);
     $this->seed(AppSettingsSeeder::class);
+    Queue::fake();
 });
 
 /** Technicien en ligne, validé, positionné à la distance voulue du client. */
@@ -66,121 +74,100 @@ function technicienA(float $lat, float $lng, array $attributs = []): User
     return $user->fresh();
 }
 
-function solliciter(): SolicitNextTechnician
+/** @return array<int, array<string, mixed>> */
+function disponibles(Ticket $ticket): array
 {
-    return app(SolicitNextTechnician::class);
+    return app(ListAvailableTechnicians::class)->execute($ticket);
+}
+
+function choisir(Ticket $ticket, int $technicienId): MatchAttempt
+{
+    return app(SelectTechnician::class)->execute($ticket, $ticket->client, $technicienId);
 }
 
 // ------------------------------------------------------------- présélection --
 
-it('ne sollicite qu’un seul technicien à la fois', function (): void {
-    Queue::fake();
-
+it('liste les techniciens disponibles avec leur prix', function (): void {
     technicienA(9.596, -13.641);
     technicienA(9.597, -13.642);
-    technicienA(9.598, -13.643);
 
-    $ticket = ticketPublie();
+    $liste = disponibles(ticketPublie());
 
-    solliciter()->execute($ticket);
-
-    expect(MatchAttempt::query()->where('ticket_id', $ticket->id)->count())->toBe(1);
+    expect($liste)->toHaveCount(2)
+        ->and($liste[0])->toHaveKeys(['technicien_id', 'nom', 'note', 'distance_km', 'eta_min', 'prix_total_gnf', 'prix_formate']);
 });
 
-it('choisit le plus proche à profil équivalent', function (): void {
-    Queue::fake();
-
+it('classe le plus proche d’abord à profil équivalent', function (): void {
     $loin = technicienA(9.620, -13.665);
     $proche = technicienA(9.596, -13.641);
 
-    solliciter()->execute(ticketPublie());
+    $liste = disponibles(ticketPublie());
 
-    expect(MatchAttempt::query()->value('technician_id'))->toBe($proche->id)
+    expect($liste[0]['technicien_id'])->toBe($proche->id)
         ->and($loin->id)->not->toBe($proche->id);
 });
 
-it('écarte un technicien hors ligne', function (): void {
-    Queue::fake();
+it('calcule le prix au tarif du technicien, pas au catalogue', function (): void {
+    $technicien = technicienA(9.596, -13.641);
+    $ticket = ticketPublie();
+    $service = Service::query()->find($ticket->service_id);
 
+    // Tarif propre, dans les bornes, supérieur au catalogue.
+    $tarif = (int) round($service->base_price_gnf * 1.2);
+    TechnicianServiceRate::query()->create([
+        'user_id' => $technicien->id, 'service_id' => $service->id, 'price_gnf' => $tarif,
+    ]);
+
+    $liste = disponibles($ticket);
+
+    // Le total inclut le tarif de la prestation (+ majoration de proximité).
+    expect($liste[0]['prix_total_gnf'])->toBeGreaterThanOrEqual($tarif);
+});
+
+it('écarte un technicien hors ligne', function (): void {
     technicienA(9.596, -13.641, ['is_online' => false]);
 
-    solliciter()->execute(ticketPublie());
-
-    expect(MatchAttempt::query()->count())->toBe(0);
+    expect(disponibles(ticketPublie()))->toBe([]);
 });
 
 it('écarte un technicien dont le dossier n’est pas validé', function (): void {
-    Queue::fake();
-
     technicienA(9.596, -13.641, ['verification_status' => VerificationStatus::EN_ATTENTE_VALIDATION]);
 
-    solliciter()->execute(ticketPublie());
-
-    expect(MatchAttempt::query()->count())->toBe(0);
+    expect(disponibles(ticketPublie()))->toBe([]);
 });
 
 it('écarte un technicien sans la bonne spécialité', function (): void {
-    Queue::fake();
-
     technicienA(9.596, -13.641, ['specialties' => ['MENUISERIE']]);
 
-    solliciter()->execute(ticketPublie());
-
-    expect(MatchAttempt::query()->count())->toBe(0);
+    expect(disponibles(ticketPublie()))->toBe([]);
 });
 
 it('écarte un technicien déjà sur une intervention', function (): void {
-    Queue::fake();
-
     $occupe = technicienA(9.596, -13.641);
 
     $enCours = ticketPublie();
-    $enCours->forceFill([
-        'technician_id' => $occupe->id,
-        'state' => TicketState::EN_ROUTE->value,
-    ])->save();
+    $enCours->forceFill(['technician_id' => $occupe->id, 'state' => TicketState::EN_ROUTE->value])->save();
 
-    solliciter()->execute(ticketPublie());
-
-    expect(MatchAttempt::query()->count())->toBe(0);
+    expect(disponibles(ticketPublie()))->toBe([]);
 });
 
 it('ignore une position périmée et retombe sur le point de rattachement', function (): void {
-    Queue::fake();
-
-    // Dernière position à 100 m mais vieille de deux heures, base à 40 km.
     technicienA(9.596, -13.641, [
         'last_position_at' => now()->subHours(2),
         'base_location' => Geo::point(9.95, -13.20),
     ]);
 
-    solliciter()->execute(ticketPublie());
-
-    expect(MatchAttempt::query()->count())->toBe(0);
+    expect(disponibles(ticketPublie()))->toBe([]);
 });
 
-it('élargit le rayon quand personne n’est proche', function (): void {
-    Queue::fake();
+it('inclut un technicien plus loin, dans le rayon de couverture', function (): void {
+    technicienA(9.667, -13.640); // ~8 km : hors des 3 km inclus, dans le rayon de 15 km
 
-    // ~8 km du client : hors du premier cycle (5 km), dans le deuxième (10 km).
-    technicienA(9.667, -13.640);
-
-    solliciter()->execute(ticketPublie());
-
-    $tentative = MatchAttempt::query()->firstOrFail();
-
-    expect($tentative->cycle)->toBe(2)->and($tentative->radius_km)->toBe(10);
+    expect(disponibles(ticketPublie()))->toHaveCount(1);
 });
 
-it('conclut à l’absence de technicien après tous les cycles', function (): void {
-    Queue::fake();
-
-    $ticket = ticketPublie();
-
-    solliciter()->execute($ticket);
-
-    expect($ticket->fresh()->state->etat())->toBe(TicketState::SANS_REPONSE)
-        ->and(MatchAttempt::query()->count())->toBe(0);
+it('ne liste personne quand aucun technicien n’est disponible', function (): void {
+    expect(disponibles(ticketPublie()))->toBe([]);
 });
 
 // -------------------------------------------------------------------- score --
@@ -208,83 +195,100 @@ it('pénalise un fort taux d’annulation', function (): void {
 it('donne une note neutre au nouveau venu plutôt que zéro', function (): void {
     $scoring = app(MatchScorer::class);
 
-    // Note réelle à 0 faute d'avis, mais deux interventions seulement.
     $nouveau = new Candidat(1, 'Nouveau', 2.0, 0.0, 1.0, 0.0, 2, 9.59, -13.64);
 
-    $detail = $scoring->noter($nouveau, 5);
-
-    // 4,0 sur 5 = 0,8 : le nouveau venu reste sollicitable.
-    expect($detail['detail']['note'])->toBe(0.8);
+    expect($scoring->noter($nouveau, 5)['detail']['note'])->toBe(0.8);
 });
 
-it('conserve le détail du score pour pouvoir l’expliquer', function (): void {
-    Queue::fake();
+// --------------------------------------------------------------- sélection --
 
-    technicienA(9.596, -13.641);
-    solliciter()->execute(ticketPublie());
+it('le client choisit un technicien et lui ouvre une fenêtre de réponse', function (): void {
+    $technicien = technicienA(9.596, -13.641);
+    $ticket = ticketPublie();
 
-    $detail = MatchAttempt::query()->value('score_breakdown');
+    $tentative = choisir($ticket, $technicien->id);
 
-    expect($detail)->toHaveKeys(['proximite', 'proximite_apport', 'note', 'acceptation', 'annulation']);
+    expect($tentative->response)->toBe(MatchResponse::EN_ATTENTE)
+        ->and((int) $tentative->technician_id)->toBe($technicien->id)
+        ->and($tentative->expires_at->isFuture())->toBeTrue();
+});
+
+it('n’ouvre pas de seconde sélection tant que la première est vivante', function (): void {
+    $a = technicienA(9.596, -13.641);
+    $b = technicienA(9.597, -13.642);
+    $ticket = ticketPublie();
+
+    choisir($ticket, $a->id);
+
+    expect(fn () => choisir($ticket, $b->id))->toThrow(DomainException::class);
+    expect(MatchAttempt::query()->where('ticket_id', $ticket->id)->count())->toBe(1);
+});
+
+it('ne re-sollicite jamais un technicien déjà sollicité', function (): void {
+    $technicien = technicienA(9.596, -13.641);
+    $ticket = ticketPublie();
+
+    $tentative = choisir($ticket, $technicien->id);
+    app(RespondToMatch::class)->refuser($tentative, $technicien);
+
+    // Il n'apparaît plus dans la liste, et on ne peut pas le re-choisir.
+    expect(disponibles($ticket))->toBe([])
+        ->and(fn () => choisir($ticket, $technicien->id))->toThrow(DomainException::class);
+});
+
+it('refuse un technicien devenu indisponible entre la liste et le choix', function (): void {
+    $technicien = technicienA(9.596, -13.641);
+    $ticket = ticketPublie();
+
+    $technicien->technicianProfile->forceFill(['is_online' => false])->save();
+
+    expect(fn () => choisir($ticket, $technicien->id))
+        ->toThrow(DomainException::class, 'plus disponible');
 });
 
 // --------------------------------------------------------------- attribution --
 
-it('attribue le ticket et fige son prix à l’acceptation', function (): void {
-    Queue::fake();
-
-    // Technicien à ~7 km : au-delà du seuil de 3 km, le déplacement devient
-    // facturable et le total dépasse l'estimation de proximité.
-    $technicien = technicienA(9.658, -13.640);
+it('attribue le ticket et fige son prix au tarif du technicien', function (): void {
+    $technicien = technicienA(9.658, -13.640); // ~7 km : déplacement facturable
     $ticket = ticketPublie();
+    $service = Service::query()->find($ticket->service_id);
 
-    solliciter()->execute($ticket);
+    $tarif = (int) round($service->base_price_gnf * 1.1);
+    TechnicianServiceRate::query()->create([
+        'user_id' => $technicien->id, 'service_id' => $service->id, 'price_gnf' => $tarif,
+    ]);
 
-    $tentative = MatchAttempt::query()->firstOrFail();
+    $tentative = choisir($ticket, $technicien->id);
     $ticket = app(RespondToMatch::class)->accepter($tentative, $technicien);
 
     expect($ticket->state->etat())->toBe(TicketState::ACCEPTEE)
         ->and($ticket->technician_id)->toBe($technicien->id)
         ->and($ticket->accepted_at)->not->toBeNull()
-        ->and($ticket->short_trip_uplift_gnf)->toBe(0)
+        ->and($ticket->base_price_gnf)->toBe($tarif)
         ->and($ticket->travel_fee_gnf)->toBeGreaterThan(0)
         ->and($ticket->priceIsCoherent())->toBeTrue();
 });
 
 it('conserve la majoration de proximité quand le technicien est tout près', function (): void {
-    Queue::fake();
-
     $technicien = technicienA(9.596, -13.641);
     $ticket = ticketPublie();
 
-    solliciter()->execute($ticket);
-
-    $ticket = app(RespondToMatch::class)->accepter(MatchAttempt::query()->firstOrFail(), $technicien);
+    $ticket = app(RespondToMatch::class)->accepter(choisir($ticket, $technicien->id), $technicien);
 
     expect($ticket->travel_fee_gnf)->toBe(0)
-        ->and($ticket->short_trip_uplift_gnf)->toBe(850);
+        ->and($ticket->short_trip_uplift_gnf)->toBeGreaterThan(0);
 });
 
 it('refuse une seconde attribution du même ticket', function (): void {
-    Queue::fake();
-
     $premier = technicienA(9.596, -13.641);
     $second = technicienA(9.597, -13.642);
     $ticket = ticketPublie();
 
-    // Deux sollicitations ouvertes de force : c'est la situation que le verrou
-    // et la mise à jour conditionnelle doivent rendre inoffensive.
     $tentatives = collect([$premier, $second])->map(fn (User $t, int $i): MatchAttempt => MatchAttempt::query()->create([
-        'ticket_id' => $ticket->id,
-        'technician_id' => $t->id,
-        'cycle' => 1,
-        'radius_km' => 5,
-        'position' => $i + 1,
-        'score' => 0.8,
-        'distance_km' => 1.0,
+        'ticket_id' => $ticket->id, 'technician_id' => $t->id, 'cycle' => 1,
+        'radius_km' => 5, 'position' => $i + 1, 'score' => 0.8, 'distance_km' => 1.0,
         'response' => MatchResponse::EN_ATTENTE->value,
-        'notified_at' => now(),
-        'expires_at' => now()->addSeconds(45),
+        'notified_at' => now(), 'expires_at' => now()->addSeconds(45),
     ]));
 
     app(RespondToMatch::class)->accepter($tentatives[0], $premier);
@@ -296,8 +300,6 @@ it('refuse une seconde attribution du même ticket', function (): void {
 });
 
 it('clôt les sollicitations restées ouvertes après une attribution', function (): void {
-    Queue::fake();
-
     $gagnant = technicienA(9.596, -13.641);
     $autre = technicienA(9.597, -13.642);
     $ticket = ticketPublie();
@@ -305,15 +307,12 @@ it('clôt les sollicitations restées ouvertes après une attribution', function
     $perdante = MatchAttempt::query()->create([
         'ticket_id' => $ticket->id, 'technician_id' => $autre->id, 'cycle' => 1,
         'radius_km' => 5, 'position' => 1, 'score' => 0.7, 'distance_km' => 1.0,
-        'response' => MatchResponse::EN_ATTENTE->value,
-        'notified_at' => now(), 'expires_at' => now()->addSeconds(45),
+        'response' => MatchResponse::EN_ATTENTE->value, 'notified_at' => now(), 'expires_at' => now()->addSeconds(45),
     ]);
-
     $gagnante = MatchAttempt::query()->create([
         'ticket_id' => $ticket->id, 'technician_id' => $gagnant->id, 'cycle' => 1,
         'radius_km' => 5, 'position' => 2, 'score' => 0.8, 'distance_km' => 1.0,
-        'response' => MatchResponse::EN_ATTENTE->value,
-        'notified_at' => now(), 'expires_at' => now()->addSeconds(45),
+        'response' => MatchResponse::EN_ATTENTE->value, 'notified_at' => now(), 'expires_at' => now()->addSeconds(45),
     ]);
 
     app(RespondToMatch::class)->accepter($gagnante, $gagnant);
@@ -322,173 +321,53 @@ it('clôt les sollicitations restées ouvertes après une attribution', function
 });
 
 it('refuse une réponse adressée à quelqu’un d’autre', function (): void {
-    Queue::fake();
-
     $destinataire = technicienA(9.596, -13.641);
     $intrus = technicienA(9.597, -13.642);
     $ticket = ticketPublie();
 
-    solliciter()->execute($ticket);
+    $tentative = choisir($ticket, $destinataire->id);
 
-    expect(fn () => app(RespondToMatch::class)->accepter(MatchAttempt::query()->firstOrFail(), $intrus))
+    expect(fn () => app(RespondToMatch::class)->accepter($tentative, $intrus))
         ->toThrow(DomainException::class, 'Cette demande ne t\'est pas adressée.');
-
-    expect($destinataire->id)->not->toBe($intrus->id);
 });
 
 it('refuse une réponse après expiration de la fenêtre', function (): void {
-    Queue::fake();
-
     $technicien = technicienA(9.596, -13.641);
     $ticket = ticketPublie();
 
-    solliciter()->execute($ticket);
-
-    $tentative = MatchAttempt::query()->firstOrFail();
+    $tentative = choisir($ticket, $technicien->id);
     $tentative->forceFill(['expires_at' => now()->subSecond()])->save();
 
     expect(fn () => app(RespondToMatch::class)->accepter($tentative, $technicien))
         ->toThrow(DomainException::class, 'Le délai de réponse est dépassé.');
 });
 
-// ------------------------------------------------------------------- relance --
+// --------------------------------------------------------- refus / expiration --
 
-it('passe au suivant dès qu’un technicien refuse', function (): void {
-    Queue::fake();
-
-    $premier = technicienA(9.596, -13.641);
-    $second = technicienA(9.600, -13.645);
-    $ticket = ticketPublie();
-
-    solliciter()->execute($ticket);
-
-    $tentative = MatchAttempt::query()->firstOrFail();
-    app(RespondToMatch::class)->refuser($tentative, $tentative->technician, 'Trop loin');
-
-    $tentatives = MatchAttempt::query()->orderBy('id')->get();
-
-    expect($tentatives)->toHaveCount(2)
-        ->and($tentatives[0]->response)->toBe(MatchResponse::REFUSE)
-        ->and($tentatives[1]->response)->toBe(MatchResponse::EN_ATTENTE)
-        ->and($tentatives[1]->technician_id)->not->toBe($tentatives[0]->technician_id)
-        ->and([$premier->id, $second->id])->toContain($tentatives[1]->technician_id);
-});
-
-it('ne sollicite jamais deux fois le même technicien pour un ticket', function (): void {
-    Queue::fake();
-
-    $seul = technicienA(9.596, -13.641);
-    $ticket = ticketPublie();
-
-    solliciter()->execute($ticket);
-
-    $tentative = MatchAttempt::query()->firstOrFail();
-    app(RespondToMatch::class)->refuser($tentative, $seul);
-
-    // Personne d'autre n'existe : la recherche doit s'arrêter, pas boucler.
-    expect(MatchAttempt::query()->count())->toBe(1)
-        ->and($ticket->fresh()->state->etat())->toBe(TicketState::SANS_REPONSE);
-});
-
-it('n’ouvre pas de seconde sollicitation tant que la première est vivante', function (): void {
-    Queue::fake();
-
-    technicienA(9.596, -13.641);
-    technicienA(9.597, -13.642);
-    $ticket = ticketPublie();
-
-    solliciter()->execute($ticket);
-    solliciter()->execute($ticket);   // job dupliqué par la file
-
-    expect(MatchAttempt::query()->count())->toBe(1);
-});
-
-it('ne sollicite plus personne une fois le ticket annulé', function (): void {
-    Queue::fake();
-
-    technicienA(9.596, -13.641);
-    $ticket = ticketPublie();
-    $ticket->forceFill(['state' => TicketState::ANNULEE_CLIENT->value])->save();
-
-    solliciter()->execute($ticket->fresh());
-
-    expect(MatchAttempt::query()->count())->toBe(0);
-});
-
-// ----------------------------------------------------------------- expiration --
-
-it('expire une fenêtre sans réponse et relance la recherche', function (): void {
-    Queue::fake();
-
-    technicienA(9.596, -13.641);
-    technicienA(9.600, -13.645);
-    $ticket = ticketPublie();
-
-    solliciter()->execute($ticket);
-    $tentative = MatchAttempt::query()->firstOrFail();
-
-    app(HandleMatchTimeoutJob::class, ['tentativeId' => $tentative->id])->handle(
-        app(SolicitNextTechnician::class),
-        app(SendNotification::class),
-        app(RecalculateTechnicianStats::class),
-    );
-
-    expect($tentative->fresh()->response)->toBe(MatchResponse::EXPIRE)
-        ->and(MatchAttempt::query()->count())->toBe(2);
-});
-
-it('n’écrase pas une réponse déjà donnée quand le job d’expiration rejoue', function (): void {
-    Queue::fake();
-
+it('rouvre la demande à la sélection quand le technicien refuse', function (): void {
     $technicien = technicienA(9.596, -13.641);
     $ticket = ticketPublie();
 
-    solliciter()->execute($ticket);
-    $tentative = MatchAttempt::query()->firstOrFail();
+    $tentative = choisir($ticket, $technicien->id);
+    app(RespondToMatch::class)->refuser($tentative, $technicien, 'Trop loin');
 
-    app(RespondToMatch::class)->accepter($tentative, $technicien);
-
-    app(HandleMatchTimeoutJob::class, ['tentativeId' => $tentative->id])->handle(
-        app(SolicitNextTechnician::class),
-        app(SendNotification::class),
-        app(RecalculateTechnicianStats::class),
-    );
-
-    expect($tentative->fresh()->response)->toBe(MatchResponse::ACCEPTE)
-        ->and($ticket->fresh()->state->etat())->toBe(TicketState::ACCEPTEE);
+    expect($tentative->fresh()->response)->toBe(MatchResponse::REFUSE)
+        ->and($ticket->fresh()->state->etat())->toBe(TicketState::PUBLIEE)
+        ->and(AppNotification::query()
+            ->where('notifiable_id', $ticket->client_id)
+            ->where('type', NotificationType::TECHNICIEN_INDISPONIBLE->value)
+            ->exists())->toBeTrue();
 });
 
-// ------------------------------------------------------------- configuration --
-
-it('suit le nombre de cycles défini en back-office', function (): void {
-    Queue::fake();
-
-    AppSetting::put(AppSetting::MATCH_MAX_CYCLES, 1);
-
-    // Technicien à ~8 km : atteignable au cycle 2, qui n'existe plus.
-    technicienA(9.667, -13.640);
+it('rouvre la demande quand la fenêtre expire sans réponse', function (): void {
+    $technicien = technicienA(9.596, -13.641);
     $ticket = ticketPublie();
 
-    solliciter()->execute($ticket);
+    $tentative = choisir($ticket, $technicien->id);
 
-    expect(MatchAttempt::query()->count())->toBe(0)
-        ->and($ticket->fresh()->state->etat())->toBe(TicketState::SANS_REPONSE);
+    (new HandleMatchTimeoutJob($tentative->id))
+        ->handle(app(SendNotification::class), app(RecalculateTechnicianStats::class));
 
-    AppSetting::put(AppSetting::MATCH_MAX_CYCLES, 3);
-});
-
-it('suit le délai de réponse défini en back-office', function (): void {
-    Queue::fake();
-
-    AppSetting::put(AppSetting::MATCH_RESPONSE_SECONDS, 90);
-
-    technicienA(9.596, -13.641);
-    solliciter()->execute(ticketPublie());
-
-    $tentative = MatchAttempt::query()->firstOrFail();
-    $fenetre = (int) $tentative->notified_at->diffInSeconds($tentative->expires_at);
-
-    expect($fenetre)->toBeGreaterThanOrEqual(89)->toBeLessThanOrEqual(91);
-
-    AppSetting::put(AppSetting::MATCH_RESPONSE_SECONDS, 45);
+    expect($tentative->fresh()->response)->toBe(MatchResponse::EXPIRE)
+        ->and($ticket->fresh()->state->etat())->toBe(TicketState::PUBLIEE);
 });

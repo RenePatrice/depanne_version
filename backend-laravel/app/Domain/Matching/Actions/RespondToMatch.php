@@ -50,7 +50,6 @@ final class RespondToMatch
         private readonly TransitionTicket $transition,
         private readonly PricingService $tarification,
         private readonly SendNotification $notifier,
-        private readonly SolicitNextTechnician $suivant,
         private readonly RecalculateTechnicianStats $statistiques,
     ) {}
 
@@ -127,11 +126,22 @@ final class RespondToMatch
 
         $this->statistiques->execute($technicien);
 
-        // Le suivant est sollicité tout de suite : un refus rapide ne doit pas
-        // coûter au client les 45 secondes de la fenêtre abandonnée.
-        $this->suivant->execute($tentative->ticket);
+        // Place de marché : on ne pousse plus vers un autre technicien. Le
+        // ticket reste PUBLIEE et le client en choisit un autre dans la liste.
+        // On le prévient pour qu'il n'attende pas un technicien qui a décliné.
+        $this->prevenirClientIndisponible($tentative->ticket, $technicien);
 
         return $tentative;
+    }
+
+    private function prevenirClientIndisponible(Ticket $ticket, User $technicien): void
+    {
+        $this->notifier->execute(
+            $ticket->client,
+            NotificationType::TECHNICIEN_INDISPONIBLE,
+            ['reference' => $ticket->reference, 'technicien' => $technicien->full_name],
+            ['ticket_id' => $ticket->getKey(), 'reference' => $ticket->reference],
+        );
     }
 
     /**
@@ -156,8 +166,16 @@ final class RespondToMatch
             return;
         }
 
+        // Place de marché : le prix de la prestation est le **tarif propre** du
+        // technicien qui accepte (#2), celui que le client a vu en le
+        // choisissant. Sans tarif fixé, le prix catalogue sert de défaut.
+        $ticket->loadMissing('service.rates');
+        $prixPrestation = $ticket->service !== null
+            ? $ticket->service->priceForTechnician((int) $technicien->getKey())
+            : (int) $ticket->base_price_gnf;
+
         $devis = $this->tarification->pourTechnicien(
-            $ticket->base_price_gnf,
+            $prixPrestation,
             $ticket->zone,
             Geo::point($depart->getLatitude(), $depart->getLongitude()),
             $ticket->location,

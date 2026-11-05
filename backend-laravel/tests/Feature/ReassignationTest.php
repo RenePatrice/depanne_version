@@ -6,9 +6,11 @@ use App\Domain\Accounts\Data\UserStatus;
 use App\Domain\Accounts\Data\VerificationStatus;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
+use App\Domain\Catalog\Models\Service;
+use App\Domain\Matching\Actions\ListAvailableTechnicians;
 use App\Domain\Matching\Actions\ReassignTicket;
 use App\Domain\Matching\Actions\RespondToMatch;
-use App\Domain\Matching\Actions\SolicitNextTechnician;
+use App\Domain\Matching\Actions\SelectTechnician;
 use App\Domain\Matching\Data\MatchResponse;
 use App\Domain\Matching\Models\MatchAttempt;
 use App\Domain\Notifications\Data\NotificationType;
@@ -78,44 +80,48 @@ function ticketAttribue(): array
     $loin = technicienDisponible(9.610, -13.655);
 
     $ticket = ticketPublie();
-    $tentative = app(SolicitNextTechnician::class)->execute($ticket);
 
-    $retenu = (int) $tentative->technician_id === $proche->id ? $proche : $loin;
+    // Le client choisit le mieux classé (le plus proche) ; l'autre reste libre.
+    $disponibles = app(ListAvailableTechnicians::class)->execute($ticket);
+    $retenuId = (int) $disponibles[0]['technicien_id'];
+    $retenu = $retenuId === $proche->id ? $proche : $loin;
     $restant = $retenu->is($proche) ? $loin : $proche;
 
+    $tentative = app(SelectTechnician::class)->execute($ticket, $ticket->client, $retenuId);
     app(RespondToMatch::class)->accepter($tentative, $retenu);
 
     return [$ticket->fresh(), $retenu, $restant];
 }
 
-it('remet le ticket en recherche et sollicite un autre technicien', function (): void {
+it('rouvre le ticket à la sélection et propose l’autre technicien', function (): void {
     [$ticket, $retenu, $restant] = ticketAttribue();
 
     app(ReassignTicket::class)->execute($ticket, 'Technicien injoignable depuis vingt minutes.', false, $this->admin->id);
 
     $ticket = $ticket->fresh();
-    $enAttente = MatchAttempt::query()
-        ->where('ticket_id', $ticket->id)
-        ->where('response', MatchResponse::EN_ATTENTE->value)
-        ->sole();
+    $disponibles = app(ListAvailableTechnicians::class)->execute($ticket);
+    $ids = array_column($disponibles, 'technicien_id');
 
     expect($ticket->state->etat())->toBe(TicketState::PUBLIEE)
         ->and($ticket->technician_id)->toBeNull()
         ->and($ticket->accepted_at)->toBeNull()
-        ->and((int) $enAttente->technician_id)->toBe($restant->id);
+        // L'autre technicien est proposable ; le retiré ne l'est plus (ADR-0028).
+        ->and($ids)->toContain($restant->id)
+        ->and($ids)->not->toContain($retenu->id);
 });
 
-it('ne resollicite jamais le technicien retiré', function (): void {
+it('ne repropose jamais le technicien retiré', function (): void {
     [$ticket, $retenu, $restant] = ticketAttribue();
 
-    // Le seul autre technicien disparaît : la recherche doit s'arrêter plutôt
+    // Le seul autre technicien disparaît : la liste doit rester vide plutôt
     // que de revenir vers celui qu'on vient de retirer.
     $restant->technicianProfile->forceFill(['is_online' => false])->save();
 
     app(ReassignTicket::class)->execute($ticket, 'Technicien injoignable depuis vingt minutes.', false, $this->admin->id);
 
-    expect(MatchAttempt::query()->where('ticket_id', $ticket->id)->where('technician_id', $retenu->id)->count())->toBe(1)
-        ->and($ticket->fresh()->state->etat())->toBe(TicketState::SANS_REPONSE);
+    expect(app(ListAvailableTechnicians::class)->execute($ticket->fresh()))->toBe([])
+        ->and($ticket->fresh()->state->etat())->toBe(TicketState::PUBLIEE)
+        ->and(MatchAttempt::query()->where('ticket_id', $ticket->id)->where('technician_id', $retenu->id)->count())->toBe(1);
 });
 
 it('ramène le prix à l’estimation tant que personne n’a réaccepté', function (): void {
@@ -126,9 +132,12 @@ it('ramène le prix à l’estimation tant que personne n’a réaccepté', func
     $ticket = $ticket->fresh()->load('zone');
     $estimation = app(PricingService::class)->reestimation($ticket);
 
+    // Sans tarif propre, le prix de la prestation est celui du catalogue : c'est
+    // ce que le client a vu en choisissant le technicien.
+    $prixCatalogue = (int) Service::query()->find($ticket->service_id)->base_price_gnf;
+
     expect($ticket->total_gnf)->toBe($estimation->totalGnf)
-        // Le prix de la prestation reste celui de l'instantané (ADR-0029).
-        ->and($ticket->base_price_gnf)->toBe(85_000);
+        ->and($ticket->base_price_gnf)->toBe($prixCatalogue);
 });
 
 it('impute le désistement au technicien quand le support le décide', function (): void {

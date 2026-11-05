@@ -855,3 +855,47 @@ gelé.
 Le client est crédité au grand livre ; **le reversement sur son compte Mobile
 Money reste manuel**, `PaymentProvider` n'exposant pas de remboursement. L'écran
 le dit.
+
+---
+
+## ADR-0042 — Place de marché : le client choisit parmi les techniciens disponibles
+**5 novembre 2026 · acceptée**
+
+Le modèle initial poussait un technicien à la fois (ADR-0026/0027/0028). Le
+client a demandé un fonctionnement de place de marché : chaque technicien fixe
+son prix, et le client voit plusieurs techniciens disponibles et choisit celui
+qui lui convient.
+
+**Décision.** Le push séquentiel est remplacé par une sélection tirée par le
+client. `SolicitNextTechnician`, `StartMatchingJob` et `AbandonMatching` sont
+supprimés. `CreateTicket` ne sollicite plus : le ticket reste PUBLIEE.
+`ListAvailableTechnicians` présente les techniciens disponibles avec leur prix,
+`SelectTechnician` ouvre au technicien choisi la fenêtre de réponse de 45 s.
+
+`TechnicianFinder` (présélection SQL) et `MatchScorer` (ordre d'affichage) sont
+conservés. L'unicité de l'attribution (ADR-0027) et la non-re-sollicitation d'un
+technicien déjà sollicité (ADR-0028) restent en vigueur.
+
+**Conséquence.** Un refus ou une expiration ne pousse plus vers un autre : le
+ticket revient à PUBLIEE et le client rechoisit. L'état SANS_REPONSE n'est plus
+atteint automatiquement — une demande sans technicien reste ouverte.
+
+---
+
+## ADR-0043 — Le prix ferme est le tarif propre du technicien choisi
+**5 novembre 2026 · acceptée**
+
+En place de marché, le catalogue n'est plus qu'un prix de référence : chaque
+technicien fixe son tarif par prestation (`technician_service_rates`, bornés à
+[0,5× ; 3×] du catalogue).
+
+**Décision.** À l'acceptation, le prix de la prestation est
+`Service::priceForTechnician()` — le tarif du technicien, ou le prix catalogue à
+défaut. C'est exactement ce que le client a vu dans la liste en le choisissant.
+Le déplacement reste calculé depuis la position réelle du technicien.
+
+**Conséquence.** Remplace l'ADR-0029 (relire l'instantané du ticket plutôt que
+le catalogue du jour). L'instantané de prix à la publication n'est plus qu'une
+**estimation** d'affichage ; le prix ferme vient du technicien choisi. Le
+déplacement, lui, continue de dépendre de la position du technicien (ADR-0026,
+conservé).
