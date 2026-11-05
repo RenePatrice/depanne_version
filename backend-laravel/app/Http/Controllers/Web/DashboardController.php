@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Domain\Reporting\Data\Periode;
 use App\Domain\Reporting\Services\DashboardService;
+use App\Domain\Reporting\Services\PredictionService;
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +18,10 @@ use Illuminate\Http\Request;
  */
 final class DashboardController extends Controller
 {
-    public function __construct(private readonly DashboardService $dashboard) {}
+    public function __construct(
+        private readonly DashboardService $dashboard,
+        private readonly PredictionService $prediction,
+    ) {}
 
     public function __invoke(Request $request): View
     {
@@ -32,6 +36,7 @@ final class DashboardController extends Controller
             'revenus' => $this->dashboard->revenus($periode),
             'heatmap' => $this->dashboard->heatmapHeureJour($periode),
             'tauxAcceptation' => $this->dashboard->tauxAcceptation($periode),
+            'prevision' => $this->prediction->previsionDemande(),
             'activite' => $this->dashboard->activiteRecente(),
         ]);
     }

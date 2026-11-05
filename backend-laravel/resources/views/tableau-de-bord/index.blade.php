@@ -67,6 +67,27 @@
         </div>
     </div>
 
+    {{-- Prévision de la demande (#10) : modèle local, sans API. --}}
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="dm-chart-card">
+                <div class="dm-chart-card__head">
+                    <h3 class="dm-chart-card__title">Prévision de la demande</h3>
+                    <span class="dm-chart-card__note">
+                        7 prochains jours · fiabilité {{ $prevision['fiabilite'] }}
+                    </span>
+                </div>
+                <div class="dm-chart"
+                     data-graphique="ligne"
+                     data-serie="{{ json_encode(['categories' => $prevision['categories'], 'series' => $prevision['series']], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) }}"></div>
+                <p class="text-body-secondary mb-0" style="font-size:.75rem">
+                    {{ $prevision['methode'] }} À titre indicatif : une prévision
+                    n'engage pas, elle aide à anticiper les pics.
+                </p>
+            </div>
+        </div>
+    </div>
+
     {{-- Répartition et revenus --}}
     <div class="row g-3 mb-3">
         <div class="col-12 col-xl-5">
