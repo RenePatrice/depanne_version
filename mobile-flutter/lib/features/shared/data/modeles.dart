@@ -267,6 +267,9 @@ class Ticket {
     this.diagnostic,
     this.fraisAnnulationGnf = 0,
     this.creeeLe,
+    this.estUnRetourGarantie = false,
+    this.garantieActive = false,
+    this.garantieOrigineReference,
   });
 
   final int id;
@@ -301,14 +304,31 @@ class Ticket {
 
   final DateTime? creeeLe;
 
+  /// Garantie (#4). `estUnRetourGarantie` : ce ticket est lui-même un retour
+  /// gratuit. `garantieActive` : cette intervention clôturée ouvre encore droit
+  /// à un retour.
+  final bool estUnRetourGarantie;
+  final bool garantieActive;
+  final String? garantieOrigineReference;
+
+  /// En place de marché, publier n'engage personne : le client choisit un
+  /// technicien parmi ceux disponibles. Un retour sous garantie est déjà
+  /// pré-attribué, donc jamais en sélection.
+  bool get enSelection => etat == 'PUBLIEE' && !estUnRetourGarantie;
+
   /// La recherche d'un technicien est en cours.
   bool get enRecherche => etat == 'PUBLIEE';
 
   /// Un supplément attend la décision du client.
   bool get attendUneDecision => etat == 'DIAGNOSTIC_EN_ATTENTE';
 
-  /// Le travail est fait, le paiement reste à faire.
-  bool get aPayer => etat == 'TERMINEE';
+  /// Le travail est fait, le paiement reste à faire. Un retour sous garantie
+  /// est gratuit : il n'y a rien à payer, le client confirme seulement la
+  /// réparation.
+  bool get aPayer => etat == 'TERMINEE' && !estUnRetourGarantie;
+
+  /// Retour sous garantie achevé : le client confirme que la panne est réglée.
+  bool get garantieAConfirmer => estUnRetourGarantie && etat == 'TERMINEE';
 
   /// Payé, fonds en séquestre : le client peut valider pour libérer.
   bool get aValider => etat == 'PAYEE';
@@ -363,6 +383,16 @@ class Ticket {
           if (e.value is String) e.key: e.value as String,
       },
       creeeLe: DateTime.tryParse(json['creee_le'] as String? ?? ''),
+      estUnRetourGarantie:
+          (json['garantie'] as Map<String, dynamic>?)?['est_un_retour']
+              as bool? ??
+          false,
+      garantieActive:
+          (json['garantie'] as Map<String, dynamic>?)?['active'] as bool? ??
+          false,
+      garantieOrigineReference:
+          (json['garantie'] as Map<String, dynamic>?)?['origine_reference']
+              as String?,
     );
   }
 }
@@ -509,4 +539,49 @@ class DossierReclamations {
 
   final List<Reclamation> reclamations;
   final List<MotifReclamation> motifs;
+}
+
+/// Un technicien disponible pour une demande — place de marché (#2).
+///
+/// Le prix est **déjà ferme pour ce technicien** : son tarif propre plus le
+/// déplacement depuis sa position. La note, la distance et l'estimation de
+/// temps de trajet sont là pour que le client compare avant de choisir.
+class TechnicienDisponible {
+  const TechnicienDisponible({
+    required this.id,
+    required this.nom,
+    required this.note,
+    required this.interventions,
+    required this.nouveau,
+    required this.distanceKm,
+    required this.etaMin,
+    required this.prixTotalGnf,
+    required this.prixFormate,
+    required this.distanceEstimee,
+  });
+
+  final int id;
+  final String nom;
+  final double note;
+  final int interventions;
+  final bool nouveau;
+  final double distanceKm;
+  final int etaMin;
+  final int prixTotalGnf;
+  final String prixFormate;
+  final bool distanceEstimee;
+
+  factory TechnicienDisponible.depuisJson(Map<String, dynamic> json) =>
+      TechnicienDisponible(
+        id: json['technicien_id'] as int,
+        nom: json['nom'] as String? ?? 'Technicien',
+        note: (json['note'] as num?)?.toDouble() ?? 0,
+        interventions: json['interventions'] as int? ?? 0,
+        nouveau: json['nouveau'] as bool? ?? false,
+        distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0,
+        etaMin: json['eta_min'] as int? ?? 0,
+        prixTotalGnf: json['prix_total_gnf'] as int? ?? 0,
+        prixFormate: json['prix_formate'] as String? ?? '',
+        distanceEstimee: json['distance_estimee'] as bool? ?? false,
+      );
 }

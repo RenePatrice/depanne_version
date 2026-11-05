@@ -143,6 +143,65 @@ class ClientRepository {
     return Ticket.depuisJson(reponse['ticket'] as Map<String, dynamic>);
   }
 
+  // --------------------------------------------------- place de marché (#2) --
+
+  /// Les techniciens disponibles pour ma demande, avec leur prix déjà ferme,
+  /// leur note et leur distance. L'ordre vient du serveur (les meilleurs
+  /// d'abord), mais le client reste libre de choisir.
+  Future<List<TechnicienDisponible>> techniciensDisponibles(
+    int ticketId,
+  ) async {
+    final Map<String, dynamic> reponse = await _api.get(
+      '/tickets/$ticketId/techniciens-disponibles',
+    );
+
+    return ((reponse['techniciens'] as List<dynamic>?) ?? const <dynamic>[])
+        .map(
+          (dynamic t) =>
+              TechnicienDisponible.depuisJson(t as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  /// Choisir un technicien : lui ouvre une fenêtre de réponse de 45 secondes.
+  /// Aucun montant ne part — le prix est celui que le serveur a déjà fixé.
+  Future<void> choisir(int ticketId, int technicienId) => _api.post(
+    '/tickets/$ticketId/choisir',
+    corps: <String, dynamic>{'technicien_id': technicienId},
+  );
+
+  // ------------------------------------------------------------- garantie (#4) --
+
+  /// Ouvrir un retour sous garantie : la panne est revenue. Renvoie le
+  /// **nouveau** ticket, gratuit et pré-attribué au même technicien.
+  Future<Ticket> ouvrirGarantie(int ticketId, String description) async {
+    final Map<String, dynamic> reponse = await _api.post(
+      '/tickets/$ticketId/garantie',
+      corps: <String, dynamic>{'description': description},
+    );
+
+    return Ticket.depuisJson(reponse['ticket'] as Map<String, dynamic>);
+  }
+
+  /// Clôturer un retour sous garantie : la panne est réglée.
+  Future<Ticket> confirmerGarantie(int ticketId) async {
+    final Map<String, dynamic> reponse = await _api.post(
+      '/tickets/$ticketId/garantie/confirmer',
+    );
+
+    return Ticket.depuisJson(reponse['ticket'] as Map<String, dynamic>);
+  }
+
+  // ---------------------------------------------- anti-contournement (#3) --
+
+  /// Signaler une sollicitation « hors plateforme ». Aucun montant : on décrit,
+  /// le support examine.
+  Future<void> signalerHorsPlateforme(int ticketId, String description) =>
+      _api.post(
+        '/tickets/$ticketId/signaler-hors-plateforme',
+        corps: <String, dynamic>{'description': description},
+      );
+
   // ------------------------------------------------------------ diagnostic --
 
   /// Le supplément proposé, s'il y en a un en attente.
@@ -184,6 +243,14 @@ class ClientRepository {
   /// retour dans l'application, et rien ne garantit l'ordre.
   Future<Paiement> suivrePaiement(String reference) async =>
       Paiement.depuisJson(await _api.get('/paiements/$reference'));
+
+  /// Confirmer avoir payé le technicien **en espèces** (#1).
+  ///
+  /// Le technicien a déclaré le paiement ; seule la confirmation du client
+  /// l'engage. La commission devient alors une dette du technicien, et le
+  /// ticket se clôt sans séquestre.
+  Future<void> confirmerPaiementEspeces(int ticketId) =>
+      _api.post('/tickets/$ticketId/paiement-especes/confirmer');
 
   /// Valider l'intervention : libère les fonds au technicien.
   Future<bool> validerIntervention(int ticketId) async {

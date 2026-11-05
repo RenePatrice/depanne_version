@@ -43,6 +43,17 @@ final ticketProvider = FutureProvider.family<Ticket, int>(
   (Ref ref, int id) => ref.watch(clientRepositoryProvider).ticket(id),
 );
 
+/// Les techniciens disponibles pour une demande — place de marché (#2).
+///
+/// `autoDispose` : la liste n'a de sens que tant que l'écran de choix est
+/// ouvert, et chaque réouverture doit repartir d'une liste fraîche — un
+/// technicien a pu passer hors ligne entre-temps.
+final techniciensDisponiblesProvider = FutureProvider.autoDispose
+    .family<List<TechnicienDisponible>, int>(
+      (Ref ref, int ticketId) =>
+          ref.watch(clientRepositoryProvider).techniciensDisponibles(ticketId),
+    );
+
 /// Le supplément en attente sur une demande, s'il y en a un.
 final supplementProvider = FutureProvider.family<SupplementPropose, int>(
   (Ref ref, int ticketId) =>

@@ -11,6 +11,7 @@ import '../../features/chat/presentation/chat_screen.dart';
 import '../../features/client/presentation/adresse_form_screen.dart';
 import '../../features/client/presentation/avis_screen.dart';
 import '../../features/client/presentation/catalogue_screen.dart';
+import '../../features/client/presentation/choix_technicien_screen.dart';
 import '../../features/client/presentation/nouvelle_demande_screen.dart';
 import '../../features/client/presentation/reclamation_screen.dart';
 import '../../features/client/presentation/suivi_ticket_screen.dart';
@@ -122,6 +123,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
         path: '/client/suivi/:id',
         builder: (_, GoRouterState state) =>
             SuiviTicketScreen(ticketId: _identifiant(state)),
+      ),
+      GoRoute(
+        path: '/client/choix/:id',
+        builder: (_, GoRouterState state) =>
+            ChoixTechnicienScreen(ticketId: _identifiant(state)),
       ),
       GoRoute(
         path: '/client/avis/:id',
