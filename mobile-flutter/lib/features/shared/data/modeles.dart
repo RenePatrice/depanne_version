@@ -270,6 +270,7 @@ class Ticket {
     this.estUnRetourGarantie = false,
     this.garantieActive = false,
     this.garantieOrigineReference,
+    this.especesAConfirmer = false,
   });
 
   final int id;
@@ -310,6 +311,10 @@ class Ticket {
   final bool estUnRetourGarantie;
   final bool garantieActive;
   final String? garantieOrigineReference;
+
+  /// Un paiement en espèces a été déclaré par le technicien : le client doit le
+  /// confirmer pour clôturer (#1).
+  final bool especesAConfirmer;
 
   /// En place de marché, publier n'engage personne : le client choisit un
   /// technicien parmi ceux disponibles. Un retour sous garantie est déjà
@@ -393,6 +398,7 @@ class Ticket {
       garantieOrigineReference:
           (json['garantie'] as Map<String, dynamic>?)?['origine_reference']
               as String?,
+      especesAConfirmer: json['especes_a_confirmer'] as bool? ?? false,
     );
   }
 }

@@ -73,6 +73,14 @@ final class TicketResource extends JsonResource
             'motif_annulation' => $this->cancellation_reason,
             'diagnostic' => $this->diagnosis,
 
+            // Paiement espèces déclaré, en attente de confirmation du client
+            // (#1). Exposé seulement quand la relation `payments` a été chargée
+            // sous sa contrainte (détail du ticket), jamais en liste.
+            'especes_a_confirmer' => $this->when(
+                $this->relationLoaded('payments'),
+                fn (): bool => $this->payments->isNotEmpty(),
+            ),
+
             // Garantie (#4). `est_un_retour` : ce ticket est lui-même un retour
             // gratuit. `active` : cette intervention (clôturée) ouvre encore
             // droit à un retour. `origine_reference` n'apparaît que si la

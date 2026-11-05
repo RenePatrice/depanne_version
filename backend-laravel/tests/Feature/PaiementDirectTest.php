@@ -20,6 +20,7 @@ use App\Support\Geo;
 use Database\Seeders\Demo\AppSettingsSeeder;
 use Database\Seeders\Demo\CatalogSeeder;
 use Database\Seeders\Demo\ZoneSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 
@@ -53,7 +54,7 @@ function interventionEspeces(): array
         'is_online' => true,
     ]);
 
-    $ticket = Illuminate\Database\Eloquent\Model::unguarded(fn (): Ticket => Ticket::query()->create([
+    $ticket = Model::unguarded(fn (): Ticket => Ticket::query()->create([
         'reference' => 'DM-ESP-'.str_pad((string) (Ticket::query()->count() + 1), 4, '0', STR_PAD_LEFT),
         'client_id' => $client->id,
         'technician_id' => $technicien->id,
@@ -95,6 +96,19 @@ it('déclare puis confirme un paiement espèces, et la commission devient une de
         ->and(app(CommissionLedger::class)->due($technicien->fresh()))->toBe(10_000)
         ->and(Payment::query()->where('ticket_id', $ticket->id)->value('status'))
         ->toBe(PaymentStatus::CONFIRMEE);
+});
+
+it('signale au client qu’un paiement espèces attend sa confirmation', function (): void {
+    [$ticket, $client, $technicien] = interventionEspeces();
+
+    Sanctum::actingAs($technicien);
+    $this->postJson("/api/v1/tickets/{$ticket->id}/paiement-especes")->assertCreated();
+
+    // Le client voit le drapeau sur le détail de son ticket.
+    Sanctum::actingAs($client);
+    $this->getJson("/api/v1/tickets/{$ticket->id}")
+        ->assertOk()
+        ->assertJsonPath('ticket.especes_a_confirmer', true);
 });
 
 it('réserve la confirmation au client', function (): void {

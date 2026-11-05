@@ -10,6 +10,7 @@ use App\Domain\Catalog\Models\Service;
 use App\Domain\Disputes\Actions\ReportOffPlatform;
 use App\Domain\Matching\Actions\ListAvailableTechnicians;
 use App\Domain\Matching\Actions\SelectTechnician;
+use App\Domain\Payments\Data\PaymentStatus;
 use App\Domain\Pricing\Services\PricingService;
 use App\Domain\Tickets\Actions\CancelTicketByClient;
 use App\Domain\Tickets\Actions\CloseWarranty;
@@ -118,7 +119,18 @@ final class TicketController extends Controller
     {
         Gate::authorize('view', $ticket);
 
-        $ticket->load(['service', 'client', 'technician']);
+        $ticket->load([
+            'service',
+            'client',
+            'technician',
+            // Un paiement espèces déclaré par le technicien et en attente de
+            // confirmation du client (#1) : l'application du client doit lui
+            // proposer de confirmer. Chargé seulement au détail, pas en liste.
+            'payments' => fn ($q) => $q->where(
+                'status',
+                PaymentStatus::ATTENTE_CONFIRMATION->value,
+            ),
+        ]);
 
         return response()->json(['ticket' => new TicketResource($ticket)]);
     }

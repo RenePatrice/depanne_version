@@ -350,9 +350,28 @@ class _Actions extends ConsumerWidget {
             onPresse: () => DiagnosticFeuille.ouvrir(context, ticket.id),
           ),
 
+        // Paiement espèces déclaré par le technicien (#1) : le client confirme.
+        // C'est sa confirmation seule qui engage.
+        if (ticket.especesAConfirmer) ...<Widget>[
+          DmBouton(
+            libelle: 'J\'ai payé ${ticket.prix.totalFormate} en espèces',
+            onPresse: () => _confirmerEspeces(context, ref),
+          ),
+          const SizedBox(height: DmSpace.x2),
+          Text(
+            'Confirme seulement si tu as bien remis l\'argent au technicien.',
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: DmSpace.x3),
+        ],
+
         if (ticket.aPayer)
           DmBouton(
-            libelle: 'Payer ${ticket.prix.totalFormate}',
+            libelle: ticket.especesAConfirmer
+                ? 'Payer dans l\'application'
+                : 'Payer ${ticket.prix.totalFormate}',
+            secondaire: ticket.especesAConfirmer,
             onPresse: () => PaiementFeuille.ouvrir(context, ticket.id),
           ),
 
@@ -456,6 +475,27 @@ class _Actions extends ConsumerWidget {
         ],
       ],
     );
+  }
+
+  Future<void> _confirmerEspeces(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref
+          .read(clientRepositoryProvider)
+          .confirmerPaiementEspeces(ticket.id);
+      ref.invalidate(ticketProvider(ticket.id));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Paiement confirmé. L\'intervention est clôturée.'),
+          ),
+        );
+      }
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
   }
 
   Future<void> _confirmerGarantie(BuildContext context, WidgetRef ref) async {
