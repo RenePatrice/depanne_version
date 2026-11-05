@@ -72,6 +72,7 @@ Route::middleware('auth:admin')->group(function (): void {
     Route::middleware('permission:tickets.agir')->group(function (): void {
         Route::post('/tickets/{ticket}/annuler', [TicketController::class, 'annuler'])->name('tickets.annuler');
         Route::post('/tickets/{ticket}/cloturer', [TicketController::class, 'cloturer'])->name('tickets.cloturer');
+        Route::post('/tickets/{ticket}/reassigner', [TicketController::class, 'reassigner'])->name('tickets.reassigner');
     });
 
     Route::middleware('permission:clients.voir')->group(function (): void {

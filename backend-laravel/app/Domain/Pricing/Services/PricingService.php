@@ -98,6 +98,27 @@ final readonly class PricingService
     }
 
     /**
+     * Retour à l'estimation quand le technicien qui avait fixé le prix est
+     * retiré du ticket (réassignation, ADR-0040).
+     *
+     * Le prix ferme dépendait de **sa** position ; le garder ferait payer au
+     * client le trajet de quelqu'un qui ne viendra pas. La distance repart du
+     * point de référence de la zone, comme à la publication, mais le prix de la
+     * prestation reste celui de l'instantané (ADR-0029). Le prochain technicien
+     * qui accepte refixera le prix depuis sa propre position.
+     */
+    public function reestimation(Ticket $ticket): ?Devis
+    {
+        if ($ticket->zone === null || $ticket->location === null) {
+            return null;
+        }
+
+        $distance = $this->carte->distance($this->zones->pointDeReference($ticket->zone), $ticket->location);
+
+        return $this->composer($ticket->base_price_gnf, $ticket->zone, $distance, (int) $ticket->extra_fee_gnf, ferme: false);
+    }
+
+    /**
      * Recalcule le total d'un ticket après acceptation d'un supplément de
      * diagnostic (§8.1, état DIAGNOSTIC_VALIDE).
      *
@@ -186,11 +207,15 @@ final readonly class PricingService
      * toujours le même entier après arrondi, et l'écart d'un franc se
      * retrouverait dans le grand livre.
      *
+     * Le taux peut être imposé : un ticket déjà facturé se reventile au taux
+     * **figé sur le ticket**, jamais au taux du jour — sans quoi une baisse de
+     * commission décidée après coup changerait ce qu'un litige reprend.
+     *
      * @return array{int, int, float} commission, net technicien, taux appliqué
      */
-    public function repartir(int $totalGnf, int $majorationGnf = 0): array
+    public function repartir(int $totalGnf, int $majorationGnf = 0, ?float $tauxImpose = null): array
     {
-        $taux = (float) AppSetting::get(AppSetting::COMMISSION_RATE, 0.10);
+        $taux = $tauxImpose ?? (float) AppSetting::get(AppSetting::COMMISSION_RATE, 0.10);
         $taux = max(0.0, min(1.0, $taux));
 
         $assiette = max(0, $totalGnf - $majorationGnf);
@@ -199,6 +224,30 @@ final readonly class PricingService
         $commission = max(0, min($assiette, $commission));
 
         return [$commission, $totalGnf - $commission, $taux];
+    }
+
+    /**
+     * Partage d'un ticket après un remboursement de litige.
+     *
+     * Le remboursement sort **avant** la répartition : la plateforme ne prélève
+     * que sur ce qui a réellement été facturé, et un remboursement total laisse
+     * zéro des deux côtés. Prélever sur le total d'origine ferait porter au
+     * technicien la commission d'une intervention annulée — un solde négatif
+     * pour un travail qu'il n'a pas été payé à faire.
+     *
+     * La majoration de proximité reste exclue de l'assiette, dans la limite de
+     * ce qui subsiste du total.
+     *
+     * @return array{int, int, int} montant conservé, commission, net technicien
+     */
+    public function apresRemboursement(Ticket $ticket, int $remboursementGnf): array
+    {
+        $conserve = max(0, (int) $ticket->total_gnf - max(0, $remboursementGnf));
+        $majoration = min((int) $ticket->short_trip_uplift_gnf, $conserve);
+
+        [$commission, $net] = $this->repartir($conserve, $majoration, (float) $ticket->commission_rate);
+
+        return [$conserve, $commission, $net];
     }
 
     private function composer(

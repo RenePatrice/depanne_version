@@ -60,6 +60,18 @@ final class OpenDispute
             throw new DomainException('Une réclamation est déjà en cours sur cette intervention.');
         }
 
+        // Une intervention déjà arbitrée ne se regèle pas par le mécanisme
+        // automatique : rouvrir gèlerait à nouveau les fonds, et une partie
+        // mécontente de la décision pourrait retarder le versement sans fin.
+        if ($ticket->disputes()->whereIn('status', [
+            DisputeStatus::RESOLU->value,
+            DisputeStatus::REJETE->value,
+        ])->exists()) {
+            throw new DomainException(
+                'Une réclamation a déjà été tranchée sur cette intervention. Contacte le support depuis ton profil.'
+            );
+        }
+
         $priorite = $this->priorite($motif, $ticket);
 
         return DB::transaction(function () use ($ticket, $auteur, $motif, $description, $preuves, $priorite): Dispute {

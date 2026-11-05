@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Domain\Catalog\Models\ServiceCategory;
+use App\Domain\Matching\Actions\ReassignTicket;
 use App\Domain\Tickets\Actions\CancelTicketByAdmin;
 use App\Domain\Tickets\Actions\ForceCloseTicket;
 use App\Domain\Tickets\Models\Ticket;
@@ -101,6 +102,29 @@ final class TicketController extends Controller
         return redirect()
             ->route('tickets.detail', $ticket)
             ->with('statut', 'Ticket '.$ticket->reference.' annulé.');
+    }
+
+    public function reassigner(Request $request, Ticket $ticket, ReassignTicket $reassigner): RedirectResponse
+    {
+        $donnees = $request->validate([
+            'motif' => ['required', 'string', 'min:5', 'max:300'],
+            'impute_au_technicien' => ['sometimes', 'boolean'],
+        ], attributes: ['motif' => 'motif de réassignation']);
+
+        try {
+            $reassigner->execute(
+                $ticket,
+                $donnees['motif'],
+                $request->boolean('impute_au_technicien'),
+                (int) $request->user('admin')?->id,
+            );
+        } catch (DomainException $e) {
+            return back()->withErrors(['motif' => $e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('tickets.detail', $ticket)
+            ->with('statut', 'Ticket '.$ticket->reference.' réassigné : le matching a repris sans le technicien retiré.');
     }
 
     public function cloturer(Request $request, Ticket $ticket, ForceCloseTicket $cloturer): RedirectResponse

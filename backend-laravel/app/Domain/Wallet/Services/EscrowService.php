@@ -8,6 +8,7 @@ use App\Domain\Notifications\Actions\SendNotification;
 use App\Domain\Notifications\Data\NotificationType;
 use App\Domain\Payments\Data\PaymentStatus;
 use App\Domain\Payments\Models\Payment;
+use App\Domain\Pricing\Services\PricingService;
 use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Tickets\Actions\TransitionTicket;
 use App\Domain\Tickets\Data\ActorType;
@@ -45,6 +46,7 @@ final class EscrowService
     public function __construct(
         private readonly TransitionTicket $transition,
         private readonly SendNotification $notifier,
+        private readonly PricingService $tarification,
     ) {}
 
     public function delaiLiberationHeures(): int
@@ -130,6 +132,76 @@ final class EscrowService
             });
 
             return true;
+        });
+    }
+
+    /**
+     * Solde un séquestre gelé par un litige, une fois celui-ci tranché.
+     *
+     * Sans ce chemin, l'argent d'un ticket en litige restait capturé pour
+     * toujours : le job de libération était passé pendant le gel et ne repasse
+     * jamais. Le remboursement est retiré **avant** la répartition (au
+     * prorata) ; le crédit du client et la sortie du ticket de LITIGE_OUVERT
+     * relèvent de l'appelant, qui tient la transaction.
+     *
+     * @return int le net versé au technicien
+     */
+    public function reglerApresLitige(Payment $paiement, int $remboursementGnf, string $referenceLitige): int
+    {
+        return DB::transaction(function () use ($paiement, $remboursementGnf, $referenceLitige): int {
+            /** @var Payment $verrouille */
+            $verrouille = Payment::query()->whereKey($paiement->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($verrouille->status !== PaymentStatus::CAPTUREE) {
+                return 0;
+            }
+
+            $ticket = $verrouille->ticket;
+            $technicienId = (int) $ticket->technician_id;
+
+            [$conserve, $commission, $net] = $this->tarification->apresRemboursement($ticket, $remboursementGnf);
+
+            if ($conserve > 0) {
+                $this->ecrire(
+                    $technicienId,
+                    (int) $ticket->getKey(),
+                    TransactionType::EARNING,
+                    $conserve,
+                    sprintf('Intervention %s (après litige %s)', $ticket->reference, $referenceLitige),
+                );
+            }
+
+            if ($commission > 0) {
+                $this->ecrire(
+                    $technicienId,
+                    (int) $ticket->getKey(),
+                    TransactionType::COMMISSION,
+                    -$commission,
+                    sprintf('Commission plateforme (%d %%) — %s', (int) round((float) $ticket->commission_rate * 100), $ticket->reference),
+                );
+            }
+
+            $verrouille->forceFill([
+                'status' => $conserve === 0 ? PaymentStatus::REMBOURSEE : PaymentStatus::LIBEREE,
+                'released_at' => now(),
+            ])->save();
+
+            if ($net > 0) {
+                DB::afterCommit(function () use ($ticket, $net): void {
+                    $this->notifier->execute(
+                        $ticket->technician,
+                        NotificationType::PAIEMENT_RECU,
+                        [
+                            'reference' => $ticket->reference,
+                            'total' => Money::format($net),
+                            'moyen' => 'portefeuille',
+                        ],
+                        ['ticket_id' => $ticket->getKey(), 'net_gnf' => $net],
+                    );
+                });
+            }
+
+            return $net;
         });
     }
 

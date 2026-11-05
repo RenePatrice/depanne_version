@@ -12,6 +12,7 @@ enum MatchResponse: string
     case REFUSE = 'REFUSE';
     case EXPIRE = 'EXPIRE';
     case ANNULE = 'ANNULE';   // le ticket a été pris ou annulé entre-temps
+    case DESISTE = 'DESISTE'; // accepté, puis retiré par le support à ses torts
 
     public function label(): string
     {
@@ -21,6 +22,7 @@ enum MatchResponse: string
             self::REFUSE => 'Refusé',
             self::EXPIRE => 'Expiré',
             self::ANNULE => 'Annulé',
+            self::DESISTE => 'Désisté',
         };
     }
 
@@ -30,6 +32,6 @@ enum MatchResponse: string
      */
     public function countsInAcceptanceRate(): bool
     {
-        return in_array($this, [self::ACCEPTE, self::REFUSE, self::EXPIRE], true);
+        return in_array($this, [self::ACCEPTE, self::REFUSE, self::EXPIRE, self::DESISTE], true);
     }
 }

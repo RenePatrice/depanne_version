@@ -27,10 +27,12 @@ enum NotificationType: string
     case DIAGNOSTIC_TRANCHE = 'DIAGNOSTIC_TRANCHE';
     case TICKET_ANNULE = 'TICKET_ANNULE';
     case AUCUN_TECHNICIEN = 'AUCUN_TECHNICIEN';
+    case TECHNICIEN_REMPLACE = 'TECHNICIEN_REMPLACE';
 
     case NOUVELLE_DEMANDE = 'NOUVELLE_DEMANDE';
     case DEMANDE_EXPIREE = 'DEMANDE_EXPIREE';
     case DEMANDE_ATTRIBUEE = 'DEMANDE_ATTRIBUEE';
+    case DEMANDE_RETIREE = 'DEMANDE_RETIREE';
 
     public function titre(): string
     {
@@ -45,9 +47,11 @@ enum NotificationType: string
             self::DIAGNOSTIC_TRANCHE => 'Réponse du client',
             self::TICKET_ANNULE => 'Demande annulée',
             self::AUCUN_TECHNICIEN => 'Aucun technicien disponible',
+            self::TECHNICIEN_REMPLACE => 'Nouveau technicien recherché',
             self::NOUVELLE_DEMANDE => 'Nouvelle demande',
             self::DEMANDE_EXPIREE => 'Demande expirée',
             self::DEMANDE_ATTRIBUEE => 'Demande attribuée',
+            self::DEMANDE_RETIREE => 'Demande retirée',
         };
     }
 
@@ -83,6 +87,9 @@ enum NotificationType: string
                 .'Tu as {delai} secondes pour répondre.',
             self::DEMANDE_EXPIREE => 'Tu n\'as pas répondu à temps pour {reference}.',
             self::DEMANDE_ATTRIBUEE => 'La demande {reference} a été attribuée à un autre technicien.',
+            self::TECHNICIEN_REMPLACE => 'Ton technicien ne pourra pas venir pour {reference}. '
+                .'Nous en cherchons un autre, ta demande reste active.',
+            self::DEMANDE_RETIREE => 'Le support t\'a retiré la demande {reference}. Motif : {motif}',
         };
     }
 

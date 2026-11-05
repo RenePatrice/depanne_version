@@ -238,9 +238,11 @@
                     </form>
 
                     <p class="text-body-secondary mt-3 mb-0" style="font-size:.72rem">
-                        Un remboursement est écrit au grand livre — le client est crédité, la part
-                        correspondante est reprise au technicien. Le versement effectif vers Mobile
-                        Money interviendra en phase C5.
+                        La décision règle aussi l'argent : un séquestre gelé est libéré, diminué du
+                        remboursement, et la commission ne porte que sur ce qui reste facturé. Le
+                        client est crédité au grand livre ; le reversement sur son compte Mobile
+                        Money reste à faire à la main, le fournisseur de paiement n'exposant pas
+                        encore de remboursement.
                     </p>
                 @endif
             </div>

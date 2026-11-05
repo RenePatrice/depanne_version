@@ -100,8 +100,11 @@ enum TicketState: string
         return match ($this) {
             self::BROUILLON => [self::PUBLIEE, self::ANNULEE_CLIENT],
             self::PUBLIEE => [self::ACCEPTEE, self::ANNULEE_CLIENT, self::SANS_REPONSE],
-            self::ACCEPTEE => [self::EN_ROUTE, self::ANNULEE_CLIENT, self::ANNULEE_TECHNICIEN],
-            self::EN_ROUTE => [self::SUR_PLACE, self::ANNULEE_CLIENT, self::ANNULEE_TECHNICIEN],
+            // Le retour à PUBLIEE est la réassignation par le support : le
+            // technicien ne vient pas, le client garde sa demande et le
+            // matching reprend sans lui (ADR-0040).
+            self::ACCEPTEE => [self::EN_ROUTE, self::PUBLIEE, self::ANNULEE_CLIENT, self::ANNULEE_TECHNICIEN],
+            self::EN_ROUTE => [self::SUR_PLACE, self::PUBLIEE, self::ANNULEE_CLIENT, self::ANNULEE_TECHNICIEN],
             self::SUR_PLACE => [self::DIAGNOSTIC_EN_ATTENTE, self::EN_COURS, self::ANNULEE_TECHNICIEN],
             self::DIAGNOSTIC_EN_ATTENTE => [self::DIAGNOSTIC_VALIDE, self::DIAGNOSTIC_REFUSE],
             self::DIAGNOSTIC_VALIDE => [self::EN_COURS],
@@ -109,7 +112,9 @@ enum TicketState: string
             self::EN_COURS => [self::TERMINEE, self::ANNULEE_TECHNICIEN],
             self::TERMINEE => [self::PAYEE, self::LITIGE_OUVERT],
             self::PAYEE => [self::CLOTUREE, self::LITIGE_OUVERT],
-            self::LITIGE_OUVERT => [self::CLOTUREE],
+            // Retour à TERMINEE quand le litige est tranché avant tout
+            // encaissement : le client doit encore payer (ADR-0041).
+            self::LITIGE_OUVERT => [self::CLOTUREE, self::TERMINEE],
             self::CLOTUREE, self::ANNULEE_CLIENT,
             self::ANNULEE_TECHNICIEN, self::SANS_REPONSE => [],
         };

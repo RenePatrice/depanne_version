@@ -50,7 +50,10 @@ final class RecalculateTechnicianStats
             ->where('technician_id', $technicien->getKey())
             ->whereIn('response', $comptees)
             ->selectRaw('COUNT(*) AS total')
-            ->selectRaw('COUNT(*) FILTER (WHERE response = ?) AS acceptees', [MatchResponse::ACCEPTE->value])
+            ->selectRaw('COUNT(*) FILTER (WHERE response IN (?, ?)) AS acceptees', [
+                MatchResponse::ACCEPTE->value,
+                MatchResponse::DESISTE->value,
+            ])
             ->first();
 
         $total = (int) ($ligne->total ?? 0);
@@ -60,6 +63,11 @@ final class RecalculateTechnicianStats
         return $total === 0 ? 1.0 : round((int) ($ligne->acceptees ?? 0) / $total, 4);
     }
 
+    /**
+     * Un ticket réassigné à ses torts ne porte plus son nom : c'est la
+     * sollicitation marquée DESISTE qui garde la trace. Sans elle, ne pas venir
+     * coûterait moins cher au technicien qu'annuler.
+     */
     private function tauxAnnulation(User $technicien): float
     {
         $ligne = DB::table('tickets')
@@ -68,9 +76,15 @@ final class RecalculateTechnicianStats
             ->selectRaw('COUNT(*) FILTER (WHERE state = ?) AS annulees', [TicketState::ANNULEE_TECHNICIEN->value])
             ->first();
 
-        $total = (int) ($ligne->total ?? 0);
+        $desistements = DB::table('match_attempts')
+            ->where('technician_id', $technicien->getKey())
+            ->where('response', MatchResponse::DESISTE->value)
+            ->count();
 
-        return $total === 0 ? 0.0 : round((int) ($ligne->annulees ?? 0) / $total, 4);
+        $total = (int) ($ligne->total ?? 0) + $desistements;
+        $annulees = (int) ($ligne->annulees ?? 0) + $desistements;
+
+        return $total === 0 ? 0.0 : round($annulees / $total, 4);
     }
 
     private function interventionsAchevees(User $technicien): int

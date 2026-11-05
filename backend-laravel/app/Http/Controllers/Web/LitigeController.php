@@ -138,7 +138,7 @@ final class LitigeController extends Controller
                 );
 
                 $message = (int) ($donnees['refund_gnf'] ?? 0) > 0
-                    ? 'Litige résolu. Le remboursement est écrit au grand livre ; le versement vers Mobile Money interviendra en phase C5.'
+                    ? 'Litige résolu. Le remboursement est écrit au grand livre ; le reversement sur le compte Mobile Money du client reste à faire à la main.'
                     : 'Litige résolu.';
             }
         } catch (DomainException $e) {

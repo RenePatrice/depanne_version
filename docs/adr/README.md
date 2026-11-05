@@ -789,3 +789,69 @@ qui n'existe au dépôt Google que sous des noms mineurs — `android-37.0`,
 `37.1`… — qu'AGP ne sait pas résoudre depuis `compileSdk = 37`. La dépendance
 est fixée à `^10.3.1`, qui compile contre 36 ; l'API Dart utilisée est
 identique. À revoir quand AGP saura résoudre les versions mineures.
+
+---
+
+## ADR-0040 — Le support peut réassigner un ticket tant que le technicien n'est pas sur place
+**4 novembre 2026 · acceptée**
+
+Un technicien accepte puis ne vient pas : injoignable, panne de moto. Jusqu'ici
+le support n'avait qu'une issue, l'annulation, qui renvoie le client à zéro et
+l'oblige à republier la même panne.
+
+**Décision.** Deux transitions nouvelles, `ACCEPTEE → PUBLIEE` et
+`EN_ROUTE → PUBLIEE`, empruntées par la seule action `ReassignTicket`. Le
+technicien est retiré du ticket et le matching reprend **sans lui** : il a déjà
+été sollicité, il ne le sera pas une seconde fois (ADR-0028). Au-delà de
+SUR_PLACE, l'intervention a commencé chez le client : c'est une annulation ou un
+litige, pas un remplacement.
+
+Le prix ferme dépendait de la position du technicien retiré. Il redevient une
+estimation depuis le point de référence de la zone, sur le prix de prestation de
+l'instantané (ADR-0029) ; le suivant le refixera en acceptant.
+
+**Conséquence.** C'est la seule exception à « un jalon horodaté n'est jamais
+réécrit » : `accepted_at` et `en_route_at` sont effacés, sans quoi
+l'application annoncerait un prix ferme et un technicien en route qui
+n'existent plus. Les dates d'origine sont conservées dans les métadonnées de
+l'événement de transition.
+
+L'imputation est une décision explicite du support, comme pour l'annulation. À
+ses torts, la sollicitation passe en `DESISTE` et compte dans le taux
+d'annulation — sans quoi ne pas venir coûterait moins cher qu'annuler. Elle
+reste comptée comme une acceptation : le technicien n'est pas puni deux fois.
+
+---
+
+## ADR-0041 — Trancher un litige règle le séquestre, au prorata du remboursement
+**4 novembre 2026 · acceptée**
+
+Les litiges (B5) ont été écrits avant le séquestre (C5) et n'avaient jamais été
+raccordés. Un litige tranché laissait le ticket en LITIGE_OUVERT et l'argent
+capturé **pour toujours** : le job de libération était passé pendant le gel et
+ne repassait pas. Un remboursement reprenait en outre au technicien une somme
+qu'il n'avait jamais reçue, et son solde devenait négatif.
+
+**Décision.** `ResolveDispute` règle l'argent dans la même transaction que la
+décision, résolution comme rejet. Le remboursement sort **avant** la
+répartition (décision du client, 4 novembre 2026) : la commission ne porte que
+sur ce qui reste facturé, et un remboursement total laisse zéro des deux côtés.
+
+| Où en était l'argent | Ce que fait la décision |
+|---|---|
+| en séquestre | libération de `total − remboursement`, commission sur ce reste ; paiement `LIBEREE`, ou `REMBOURSEE` si tout est rendu ; ticket CLOTUREE |
+| déjà libéré | le technicien rend le remboursement, la plateforme lui restitue la commission prélevée sur la part remboursée ; même résultat qu'en séquestre |
+| jamais encaissé | aucun remboursement possible ; ticket ramené en TERMINEE (transition nouvelle) pour que le client paie |
+
+Le taux appliqué est celui **figé sur le ticket**, jamais le taux du jour. La
+majoration de proximité reste hors assiette.
+
+**Conséquence.** Une intervention déjà arbitrée ne peut plus être remise en
+litige par l'application : rouvrir gèlerait les fonds de nouveau, sans fin.
+« Forcer la clôture » libère désormais le séquestre qu'elle trouve, et refuse un
+ticket en litige — fermer en marge laisserait la réclamation ouverte et l'argent
+gelé.
+
+Le client est crédité au grand livre ; **le reversement sur son compte Mobile
+Money reste manuel**, `PaymentProvider` n'exposant pas de remboursement. L'écran
+le dit.

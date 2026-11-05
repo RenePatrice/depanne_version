@@ -1,8 +1,14 @@
 @php
+    use App\Domain\Matching\Actions\ReassignTicket;
     use App\Domain\Tickets\Data\TicketState;
 
     $annulable = $ticket->state->estAnnulable();
-    $cloturable = $ticket->state->peutAllerVers(TicketState::CLOTUREE);
+    // Un ticket en litige se clôture par la décision du litige, qui règle le séquestre.
+    $cloturable = $ticket->state->peutAllerVers(TicketState::CLOTUREE)
+        && $ticket->state->etat() !== TicketState::LITIGE_OUVERT;
+    $reassignable = ReassignTicket::estReassignable($ticket);
+    $litigeOuvert = $ticket->disputes->first(fn ($litige) => $litige->status->isOpen());
+    $peutVoirLitiges = auth('admin')->user()?->can('litiges.voir') ?? false;
 @endphp
 
 <div class="dm-card p-4">
@@ -68,17 +74,59 @@
                 </form>
             @endif
 
-            {{-- Ces deux actions dépendent de blocs qui ne sont pas encore livrés :
-                 les afficher grisées est plus honnête que de les masquer. --}}
-            <button type="button" class="btn btn-outline-secondary btn-sm text-start" disabled>
+            <button type="button" class="btn btn-outline-secondary btn-sm text-start"
+                    data-bs-toggle="collapse" data-bs-target="#form-reassigner"
+                    @disabled(! $reassignable)>
                 <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>
-                Réassigner <span class="dm-badge dm-badge--tech ms-1">phase C3</span>
+                Réassigner
+                @unless ($reassignable)
+                    <span class="text-body-secondary">— seulement avant l'arrivée du technicien</span>
+                @endunless
             </button>
 
-            <button type="button" class="btn btn-outline-secondary btn-sm text-start" disabled>
-                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
-                Rembourser <span class="dm-badge dm-badge--tech ms-1">phase C5</span>
-            </button>
+            @if ($reassignable)
+                <form method="POST" action="{{ route('tickets.reassigner', $ticket) }}"
+                      class="collapse border rounded-3 p-3" id="form-reassigner">
+                    @csrf
+                    <p class="small text-body-secondary mb-2">
+                        {{ $ticket->technician?->full_name }} est retiré du ticket et ne sera plus sollicité
+                        dessus. Le prix redevient une estimation, et le matching reprend avec les
+                        techniciens qui n'ont pas encore été sollicités.
+                    </p>
+                    <label for="motif-reassignation" class="form-label">Motif</label>
+                    <textarea id="motif-reassignation" name="motif" rows="2" required minlength="5" maxlength="300"
+                              class="form-control mb-2"
+                              placeholder="Exemple : technicien injoignable depuis vingt minutes."></textarea>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" value="1"
+                               id="impute-reassignation" name="impute_au_technicien">
+                        <label class="form-check-label small" for="impute-reassignation">
+                            Imputer au technicien — compte dans son taux d'annulation, donc dans son score
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-secondary btn-sm">Confirmer la réassignation</button>
+                </form>
+            @endif
+
+            {{-- Un remboursement se décide sur une réclamation, jamais en marge :
+                 c'est là que le séquestre se règle et que la décision est motivée. --}}
+            @if ($litigeOuvert !== null && $peutVoirLitiges)
+                <a href="{{ route('litiges.detail', $litigeOuvert) }}"
+                   class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+                    Rembourser — trancher le litige {{ $litigeOuvert->reference }}
+                </a>
+            @else
+                <button type="button" class="btn btn-outline-secondary btn-sm text-start" disabled>
+                    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+                    Rembourser
+                    <span class="text-body-secondary">
+                        — {{ $litigeOuvert === null ? 'aucune réclamation en cours sur ce ticket' : 'réservé au traitement des litiges' }}
+                    </span>
+                </button>
+            @endif
         </div>
 
         <p class="text-body-secondary mt-3 mb-0" style="font-size:.75rem">

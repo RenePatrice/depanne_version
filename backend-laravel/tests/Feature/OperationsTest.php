@@ -194,7 +194,7 @@ it('exige un motif pour rejeter depuis le back-office', function (): void {
 
 // --------------------------------------------------------------------- litiges --
 
-it('rembourse en écrivant deux mouvements symétriques', function (): void {
+it('rembourse le client et reprend au technicien sa part, au prorata', function (): void {
     $ticket = ticketRegle(200_000, 20_000);
     $litige = litigeSur($ticket);
 
@@ -202,10 +202,11 @@ it('rembourse en écrivant deux mouvements symétriques', function (): void {
 
     $this->litiges->resoudre($litige, 'REMBOURSEMENT_PARTIEL', 'Travail à reprendre en partie.', 60_000, $this->admin->id);
 
-    // Le client est crédité, le technicien est débité du même montant :
-    // le grand livre reste équilibré.
+    // Le client est crédité de 60 000 ; le technicien les rend, et la
+    // plateforme lui restitue les 6 000 de commission prélevés sur cette part
+    // (ADR-0041) : elle ne garde de commission que sur ce qui reste facturé.
     expect(Transaction::balanceFor($ticket->client_id))->toBe(60_000)
-        ->and(Transaction::balanceFor($ticket->technician_id))->toBe($soldeAvant - 60_000)
+        ->and(Transaction::balanceFor($ticket->technician_id))->toBe($soldeAvant - 54_000)
         ->and($litige->fresh()->status)->toBe(DisputeStatus::RESOLU)
         ->and($litige->fresh()->refund_gnf)->toBe(60_000);
 });
