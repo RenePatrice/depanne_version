@@ -1055,6 +1055,28 @@ ferait mentir l'historique. Le cache est vidé à chaque changement de compte.
 - Profil (nom, mot de passe), seconde casquette et avis publics d'un technicien
   ont leurs routes API mais pas encore d'écran.
 
+### Passe marketplace mobile (#1, #2, #3, #4)
+L'application a été recâblée sur le nouveau backend (place de marché + paiement
+direct), **sans casser le parcours existant** :
+
+- **Client** : `ChoixTechnicienScreen` liste les techniciens disponibles (prix
+  ferme, note, distance, ETA) et en choisit un ; le suivi invite à choisir au
+  lieu d'afficher « on cherche ». Boutons garantie (ouvrir un retour quand la
+  panne revient, confirmer quand elle est réglée), signalement « hors
+  plateforme », et **confirmation d'un paiement espèces** déclaré par le
+  technicien (drapeau `especes_a_confirmer` servi au détail du ticket).
+- **Technicien** : `TarifsScreen` fixe le prix par prestation dans les bornes du
+  serveur (vide = catalogue) ; bouton « j'ai été payé en espèces » sur une
+  intervention terminée ; le portefeuille affiche la **commission due** avec
+  avertissement de blocage au plafond et bouton de règlement.
+- Le garde-fou mobile « aucun montant ne remonte » tient : les tarifs passent
+  par la route dédiée du technicien, jamais par un ticket ; le choix n'envoie
+  qu'un `technicien_id`.
+- **Reste côté mobile** : écran de dépôt des photos de dépannage (#2, l'API
+  accepte des URL mais l'app n'a pas encore d'envoi de fichier), carte OSM
+  optionnelle pour l'adresse (#7 — l'app est déjà sans clé Google : liste de
+  quartiers + schéma `geo:`), et le durcissement APK (#11).
+
 ## 8. Conventions de code
 
 ### PHP
