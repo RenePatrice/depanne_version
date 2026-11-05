@@ -14,6 +14,7 @@ use App\Domain\Tickets\Actions\TransitionTicket;
 use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
+use App\Domain\Wallet\Services\CommissionLedger;
 use App\Support\Geo;
 use App\Support\Money;
 use DomainException;
@@ -51,12 +52,22 @@ final class RespondToMatch
         private readonly PricingService $tarification,
         private readonly SendNotification $notifier,
         private readonly RecalculateTechnicianStats $statistiques,
+        private readonly CommissionLedger $commission,
     ) {}
 
     /** @throws DomainException */
     public function accepter(MatchAttempt $tentative, User $technicien): Ticket
     {
         $this->verifierRecevabilite($tentative, $technicien);
+
+        // Commission due au plafond : plus de nouvelle course avant de régler.
+        // C'est la contrepartie du paiement direct en espèces (#1).
+        if ($this->commission->estBloque($technicien)) {
+            throw new DomainException(sprintf(
+                'Tu as %s de commission à régler. Règle-la avant d\'accepter une nouvelle demande.',
+                Money::format($this->commission->due($technicien)),
+            ));
+        }
 
         $ticket = $tentative->ticket;
 

@@ -47,6 +47,8 @@ final class AppSetting extends Model
 
     public const WITHDRAWAL_MIN_GNF = 'withdrawal_min_gnf';
 
+    public const COMMISSION_DEBT_CAP_GNF = 'commission_debt_cap_gnf';
+
     public const TRAVEL_FEE_ROUNDING_GNF = 'travel_fee_rounding_gnf';
 
     public const HAVERSINE_ROAD_FACTOR = 'haversine_road_factor';

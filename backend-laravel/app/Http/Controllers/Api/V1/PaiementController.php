@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Accounts\Models\User;
+use App\Domain\Payments\Actions\ConfirmCashReceipt;
+use App\Domain\Payments\Actions\DeclareCashPayment;
 use App\Domain\Payments\Actions\HandlePaymentWebhook;
 use App\Domain\Payments\Actions\InitiatePayment;
 use App\Domain\Payments\Contracts\PaymentProvider;
@@ -67,6 +69,39 @@ final class PaiementController extends Controller
                 'url_paiement' => $paiement->getAttribute('url_paiement'),
             ],
         ], 201);
+    }
+
+    /** Le technicien déclare un paiement en espèces (#1). */
+    public function declarerEspeces(Request $request, Ticket $ticket, DeclareCashPayment $action): JsonResponse
+    {
+        /** @var User $technicien */
+        $technicien = $request->user();
+
+        try {
+            $paiement = $action->execute($ticket, $technicien);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Paiement en espèces déclaré. En attente de confirmation du client.',
+            'statut' => $paiement->status->value,
+        ], 201);
+    }
+
+    /** Le client confirme avoir payé en espèces (#1). */
+    public function confirmerEspeces(Request $request, Ticket $ticket, ConfirmCashReceipt $action): JsonResponse
+    {
+        /** @var User $client */
+        $client = $request->user();
+
+        try {
+            $action->execute($ticket, $client);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['message' => 'Paiement confirmé. L\'intervention est clôturée.']);
     }
 
     /**

@@ -215,6 +215,13 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/tickets/{ticket}/valider', [PaiementController::class, 'valider'])
             ->name('api.paiements.valider');
 
+        // Paiement direct en espèces (#1) : le technicien déclare, le client
+        // confirme. La commission devient une dette du technicien.
+        Route::post('/tickets/{ticket}/paiement-especes', [PaiementController::class, 'declarerEspeces'])
+            ->name('api.paiements.especes');
+        Route::post('/tickets/{ticket}/paiement-especes/confirmer', [PaiementController::class, 'confirmerEspeces'])
+            ->name('api.paiements.especes.confirmer');
+
         Route::get('/paiements/{reference}', [PaiementController::class, 'show'])
             ->name('api.paiements.suivi');
 
@@ -225,6 +232,10 @@ Route::prefix('v1')->group(function (): void {
 
         Route::post('/retraits', [PortefeuilleController::class, 'retirer'])
             ->name('api.retraits.creer');
+
+        // Régler sa commission due (#1), pour se débloquer.
+        Route::post('/portefeuille/regler-commission', [PortefeuilleController::class, 'reglerCommission'])
+            ->name('api.portefeuille.regler-commission');
 
         Route::get('/retraits', [PortefeuilleController::class, 'retraits'])
             ->name('api.retraits');

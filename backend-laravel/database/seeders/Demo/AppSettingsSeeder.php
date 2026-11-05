@@ -53,6 +53,14 @@ final class AppSettingsSeeder extends Seeder
                 'description' => 'En dessous de ce solde, le technicien ne peut pas demander de versement.',
             ],
             [
+                'key' => AppSetting::COMMISSION_DEBT_CAP_GNF,
+                'value' => 100_000,
+                'group' => 'finances',
+                'type' => 'integer',
+                'label' => 'Plafond de commission due avant blocage',
+                'description' => 'Au-dela de ce total de commission due (paiements especes), le technicien ne peut plus accepter de demandes avant de regler.',
+            ],
+            [
                 'key' => AppSetting::ESCROW_AUTO_RELEASE_HOURS,
                 'value' => 24,
                 'group' => 'finances',

@@ -602,7 +602,29 @@ estimerait son propre litige urgent. Elle n'est pas exposée au déclarant, pas
 plus que l'échéance interne — les afficher inviterait à négocier son rang dans la
 file.
 
-### Paiement et séquestre
+### Paiement direct et commission due (#1, place de marché)
+Depuis le 5 novembre 2026, le client paie le technicien **directement**. Deux
+moyens, une seule règle de commission :
+
+- **Espèces** : double confirmation (`DeclareCashPayment` côté technicien,
+  `ConfirmCashReceipt` côté client — seule la confirmation du client engage). Le
+  technicien a tout encaissé : on inscrit **uniquement** la commission en
+  négatif (sa dette), sans `EARNING`. Le ticket va direct en CLOTUREE, sans
+  séquestre.
+- **Mobile Money in-app** : flux séquestre existant (ci-dessous), la commission
+  est **retenue à la source** (EARNING + COMMISSION, net retirable).
+
+`CommissionLedger` : la **dette** est la part négative du solde
+(`max(0, −solde)`). Les gains Mobile Money la compensent. Au-delà du plafond
+(`commission_debt_cap_gnf`, 100 000 par défaut), `RespondToMatch::accepter`
+**refuse** toute nouvelle course tant que le technicien n'a pas réglé
+(`SettleCommission`, mouvement `SETTLEMENT`). Le portefeuille expose
+`commission_due_gnf`, `commission_plafond_gnf`, `bloque`.
+
+> **Pilote** : le règlement de commission est simulé (succès immédiat). En
+> production il passera par `PaymentProvider` et son webhook (ADR-0032).
+
+### Séquestre (Mobile Money in-app)
 `PaymentProvider` a deux pilotes. **`MockPaymentProvider` est celui qui tourne
 aujourd'hui** : aucun compte marchand n'est ouvert, et le parcours complet —
 paiement, séquestre, libération, portefeuille, retrait — se joue et se teste

@@ -23,6 +23,8 @@ enum NotificationType: string
     case TECHNICIEN_ARRIVE = 'TECHNICIEN_ARRIVE';
     case INTERVENTION_TERMINEE = 'INTERVENTION_TERMINEE';
     case PAIEMENT_RECU = 'PAIEMENT_RECU';
+    case PAIEMENT_A_CONFIRMER = 'PAIEMENT_A_CONFIRMER';
+    case PAIEMENT_CONFIRME_TECH = 'PAIEMENT_CONFIRME_TECH';
     case DIAGNOSTIC_PROPOSE = 'DIAGNOSTIC_PROPOSE';
     case DIAGNOSTIC_TRANCHE = 'DIAGNOSTIC_TRANCHE';
     case TICKET_ANNULE = 'TICKET_ANNULE';
@@ -44,6 +46,8 @@ enum NotificationType: string
             self::TECHNICIEN_ARRIVE => 'Technicien arrivé',
             self::INTERVENTION_TERMINEE => 'Intervention terminée',
             self::PAIEMENT_RECU => 'Paiement reçu',
+            self::PAIEMENT_A_CONFIRMER => 'Confirme le paiement',
+            self::PAIEMENT_CONFIRME_TECH => 'Paiement confirmé',
             self::DIAGNOSTIC_PROPOSE => 'Supplément proposé',
             self::DIAGNOSTIC_TRANCHE => 'Réponse du client',
             self::TICKET_ANNULE => 'Demande annulée',
@@ -79,6 +83,8 @@ enum NotificationType: string
             self::TECHNICIEN_ARRIVE => '{technicien} est arrivé à l\'adresse indiquée.',
             self::INTERVENTION_TERMINEE => 'L\'intervention {reference} est terminée. Total : {total}.',
             self::PAIEMENT_RECU => 'Paiement de {total} reçu pour {reference}.',
+            self::PAIEMENT_A_CONFIRMER => 'Le technicien a indiqué un paiement de {total} en espèces pour {reference}. Confirme que tu as bien payé.',
+            self::PAIEMENT_CONFIRME_TECH => 'Le client a confirmé le paiement de {reference}. Commission due : {commission}.',
             self::DIAGNOSTIC_PROPOSE => '{technicien} propose un supplément de {supplement} '
                 .'pour {reference}. Nouveau total : {total}. À toi de valider.',
             self::DIAGNOSTIC_TRANCHE => 'Le client a {decision} le supplément pour {reference}.',

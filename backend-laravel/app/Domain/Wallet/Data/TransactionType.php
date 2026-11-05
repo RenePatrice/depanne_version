@@ -13,6 +13,7 @@ enum TransactionType: string
     case REFUND = 'REFUND';           // remboursement client
     case ADJUSTMENT = 'ADJUSTMENT';   // correction manuelle du support
     case TIP = 'TIP';                 // pourboire du client
+    case SETTLEMENT = 'SETTLEMENT';   // reglement par le technicien de sa commission due
 
     public function label(): string
     {
@@ -23,6 +24,7 @@ enum TransactionType: string
             self::REFUND => 'Remboursement',
             self::ADJUSTMENT => 'Ajustement',
             self::TIP => 'Pourboire',
+            self::SETTLEMENT => 'Règlement de commission',
         };
     }
 

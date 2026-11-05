@@ -8,8 +8,10 @@ use App\Domain\Accounts\Models\User;
 use App\Domain\Payments\Data\PaymentMethod;
 use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Wallet\Actions\RequestWithdrawal;
+use App\Domain\Wallet\Actions\SettleCommission;
 use App\Domain\Wallet\Models\Transaction;
 use App\Domain\Wallet\Models\Withdrawal;
+use App\Domain\Wallet\Services\CommissionLedger;
 use App\Http\Controllers\Controller;
 use App\Support\Money;
 use DomainException;
@@ -27,7 +29,28 @@ use Illuminate\Validation\Rule;
  */
 final class PortefeuilleController extends Controller
 {
-    public function __construct(private readonly RequestWithdrawal $demande) {}
+    public function __construct(
+        private readonly RequestWithdrawal $demande,
+        private readonly CommissionLedger $ledger,
+    ) {}
+
+    /** Régler sa commission due (#1). */
+    public function reglerCommission(Request $request, SettleCommission $action): JsonResponse
+    {
+        $valide = $request->validate(['montant_gnf' => ['required', 'integer', 'min:1']]);
+
+        try {
+            $restant = $action->execute($this->technicien($request), (int) $valide['montant_gnf']);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Commission réglée.',
+            'commission_due_gnf' => $restant,
+            'commission_due_formate' => Money::format($restant),
+        ]);
+    }
 
     /** Solde, montant retirable et derniers mouvements. */
     public function index(Request $request): JsonResponse
@@ -43,6 +66,7 @@ final class PortefeuilleController extends Controller
 
         $solde = Transaction::balanceFor((int) $technicien->getKey());
         $engage = $this->demande->engage($technicien);
+        $commissionDue = $this->ledger->due($technicien);
 
         return response()->json([
             'solde_gnf' => $solde,
@@ -50,6 +74,11 @@ final class PortefeuilleController extends Controller
             'engage_gnf' => $engage,
             'retirable_gnf' => $this->demande->disponible($technicien),
             'retrait_minimum_gnf' => (int) AppSetting::get(AppSetting::WITHDRAWAL_MIN_GNF, 50_000),
+            // Commission due (paiements espèces) et blocage éventuel (#1).
+            'commission_due_gnf' => $commissionDue,
+            'commission_due_formate' => Money::format($commissionDue),
+            'commission_plafond_gnf' => $this->ledger->plafond(),
+            'bloque' => $this->ledger->estBloque($technicien),
             'mouvements' => $mouvements->map(static fn (Transaction $t): array => [
                 'id' => $t->id,
                 'type' => $t->type->value,
