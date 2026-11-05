@@ -168,4 +168,45 @@ class TechnicienRepository {
 
     return Retrait.depuisJson(reponse['retrait'] as Map<String, dynamic>);
   }
+
+  /// Régler sa commission due (#1), pour se débloquer. Renvoie le reste dû.
+  Future<int> reglerCommission(int montantGnf) async {
+    final Map<String, dynamic> reponse = await _api.post(
+      '/portefeuille/regler-commission',
+      corps: <String, dynamic>{'montant_gnf': montantGnf},
+    );
+
+    return reponse['commission_due_gnf'] as int? ?? 0;
+  }
+
+  // ---------------------------------------------------------------- tarifs --
+
+  /// Mes tarifs par prestation. Le catalogue n'est qu'un défaut (#2).
+  Future<List<TarifTechnicien>> tarifs() async {
+    final Map<String, dynamic> reponse = await _api.get('/technicien/tarifs');
+
+    return ((reponse['tarifs'] as List<dynamic>?) ?? const <dynamic>[])
+        .map(
+          (dynamic t) => TarifTechnicien.depuisJson(t as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  /// Fixer ou réinitialiser mes tarifs. Un prix nul rétablit le prix catalogue.
+  Future<void> definirTarifs(Map<int, int?> prix) => _api.post(
+    '/technicien/tarifs',
+    corps: <String, dynamic>{
+      'tarifs': <Map<String, dynamic>>[
+        for (final MapEntry<int, int?> e in prix.entries)
+          <String, dynamic>{'service_id': e.key, 'prix_gnf': e.value},
+      ],
+    },
+  );
+
+  // --------------------------------------------------- paiement espèces (#1) --
+
+  /// Déclarer avoir été payé en espèces. Le client doit ensuite confirmer ;
+  /// tant qu'il ne l'a pas fait, rien n'est inscrit.
+  Future<void> declarerEspeces(int ticketId) =>
+      _api.post('/tickets/$ticketId/paiement-especes');
 }

@@ -121,6 +121,10 @@ class Portefeuille {
     required this.engageGnf,
     required this.retirableGnf,
     required this.retraitMinimumGnf,
+    required this.commissionDueGnf,
+    required this.commissionDueFormate,
+    required this.commissionPlafondGnf,
+    required this.bloque,
     required this.mouvements,
   });
 
@@ -134,6 +138,14 @@ class Portefeuille {
   final int retirableGnf;
   final int retraitMinimumGnf;
 
+  /// Commission due sur les paiements en espèces (#1) : le technicien a tout
+  /// encaissé, la commission lui reste à régler. Au-delà du plafond, il ne peut
+  /// plus accepter de demandes tant qu'il n'a pas réglé (`bloque`).
+  final int commissionDueGnf;
+  final String commissionDueFormate;
+  final int commissionPlafondGnf;
+  final bool bloque;
+
   final List<Mouvement> mouvements;
 
   factory Portefeuille.depuisJson(Map<String, dynamic> json) => Portefeuille(
@@ -142,10 +154,56 @@ class Portefeuille {
     engageGnf: json['engage_gnf'] as int? ?? 0,
     retirableGnf: json['retirable_gnf'] as int? ?? 0,
     retraitMinimumGnf: json['retrait_minimum_gnf'] as int? ?? 0,
+    commissionDueGnf: json['commission_due_gnf'] as int? ?? 0,
+    commissionDueFormate: json['commission_due_formate'] as String? ?? '',
+    commissionPlafondGnf: json['commission_plafond_gnf'] as int? ?? 0,
+    bloque: json['bloque'] as bool? ?? false,
     mouvements: ((json['mouvements'] as List<dynamic>?) ?? const <dynamic>[])
         .map((dynamic m) => Mouvement.depuisJson(m as Map<String, dynamic>))
         .toList(),
   );
+}
+
+/// Tarif propre du technicien pour une prestation — place de marché (#2).
+///
+/// Le catalogue n'est qu'un **défaut** : le technicien peut fixer son prix dans
+/// les bornes autorisées. `monPrixGnf` nul signifie « je prends le prix
+/// catalogue ».
+class TarifTechnicien {
+  const TarifTechnicien({
+    required this.serviceId,
+    required this.prestation,
+    required this.categorie,
+    required this.type,
+    required this.prixCatalogueGnf,
+    required this.prixCatalogueFormate,
+    required this.monPrixGnf,
+    required this.minGnf,
+    required this.maxGnf,
+  });
+
+  final int serviceId;
+  final String prestation;
+  final String categorie;
+  final String type;
+  final int prixCatalogueGnf;
+  final String prixCatalogueFormate;
+  final int? monPrixGnf;
+  final int minGnf;
+  final int maxGnf;
+
+  factory TarifTechnicien.depuisJson(Map<String, dynamic> json) =>
+      TarifTechnicien(
+        serviceId: json['service_id'] as int,
+        prestation: json['prestation'] as String? ?? '',
+        categorie: json['categorie'] as String? ?? '',
+        type: json['type'] as String? ?? 'DEPANNAGE',
+        prixCatalogueGnf: json['prix_catalogue_gnf'] as int? ?? 0,
+        prixCatalogueFormate: json['prix_catalogue_formate'] as String? ?? '',
+        monPrixGnf: json['mon_prix_gnf'] as int?,
+        minGnf: json['min_gnf'] as int? ?? 0,
+        maxGnf: json['max_gnf'] as int? ?? 0,
+      );
 }
 
 class Retrait {

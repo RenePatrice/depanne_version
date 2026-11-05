@@ -18,6 +18,7 @@ import '../../features/client/presentation/suivi_ticket_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/technicien/presentation/intervention_screen.dart';
+import '../../features/technicien/presentation/tarifs_screen.dart';
 import '../../features/shared/accueil_screen.dart';
 import '../../features/shared/demarrage_screen.dart';
 import '../providers.dart';
@@ -154,6 +155,10 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
       // Les deux modes gardent des adresses distinctes pour le même ticket :
       // ce n'est pas le même écran, et un lien partagé doit mener à celui de
       // la personne qui l'ouvre.
+      GoRoute(
+        path: '/technicien/tarifs',
+        builder: (_, _) => const TarifsScreen(),
+      ),
       GoRoute(
         path: '/technicien/intervention/:id',
         builder: (_, GoRouterState state) =>

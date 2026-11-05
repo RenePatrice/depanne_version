@@ -433,7 +433,13 @@ class _Gestes extends ConsumerWidget {
     final bool peutProposer =
         ticket.etat == 'SUR_PLACE' || ticket.etat == 'EN_COURS';
 
-    if (geste == null && !peutProposer) {
+    // Paiement direct en espèces (#1) : une fois l'intervention terminée, le
+    // technicien déclare avoir été payé en liquide. Un retour sous garantie est
+    // gratuit — rien à déclarer.
+    final bool peutDeclarerEspeces =
+        ticket.etat == 'TERMINEE' && !ticket.estUnRetourGarantie;
+
+    if (geste == null && !peutProposer && !peutDeclarerEspeces) {
       return const SizedBox.shrink();
     }
 
@@ -446,6 +452,19 @@ class _Gestes extends ConsumerWidget {
             enCours: enCours,
             onPresse: () => onAvancer(geste.$1),
           ),
+        if (peutDeclarerEspeces) ...<Widget>[
+          DmBouton(
+            libelle: 'J\'ai été payé en espèces',
+            onPresse: () => _declarerEspeces(context, ref),
+          ),
+          const SizedBox(height: DmSpace.x3),
+          Text(
+            'Le client devra confirmer. La commission de la plateforme te restera '
+            'à régler (suivie dans ton portefeuille). S\'il préfère payer dans '
+            'l\'application, il le fait de son côté — tu n\'as rien à faire.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
         if (peutProposer) ...<Widget>[
           const SizedBox(height: DmSpace.x3),
           DmBouton(
@@ -462,5 +481,47 @@ class _Gestes extends ConsumerWidget {
         ],
       ],
     );
+  }
+
+  Future<void> _declarerEspeces(BuildContext context, WidgetRef ref) async {
+    final bool? confirme = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Confirmer le paiement en espèces ?'),
+        content: Text(
+          'Tu déclares avoir reçu ${ticket.prix.totalFormate} en espèces. Le '
+          'client devra confirmer de son côté pour clôturer l\'intervention.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Oui, déclarer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirme != true) return;
+
+    try {
+      await ref.read(technicienRepositoryProvider).declarerEspeces(ticketId);
+      ref.invalidate(ticketProvider(ticketId));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Déclaré. En attente de confirmation du client.'),
+          ),
+        );
+      }
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
   }
 }

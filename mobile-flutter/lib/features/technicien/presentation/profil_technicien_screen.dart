@@ -78,6 +78,25 @@ class ProfilTechnicienScreen extends ConsumerWidget {
 
           const _Entete('Mes chiffres'),
           _Statistiques(profil: profil),
+
+          // Place de marché (#2) : le technicien fixe ses prix.
+          const _Entete('Mes tarifs'),
+          DmCarte(
+            onTape: () => context.push('/technicien/tarifs'),
+            enfant: Row(
+              children: <Widget>[
+                const Icon(Icons.sell_outlined, color: DmColors.neutral500),
+                const SizedBox(width: DmSpace.x3),
+                Expanded(
+                  child: Text(
+                    'Fixer mes prix par prestation',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: DmColors.neutral500),
+              ],
+            ),
+          ),
         ],
 
         const SizedBox(height: DmSpace.x8),

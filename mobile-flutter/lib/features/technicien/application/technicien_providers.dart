@@ -42,6 +42,12 @@ final FutureProvider<List<Retrait>> retraitsProvider =
       (Ref ref) => ref.watch(technicienRepositoryProvider).retraits(),
     );
 
+/// Mes tarifs par prestation — place de marché (#2).
+final FutureProvider<List<TarifTechnicien>> tarifsProvider =
+    FutureProvider<List<TarifTechnicien>>(
+      (Ref ref) => ref.watch(technicienRepositoryProvider).tarifs(),
+    );
+
 /// Disponibilité, telle que l'écran doit l'afficher.
 ///
 /// L'état vient du serveur — c'est lui qui refuse un dossier non validé ou une

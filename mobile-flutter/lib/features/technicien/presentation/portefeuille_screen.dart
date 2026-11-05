@@ -44,6 +44,8 @@ class PortefeuilleScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(DmSpace.x4),
           children: <Widget>[
+            if (p.commissionDueGnf > 0) _Commission(portefeuille: p),
+
             _Solde(portefeuille: p),
 
             const _Entete('Mes retraits'),
@@ -109,6 +111,113 @@ class _Entete extends StatelessWidget {
     ),
     child: Text(titre, style: Theme.of(context).textTheme.titleLarge),
   );
+}
+
+/// Commission due sur les paiements en espèces (#1).
+///
+/// Mise en avant, au-dessus du solde : c'est une dette, et au-delà du plafond
+/// elle **bloque** l'acceptation de nouvelles demandes. Le technicien doit
+/// pouvoir la régler d'un geste pour se débloquer.
+class _Commission extends ConsumerWidget {
+  const _Commission({required this.portefeuille});
+
+  final Portefeuille portefeuille;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final Color couleur = portefeuille.bloque
+        ? DmColors.danger
+        : DmColors.warning;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: DmSpace.x4),
+      child: DmCarte(
+        padding: const EdgeInsets.all(DmSpace.x6),
+        enfant: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(Icons.account_balance_wallet_outlined, color: couleur),
+                const SizedBox(width: DmSpace.x2),
+                Expanded(
+                  child: Text(
+                    'Commission à régler',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                Text(
+                  portefeuille.commissionDueFormate,
+                  style: theme.textTheme.titleMedium?.copyWith(color: couleur),
+                ),
+              ],
+            ),
+            const SizedBox(height: DmSpace.x2),
+            Text(
+              portefeuille.bloque
+                  ? 'Tu as atteint le plafond de '
+                        '${formaterGnf(portefeuille.commissionPlafondGnf)}. '
+                        'Règle ta commission pour accepter de nouvelles demandes.'
+                  : 'Tu as encaissé des paiements en espèces : la commission de '
+                        'la plateforme reste à régler. Plafond : '
+                        '${formaterGnf(portefeuille.commissionPlafondGnf)}.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: DmSpace.x4),
+            DmBouton(
+              libelle: 'Régler ${portefeuille.commissionDueFormate}',
+              onPresse: () => _regler(context, ref),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _regler(BuildContext context, WidgetRef ref) async {
+    final bool? confirme = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Régler ta commission ?'),
+        content: Text(
+          'Tu vas régler ${portefeuille.commissionDueFormate} de commission '
+          'due. (Pilote : le règlement est simulé et aboutit immédiatement.)',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Régler'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirme != true) return;
+
+    try {
+      await ref
+          .read(technicienRepositoryProvider)
+          .reglerCommission(portefeuille.commissionDueGnf);
+      ref.invalidate(portefeuilleProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Commission réglée. Te voilà débloqué.'),
+          ),
+        );
+      }
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
 }
 
 class _Solde extends ConsumerWidget {
