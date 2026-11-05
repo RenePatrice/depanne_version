@@ -1,4 +1,4 @@
-# Dépanne-Moi
+# Parema Connect
 
 Plateforme de mise en relation entre des clients ayant une panne domestique
 (plomberie / électricité) et des techniciens vérifiés, à Conakry (Guinée).

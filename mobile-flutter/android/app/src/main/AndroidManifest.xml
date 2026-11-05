@@ -22,7 +22,7 @@
     </queries>
 
     <application
-        android:label="Dépanne-Moi"
+        android:label="Parema Connect"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

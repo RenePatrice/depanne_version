@@ -66,7 +66,7 @@ final class TechnicienController extends Controller
             TechniciensTable::COLONNES_EXPORT,
             fn (User $technicien): array => $this->table->ligneExport($technicien),
             'techniciens',
-            'Techniciens — Dépanne-Moi',
+            'Techniciens — Parema Connect',
         );
     }
 

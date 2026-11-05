@@ -17,7 +17,7 @@ final Provider<TechnicienRepository> technicienRepositoryProvider =
 /// La sollicitation vivante, s'il y en a une.
 ///
 /// Une seule à la fois : c'est la règle du matching séquentiel (§8.3), et
-/// c'est ce qui distingue Dépanne-Moi d'une place de marché où dix techniciens
+/// c'est ce qui distingue Parema Connect d'une place de marché où dix techniciens
 /// reçoivent la même demande et où neuf perdent leur temps.
 final sollicitationsProvider = FutureProvider.family<List<Sollicitation>, bool>(
   (Ref ref, bool historique) => ref

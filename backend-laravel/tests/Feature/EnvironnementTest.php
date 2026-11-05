@@ -21,7 +21,7 @@ it('réserve la page de diagnostic aux administrateurs connectés', function ():
     $this->actingAs(AdminUser::query()->firstOrFail(), 'admin')
         ->get(route('systeme'))
         ->assertOk()
-        ->assertSee('Dépanne-Moi', escape: false)
+        ->assertSee('Parema Connect', escape: false)
         ->assertSee('PostGIS', escape: false);
 });
 

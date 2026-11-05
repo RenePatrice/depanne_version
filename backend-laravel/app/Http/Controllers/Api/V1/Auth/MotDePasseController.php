@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
  * Mot de passe oublié (§4).
  *
  * La demande répond toujours la même chose, que le numéro soit inscrit ou non :
- * l'API ne doit pas permettre de savoir qui utilise Dépanne-Moi.
+ * l'API ne doit pas permettre de savoir qui utilise Parema Connect.
  */
 final class MotDePasseController extends Controller
 {

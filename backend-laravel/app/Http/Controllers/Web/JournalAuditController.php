@@ -46,7 +46,7 @@ final class JournalAuditController extends Controller
             JournalTable::COLONNES_EXPORT,
             fn (Activity $activite): array => $this->table->ligneExport($activite),
             'journal-audit',
-            "Journal d'audit — Dépanne-Moi",
+            "Journal d'audit — Parema Connect",
         );
     }
 }

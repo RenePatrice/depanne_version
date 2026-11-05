@@ -1,5 +1,5 @@
 @echo off
-REM Demarre le cluster PostgreSQL 17 + PostGIS local de Depanne-Moi (port 5433).
+REM Demarre le cluster PostgreSQL 17 + PostGIS local de Parema Connect (port 5433).
 set PGROOT=%USERPROFILE%\devtools\pgsql
 set PGDATA=%USERPROFILE%\devtools\pgdata
 "%PGROOT%\bin\pg_ctl.exe" -D "%PGDATA%" -l "%PGDATA%\server.log" status >nul 2>&1

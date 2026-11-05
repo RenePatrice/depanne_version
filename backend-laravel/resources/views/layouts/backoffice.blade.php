@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
-    <title>@yield('titre', 'Back-office') — Dépanne-Moi</title>
+    <title>@yield('titre', 'Back-office') — Parema Connect</title>
 
     {{-- Le thème est posé avant le premier rendu : sans cela, une page sombre
          apparaîtrait d'abord en clair le temps que le bundle se charge. --}}

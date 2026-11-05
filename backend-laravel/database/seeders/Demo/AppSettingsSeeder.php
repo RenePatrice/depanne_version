@@ -201,7 +201,7 @@ final class AppSettingsSeeder extends Seeder
             ],
             [
                 'key' => AppSetting::CGU,
-                'value' => 'Dépanne-Moi met en relation des clients et des techniciens vérifiés à Conakry. '
+                'value' => 'Parema Connect met en relation des clients et des techniciens vérifiés à Conakry. '
                     .'Les prix affichés avant publication sont fermes. La plateforme prélève une commission '
                     ."sur chaque intervention réglée dans l'application. Tout échange doit rester dans "
                     ."l'application : c'est ce qui permet la garantie, le support et l'historique.",

@@ -151,7 +151,7 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
                 const SizedBox(height: DmSpace.x4),
                 Text(
                   'En continuant, tu acceptes les conditions d\'utilisation de '
-                  'Dépanne-Moi.',
+                  'Parema Connect.',
                   style: theme.textTheme.bodySmall,
                   textAlign: TextAlign.center,
                 ),

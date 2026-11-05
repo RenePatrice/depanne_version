@@ -13,7 +13,7 @@ class LectureEnCache {
 
 /// Mémoire des dernières lectures, pour l'affichage hors connexion (D4).
 ///
-/// Le mode hors-ligne de Dépanne-Moi est **en lecture seule**, à dessein.
+/// Le mode hors-ligne de Parema Connect est **en lecture seule**, à dessein.
 /// Afficher la dernière version connue d'un ticket ou du portefeuille, en le
 /// disant, rend service à quelqu'un qui a perdu le réseau dans un couloir. Mettre
 /// en file un « je suis arrivé » pour le rejouer vingt minutes plus tard, en

@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'Parema Connect'),
 
     /*
     |--------------------------------------------------------------------------
@@ -65,7 +65,7 @@ return [
     | will be used by the PHP date and date-time functions. The timezone
     | is set to "UTC" by default as it is suitable for most use cases.
     |
-    | Depanne-Moi : Conakry est en UTC+0 toute l'annee (pas d'heure d'ete).
+    | Parema Connect : Conakry est en UTC+0 toute l'annee (pas d'heure d'ete).
     | Les horodatages restent stockes en UTC en base ; ce reglage ne concerne
     | que l'affichage et les calculs de dates cote application.
     |

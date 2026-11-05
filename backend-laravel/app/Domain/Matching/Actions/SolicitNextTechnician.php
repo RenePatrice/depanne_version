@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Log;
  * Sollicite le technicien suivant (§8.3, étapes 4 à 6).
  *
  * Le cœur de la diffusion séquentielle : **un seul technicien à la fois**.
- * C'est ce qui distingue Dépanne-Moi d'une place de marché où dix techniciens
+ * C'est ce qui distingue Parema Connect d'une place de marché où dix techniciens
  * reçoivent la même demande et où neuf perdent leur temps. Chacun a une fenêtre
  * exclusive de 45 secondes ; l'expiration est portée par un job différé.
  *

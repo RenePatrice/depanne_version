@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
 |--------------------------------------------------------------------------
-| Fournisseurs externes de Dépanne-Moi
+| Fournisseurs externes de Parema Connect
 |--------------------------------------------------------------------------
 |
 | Chaque fournisseur est derrière une interface (ADR-0005) et se choisit par

@@ -53,7 +53,7 @@ return [
          * Description rendered on the home page of the API documentation (`/docs/api`).
          */
         'description' => <<<'MD'
-        API de l'application mobile Dépanne-Moi — mise en relation entre clients
+        API de l'application mobile Parema Connect — mise en relation entre clients
         et techniciens vérifiés à Conakry.
 
         ## Authentification

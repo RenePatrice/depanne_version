@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('titre', 'État de l\'environnement — Dépanne-Moi')
+@section('titre', 'État de l\'environnement — Parema Connect')
 
 @section('contenu')
 <div class="container py-5" style="max-width: 960px;">
@@ -11,7 +11,7 @@
             <i class="bi bi-tools fs-4"></i>
         </div>
         <div class="flex-grow-1">
-            <h1 class="h3 mb-0">Dépanne-Moi</h1>
+            <h1 class="h3 mb-0">Parema Connect</h1>
             <p class="text-body-secondary mb-0">Environnement de développement local — phase A0</p>
         </div>
         <div data-react-component="HorlogeConakry"></div>

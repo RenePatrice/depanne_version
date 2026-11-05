@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Routes web — back-office Dépanne-Moi
+| Routes web — back-office Parema Connect
 |--------------------------------------------------------------------------
 | Le guard `admin` protège tout, sauf la connexion et les deux sondes.
 | Chaque module porte la permission qui le garde ; la barre latérale se

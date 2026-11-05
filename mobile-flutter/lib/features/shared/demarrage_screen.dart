@@ -35,13 +35,18 @@ class DemarrageScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Icon(
-                  Icons.handyman,
-                  size: 64,
-                  color: theme.colorScheme.primary,
+                Image.asset(
+                  'assets/images/logo.png',
+                  width: 220,
+                  fit: BoxFit.contain,
+                  semanticLabel: 'Parema Connect',
+                  // Sans le logo (asset manquant en test), on retombe sur le
+                  // nom : l'écran de démarrage ne doit jamais rester vide.
+                  errorBuilder: (_, _, _) => Text(
+                    'Parema Connect',
+                    style: theme.textTheme.headlineMedium,
+                  ),
                 ),
-                const SizedBox(height: DmSpace.x4),
-                Text('Dépanne-Moi', style: theme.textTheme.headlineMedium),
                 const SizedBox(height: DmSpace.x8),
 
                 if (horsLigne) ...<Widget>[

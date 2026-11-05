@@ -11,7 +11,7 @@ import 'features/auth/application/session_controller.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(const ProviderScope(child: DepanneMoiApp()));
+  runApp(const ProviderScope(child: ParemaConnectApp()));
 }
 
 /// Racine de l'application.
@@ -20,14 +20,14 @@ void main() {
 /// Client / Technicien. La seconde change la couleur d'accentuation, ce qui
 /// fait que la bascule se voit dès le premier pixel plutôt que dans un libellé
 /// en haut de l'écran.
-class DepanneMoiApp extends ConsumerStatefulWidget {
-  const DepanneMoiApp({super.key});
+class ParemaConnectApp extends ConsumerStatefulWidget {
+  const ParemaConnectApp({super.key});
 
   @override
-  ConsumerState<DepanneMoiApp> createState() => _DepanneMoiAppState();
+  ConsumerState<ParemaConnectApp> createState() => _ParemaConnectAppState();
 }
 
-class _DepanneMoiAppState extends ConsumerState<DepanneMoiApp> {
+class _ParemaConnectAppState extends ConsumerState<ParemaConnectApp> {
   @override
   void initState() {
     super.initState();
@@ -52,7 +52,7 @@ class _DepanneMoiAppState extends ConsumerState<DepanneMoiApp> {
     });
 
     return MaterialApp.router(
-      title: 'Dépanne-Moi',
+      title: 'Parema Connect',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.clair(mode),
       darkTheme: AppTheme.sombre(mode),

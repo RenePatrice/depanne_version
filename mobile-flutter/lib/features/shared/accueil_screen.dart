@@ -5,6 +5,7 @@ import '../../core/app_mode.dart';
 import '../../core/providers.dart';
 import '../../core/temps_reel/temps_reel_providers.dart';
 import '../../core/temps_reel/temps_reel_service.dart';
+import '../../design_system/design_tokens.dart';
 import '../auth/application/session_controller.dart';
 import '../client/presentation/catalogue_screen.dart';
 import '../client/presentation/historique_screen.dart';
@@ -62,7 +63,32 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mode ${mode.libelle}'),
+        titleSpacing: DmSpace.x4,
+        // Le symbole Parema Connect sur une pastille blanche : il reste lisible
+        // en mode technicien (fond orange) comme en mode client. Le mot « Mode »
+        // garde le repère, la couleur d'accent fait le reste.
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Container(
+              width: 32,
+              height: 32,
+              padding: const EdgeInsets.all(3),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Image.asset(
+                'assets/images/logo_mark.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            ),
+            const SizedBox(width: DmSpace.x3),
+            Text('Mode ${mode.libelle}'),
+          ],
+        ),
         actions: <Widget>[
           const ClocheNotifications(),
           if (peutBasculer)

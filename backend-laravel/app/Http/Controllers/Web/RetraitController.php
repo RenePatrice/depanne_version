@@ -51,7 +51,7 @@ final class RetraitController extends Controller
             RetraitsTable::COLONNES_EXPORT,
             fn (Withdrawal $retrait): array => $this->table->ligneExport($retrait),
             'retraits',
-            'Demandes de retrait — Dépanne-Moi',
+            'Demandes de retrait — Parema Connect',
         );
     }
 

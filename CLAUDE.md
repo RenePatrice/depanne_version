@@ -42,6 +42,46 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
   pilote `log` (écriture dans `laravel.log` + table `notifications` + diffusion
   Reverb). Le pilote `fcm` sera activé par simple variable d'environnement.
 
+## 2 bis. Nouvelle orientation (5 novembre 2026)
+
+Le client a revu la copie après la livraison de D4. Onze points, livrés par
+lots, **sans casser l'existant** (chaque refonte remplace l'ADR concerné).
+
+- **Marque → Parema Connect.** Rebrand complet du visible (back-office +
+  mobile) et logo. Le nom de code interne reste `depanne_moi` (base, paquets,
+  id Reverb) : le changer casserait l'environnement pour zéro valeur visible.
+- **#1 Paiement direct + commission due.** On abandonne le séquestre
+  obligatoire : le client paie le technicien directement (espèces ou Mobile
+  Money), et la **commission 10 % devient une dette du technicien**, suivie au
+  portefeuille et réglée périodiquement. Le séquestre Mobile Money reste une
+  option. → remplacera l'ADR-0032 (le webhook n'est plus seule autorité).
+- **#2 Place de marché.** Le prix catalogue devient **indicatif** ; chaque
+  technicien propose son prix (service + distance) ; le client voit plusieurs
+  techniciens (prix, note, distance) et **choisit**. → remplacera le matching
+  séquentiel (ADR-0026/0027/0028). Photos : jusqu'à **3 pour un dépannage**,
+  aucune pour une installation.
+- **#3 Anti-« off ».** Parade au technicien qui demande d'annuler pour traiter
+  hors plateforme (garantie liée à la plateforme, signalement, etc.).
+- **#4 Garantie** après intervention (panne qui revient sous 24 h / X jours).
+- **#5 BTP** : ouvrir le catalogue aux métiers du BTP (futur).
+- **#6 Écrans** calqués sur les maquettes fournies (design adapté).
+- **#7 Cartographie : OpenStreetMap**, pas de clé Google (Leaflet déjà en place
+  côté back-office ; `flutter_map` côté mobile).
+- **#8 Pas d'API SMS** : OTP par lien **WhatsApp** (`wa.me`) ou passerelle
+  open-source, sans API Google.
+- **#9 Back-office durci** : fin de l'admin en dur, changement de mot de passe
+  au dashboard, CRUD utilisateurs, cloisonnement des modules admin, revue des
+  failles (injection SQL, XSS, SSRF, path traversal, élévation de privilèges
+  verticale/horizontale, RCE).
+- **#10 IA locale** (sans API) pour des prédictions back-office et mobile.
+- **#11 Durcissement APK** : obfuscation R8, aucun secret dans le binaire,
+  en-têtes, vérification d'intégrité. (Le « chiffrer tout si dépaquetage »
+  n'est pas un mécanisme standard réalisable ; on tient ce qui protège vraiment.)
+
+Ordre retenu : **fondations d'abord** (rebrand ✅, écrans, OSM, sécurité
+back-office), puis paiement + marketplace, puis garantie / anti-off / BTP / IA /
+durcissement.
+
 ## 3. Environnement local
 
 Outils installés en **mode portable** dans `%USERPROFILE%\devtools` (aucun droit

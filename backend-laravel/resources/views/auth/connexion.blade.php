@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
-    <title>Connexion — Dépanne-Moi</title>
+    <title>Connexion — Parema Connect</title>
 
     <script>
         (function () {
@@ -31,9 +31,11 @@
     <div class="dm-auth__card">
 
         <div class="dm-auth__brand">
-            <span class="dm-sidebar__logo" aria-hidden="true"><i class="bi bi-tools"></i></span>
+            <span class="dm-sidebar__logo" aria-hidden="true">
+                <img src="{{ asset('images/logo-mark.png') }}" alt="" width="28" height="28">
+            </span>
             <span>
-                <span class="d-block fw-semibold" style="font-family:Poppins,sans-serif">Dépanne-Moi</span>
+                <span class="d-block fw-semibold" style="font-family:Poppins,sans-serif">Parema Connect</span>
                 <span class="d-block small text-body-secondary">Back-office · Conakry</span>
             </span>
         </div>

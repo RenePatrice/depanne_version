@@ -11,7 +11,7 @@ import '../application/client_providers.dart';
 /// Première étape : choisir ce dont on a besoin.
 ///
 /// Les prestations sont à prix fixe et le prix est affiché ici, avant tout
-/// engagement — c'est ce qui distingue Dépanne-Moi d'un devis à négocier. Le
+/// engagement — c'est ce qui distingue Parema Connect d'un devis à négocier. Le
 /// déplacement s'y ajoutera, et l'écran suivant le dira.
 class CatalogueScreen extends StatelessWidget {
   const CatalogueScreen({super.key});

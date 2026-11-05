@@ -212,7 +212,9 @@ void main() {
           ),
         );
 
-        expect(find.text('Dépanne-Moi'), findsOneWidget);
+        // Le logo porte le nom de marque en libellé sémantique : l'assertion
+        // tient que l'asset soit chargé ou non (il ne l'est pas sous test).
+        expect(find.bySemanticsLabel('Parema Connect'), findsOneWidget);
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
       },
     );
@@ -226,7 +228,7 @@ void main() {
             tokenStoreProvider.overrideWithValue(MemoryTokenStore()),
             modeStoreProvider.overrideWithValue(MemoryModeStore()),
           ],
-          child: const DepanneMoiApp(),
+          child: const ParemaConnectApp(),
         ),
       );
 

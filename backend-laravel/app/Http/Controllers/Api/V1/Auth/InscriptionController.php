@@ -52,7 +52,7 @@ final class InscriptionController extends Controller
         return response()->json([
             'message' => $utilisateur->is_technician
                 ? 'Compte créé. Complète ton dossier pour être vérifié.'
-                : 'Compte créé. Bienvenue sur Dépanne-Moi.',
+                : 'Compte créé. Bienvenue sur Parema Connect.',
             'utilisateur' => new UtilisateurResource($utilisateur),
             'jetons' => $couple,
             'etape_suivante' => $utilisateur->is_technician ? 'dossier_technicien' : 'accueil',

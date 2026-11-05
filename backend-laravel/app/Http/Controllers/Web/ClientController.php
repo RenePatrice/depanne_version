@@ -44,7 +44,7 @@ final class ClientController extends Controller
             ClientsTable::COLONNES_EXPORT,
             fn (User $client): array => $this->table->ligneExport($client),
             'clients',
-            'Clients — Dépanne-Moi',
+            'Clients — Parema Connect',
         );
     }
 

@@ -26,7 +26,7 @@
 <header>
     <h1>{{ $titre }}</h1>
     <div class="meta">
-        Dépanne-Moi · Conakry — {{ $total }} ligne{{ $total > 1 ? 's' : '' }} ·
+        Parema Connect · Conakry — {{ $total }} ligne{{ $total > 1 ? 's' : '' }} ·
         généré le {{ $genereLe->translatedFormat('j F Y à H:i') }} (heure de Conakry)
     </div>
 </header>
@@ -57,7 +57,7 @@
     </p>
 @endif
 
-<footer>Document interne — Dépanne-Moi</footer>
+<footer>Document interne — Parema Connect</footer>
 
 </body>
 </html>

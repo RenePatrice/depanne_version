@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../design_system/components/dm_composants.dart';
 import '../../design_system/design_tokens.dart';
 
-/// Ce que fait Dépanne-Moi, en trois écrans.
+/// Ce que fait Parema Connect, en trois écrans.
 ///
 /// Volontairement court. L'onboarding n'existe pas pour vendre : il répond aux
 /// trois questions que se pose quelqu'un dont le robinet fuit — qui vient,

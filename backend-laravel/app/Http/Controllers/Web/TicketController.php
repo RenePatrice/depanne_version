@@ -54,7 +54,7 @@ final class TicketController extends Controller
             TicketsTable::COLONNES_EXPORT,
             fn (Ticket $ticket): array => $this->table->ligneExport($ticket),
             'tickets',
-            'Tickets — Dépanne-Moi',
+            'Tickets — Parema Connect',
         );
     }
 

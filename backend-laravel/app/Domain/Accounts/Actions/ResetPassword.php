@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\RateLimiter;
  * Le code à six chiffres n'est jamais stocké en clair, expire en dix minutes et
  * tolère cinq essais. La demande ne dit jamais si le numéro est inscrit : le
  * message de confirmation est identique dans les deux cas, sans quoi
- * l'application deviendrait un outil pour savoir qui utilise Dépanne-Moi.
+ * l'application deviendrait un outil pour savoir qui utilise Parema Connect.
  */
 final class ResetPassword
 {
@@ -82,7 +82,7 @@ final class ResetPassword
         $this->sms->envoyer(
             $telephone,
             sprintf(
-                'Dépanne-Moi : ton code de réinitialisation est %s. Il expire dans %d minutes.',
+                'Parema Connect : ton code de réinitialisation est %s. Il expire dans %d minutes.',
                 $code,
                 PasswordResetCode::LIFETIME_MINUTES,
             ),
