@@ -1,0 +1,14 @@
+# Signature de release (#11, D5). Copier en `key.properties` (non versionne) et
+# renseigner les valeurs du keystore. Sans ce fichier, le build de release
+# retombe sur la cle de debug et l'APK n'est pas publiable.
+#
+# Creer un keystore (une fois) :
+#   keytool -genkey -v -keystore parema-release.jks -keyalg RSA -keysize 2048 \
+#     -validity 10000 -alias parema
+#
+# Ne jamais versionner key.properties ni le .jks (voir android/.gitignore).
+
+storeFile=../parema-release.jks
+storePassword=CHANGE_MOI
+keyAlias=parema
+keyPassword=CHANGE_MOI

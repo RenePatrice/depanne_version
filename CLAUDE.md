@@ -88,6 +88,10 @@ lots, **sans casser l'existant** (chaque refonte remplace l'ADR concerné).
 - **#11 Durcissement APK** : obfuscation R8, aucun secret dans le binaire,
   en-têtes, vérification d'intégrité. (Le « chiffrer tout si dépaquetage »
   n'est pas un mécanisme standard réalisable ; on tient ce qui protège vraiment.)
+  ✅ R8 (minify + shrink + proguard), obfuscation Dart (`--obfuscate` +
+  `--split-debug-info`), **aucun secret dans le binaire** (clés injectées au
+  build), **cleartext interdit en release** (HTTP réservé au debug), signature
+  depuis `key.properties` non versionné. Voir `scripts\build-release.cmd`.
 
 Ordre retenu : **fondations d'abord** (rebrand ✅, écrans, OSM, sécurité
 back-office), puis paiement + marketplace, puis garantie / anti-off / BTP / IA /
@@ -1065,6 +1069,30 @@ ferait mentir l'historique. Le cache est vidé à chaque changement de compte.
   restent à faire. L'écran dit où en est la validation.
 - Profil (nom, mot de passe), seconde casquette et avis publics d'un technicien
   ont leurs routes API mais pas encore d'écran.
+
+### Durcissement de l'APK (#11)
+Ce qui protège réellement, sans promettre l'irréalisable :
+
+- **R8** activé en release (`isMinifyEnabled`, `isShrinkResources`,
+  `proguard-rules.pro`) : code Android/Kotlin réduit, obscurci, élagué. Les
+  classes du moteur Flutter et des greffons natifs sont gardées explicitement,
+  sinon l'APK release planterait là où le debug marche.
+- **Obfuscation Dart** par `--obfuscate --split-debug-info=build/symbols` : les
+  symboles sortent du binaire et restent en local pour désobscurcir une trace.
+- **Aucun secret dans le binaire** : les clés publiques par nature (Reverb, URL
+  de l'API, Maps) sont injectées au build (`--dart-define`, `local.properties`),
+  jamais écrites dans le code. `scripts\build-release.cmd` porte la ligne de
+  build et ne doit contenir aucun secret.
+- **Cleartext interdit en release** (`android:usesCleartextTraffic="false"`) :
+  l'API de production est en HTTPS. Le HTTP vers `10.0.2.2` n'est réactivé que
+  dans le manifeste de **debug**.
+- **Signature** depuis `android/key.properties` (non versionné, comme le
+  keystore) ; sans lui, repli sur la clé de debug — l'APK tourne mais n'est pas
+  publiable. `key.properties.example` documente le format.
+- Le « chiffrer tout le binaire si dépaquetage » du cahier **n'est pas** un
+  mécanisme standard réalisable (l'OS doit pouvoir charger le code) : on ne le
+  simule pas. L'obfuscation + l'absence de secret + la signature sont la posture
+  tenable.
 
 ### Passe marketplace mobile (#1, #2, #3, #4)
 L'application a été recâblée sur le nouveau backend (place de marché + paiement

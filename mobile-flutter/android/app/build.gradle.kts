@@ -28,6 +28,20 @@ val mapsApiKey: String = run {
     } ?: System.getenv("MAPS_API_KEY") ?: ""
 }
 
+// Signature de release (#11, D5).
+//
+// Les identifiants du keystore vivent dans `android/key.properties`, qui n'est
+// pas versionne (comme le keystore lui-meme) : un secret dans le depot est un
+// secret public. Absent, on retombe sur la cle de debug pour que
+// `flutter run --release` fonctionne sur une machine de developpement sans
+// keystore -- l'APK n'est alors pas publiable, mais il tourne.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val aUnKeystore = keystorePropertiesFile.exists()
+if (aUnKeystore) {
+    keystorePropertiesFile.inputStream().use(keystoreProperties::load)
+}
+
 android {
     namespace = "gn.depannemoi.app"
     compileSdk = flutter.compileSdkVersion
@@ -66,11 +80,37 @@ android {
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
+    signingConfigs {
+        if (aUnKeystore) {
+            create("release") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Signee avec la vraie cle si key.properties est present, sinon
+            // avec la cle de debug (pour que `flutter run --release` marche).
+            signingConfig = if (aUnKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+
+            // Durcissement R8 (#11) : reduction, obscurcissement et elagage des
+            // ressources. Le code Dart est en plus obscurci au build via
+            // --obfuscate (voir scripts/build-release.cmd) ; ici on traite la
+            // couche Android/Kotlin et on retire le code mort.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

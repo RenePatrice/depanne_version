@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- L'application ne fait que parler a l'API : sans cette ligne, la
          compilation release part sans reseau. Le gabarit Flutter ne la pose
          qu'en debug et en profile, et l'oubli ne se voit qu'apres signature. -->
@@ -21,10 +22,15 @@
         </intent>
     </queries>
 
+    <!-- Durcissement (#11) : en release, aucun trafic en clair. L'API de
+         production est en HTTPS ; un APK qui accepterait le HTTP ouvrirait la
+         porte a l'interception. Le build de debug reactive le clair (manifeste
+         debug) pour parler a http://10.0.2.2 pendant le developpement. -->
     <application
         android:label="Parema Connect"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
