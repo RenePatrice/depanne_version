@@ -35,6 +35,10 @@ final class DeclareCashPayment
             throw new DomainException('Cette intervention ne t\'est pas attribuée.');
         }
 
+        if ($ticket->is_warranty) {
+            throw new DomainException('Un retour sous garantie est gratuit : aucun paiement à déclarer.');
+        }
+
         if ($ticket->state->etat() !== TicketState::TERMINEE) {
             throw new DomainException('Le paiement en espèces se déclare une fois l\'intervention terminée.');
         }

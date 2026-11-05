@@ -7,11 +7,14 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Accounts\Models\Address;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Catalog\Models\Service;
+use App\Domain\Disputes\Actions\ReportOffPlatform;
 use App\Domain\Matching\Actions\ListAvailableTechnicians;
 use App\Domain\Matching\Actions\SelectTechnician;
 use App\Domain\Pricing\Services\PricingService;
 use App\Domain\Tickets\Actions\CancelTicketByClient;
+use App\Domain\Tickets\Actions\CloseWarranty;
 use App\Domain\Tickets\Actions\CreateTicket;
+use App\Domain\Tickets\Actions\OpenWarranty;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Zones\Services\ZoneService;
 use App\Http\Controllers\Controller;
@@ -169,6 +172,75 @@ final class TicketController extends Controller
         return response()->json([
             'message' => 'Technicien sollicité. Il a quelques secondes pour confirmer.',
             'expire_dans_s' => max(0, (int) now()->diffInSeconds($tentative->expires_at, false)),
+        ], 201);
+    }
+
+    /**
+     * Ouvrir un retour sous garantie (#4) : la panne est revenue.
+     *
+     * Appelé sur l'intervention d'origine, clôturée et encore sous garantie. Le
+     * même technicien revient, sans nouveau paiement. La réponse porte le
+     * **nouveau** ticket de garantie, que l'application suit comme n'importe
+     * quelle intervention.
+     */
+    public function garantir(Request $request, Ticket $ticket, OpenWarranty $garantie): JsonResponse
+    {
+        Gate::authorize('garantir', $ticket);
+
+        $valide = $request->validate(['description' => ['required', 'string', 'min:10', 'max:2000']]);
+
+        try {
+            $retour = $garantie->execute($ticket, $this->moi($request), (string) $valide['description']);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $retour->load(['service', 'technician']);
+
+        return response()->json([
+            'message' => 'Retour sous garantie ouvert. Ton technicien a été prévenu, c\'est gratuit.',
+            'ticket' => new TicketResource($retour),
+        ], 201);
+    }
+
+    /** Clôturer un retour sous garantie : le client confirme que la panne est réglée. */
+    public function confirmerGarantie(Request $request, Ticket $ticket, CloseWarranty $cloture): JsonResponse
+    {
+        Gate::authorize('garantir', $ticket);
+
+        try {
+            $ticket = $cloture->execute($ticket, $this->moi($request));
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Garantie clôturée. Merci d\'avoir confirmé.',
+            'ticket' => new TicketResource($ticket->load(['service', 'technician'])),
+        ]);
+    }
+
+    /**
+     * Signaler une sollicitation « hors plateforme » (#3).
+     *
+     * Le client (ou le technicien) nomme une tentative de régler en dehors de
+     * l'application. On ne bloque rien : on trace, pour que le support puisse
+     * rapprocher les signalements et agir sur un compte.
+     */
+    public function signalerHorsPlateforme(Request $request, Ticket $ticket, ReportOffPlatform $signalement): JsonResponse
+    {
+        Gate::authorize('reclamer', $ticket);
+
+        $valide = $request->validate(['description' => ['required', 'string', 'min:10', 'max:2000']]);
+
+        try {
+            $signalement->execute($ticket, $this->moi($request), (string) $valide['description']);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Signalement transmis au support. Reste dans l\'application : c\'est ce qui te protège.',
         ], 201);
     }
 

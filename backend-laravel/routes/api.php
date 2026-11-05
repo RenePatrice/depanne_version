@@ -136,6 +136,18 @@ Route::prefix('v1')->group(function (): void {
 
         Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->name('api.tickets.annuler');
 
+        // Garantie après intervention (#4) : la panne est revenue, le même
+        // technicien revient gratuitement. Ouverte sur le ticket d'origine,
+        // clôturée par le client une fois la panne réglée.
+        Route::post('/tickets/{ticket}/garantie', [TicketController::class, 'garantir'])
+            ->name('api.tickets.garantie');
+        Route::post('/tickets/{ticket}/garantie/confirmer', [TicketController::class, 'confirmerGarantie'])
+            ->name('api.tickets.garantie.confirmer');
+
+        // Anti-contournement (#3) : signaler une sollicitation hors plateforme.
+        Route::post('/tickets/{ticket}/signaler-hors-plateforme', [TicketController::class, 'signalerHorsPlateforme'])
+            ->name('api.tickets.hors-plateforme');
+
         // --- Côté technicien -------------------------------------------------
 
         Route::post('/technicien/disponibilite', [TechnicienController::class, 'disponibilite'])

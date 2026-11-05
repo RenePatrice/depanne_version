@@ -43,6 +43,8 @@ final class AppSetting extends Model
 
     public const DISPUTE_WINDOW_HOURS = 'dispute_window_hours';
 
+    public const WARRANTY_DAYS = 'warranty_days';
+
     public const CANCELLATION_FEE_GNF = 'cancellation_fee_gnf';
 
     public const WITHDRAWAL_MIN_GNF = 'withdrawal_min_gnf';

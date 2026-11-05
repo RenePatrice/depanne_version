@@ -73,6 +73,20 @@ final class TicketResource extends JsonResource
             'motif_annulation' => $this->cancellation_reason,
             'diagnostic' => $this->diagnosis,
 
+            // Garantie (#4). `est_un_retour` : ce ticket est lui-même un retour
+            // gratuit. `active` : cette intervention (clôturée) ouvre encore
+            // droit à un retour. `origine_reference` n'apparaît que si la
+            // relation est chargée — jamais de chargement paresseux.
+            'garantie' => [
+                'est_un_retour' => (bool) $this->is_warranty,
+                'active' => $this->garantieActive(),
+                'jusqua' => $this->warranty_until?->toIso8601String(),
+                'origine_reference' => $this->when(
+                    $this->relationLoaded('parent'),
+                    fn (): ?string => $this->parent?->reference,
+                ),
+            ],
+
             'client' => $this->when(! $estLeClient && $this->relationLoaded('client'), fn (): ?array => $this->partie($this->client, $etat)),
             'technicien' => $this->when($estLeClient && $this->relationLoaded('technician'), fn (): ?array => $this->partie($this->technician, $etat)),
 

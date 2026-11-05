@@ -72,9 +72,22 @@ final class TicketPolicy
         return $this->view($utilisateur, $ticket);
     }
 
-    /** Ouvrir une réclamation : les deux parties le peuvent. */
+    /** Ouvrir une réclamation ou signaler un contournement : les deux parties le peuvent. */
     public function reclamer(User $utilisateur, Ticket $ticket): Response
     {
         return $this->view($utilisateur, $ticket);
+    }
+
+    /**
+     * Ouvrir ou clôturer un retour sous garantie (#4).
+     *
+     * Réservé au client, comme la validation du paiement : c'est lui qui
+     * constate que la panne est revenue, puis qu'elle est réglée.
+     */
+    public function garantir(User $utilisateur, Ticket $ticket): Response
+    {
+        return $ticket->estLeClient($utilisateur)
+            ? Response::allow()
+            : Response::denyAsNotFound();
     }
 }

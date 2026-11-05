@@ -110,7 +110,11 @@ enum TicketState: string
             self::DIAGNOSTIC_VALIDE => [self::EN_COURS],
             self::DIAGNOSTIC_REFUSE => [self::EN_COURS, self::ANNULEE_CLIENT],
             self::EN_COURS => [self::TERMINEE, self::ANNULEE_TECHNICIEN],
-            self::TERMINEE => [self::PAYEE, self::LITIGE_OUVERT],
+            // CLOTUREE directement depuis TERMINEE : c'est la clôture d'un
+            // retour sous garantie (#4), gratuit, qui ne passe pas par le
+            // paiement. Seule CloseWarranty emprunte ce chemin ; une
+            // intervention payante va toujours par PAYEE.
+            self::TERMINEE => [self::PAYEE, self::LITIGE_OUVERT, self::CLOTUREE],
             self::PAYEE => [self::CLOTUREE, self::LITIGE_OUVERT],
             // Retour à TERMINEE quand le litige est tranché avant tout
             // encaissement : le client doit encore payer (ADR-0041).
@@ -136,5 +140,18 @@ enum TicketState: string
     public static function billable(): array
     {
         return [self::TERMINEE, self::PAYEE, self::CLOTUREE];
+    }
+
+    /**
+     * Valeurs brutes des états finaux, pour les clauses `whereNotIn`.
+     *
+     * @return array<int, string>
+     */
+    public static function finalStates(): array
+    {
+        return array_values(array_map(
+            static fn (self $s): string => $s->value,
+            array_filter(self::cases(), static fn (self $s): bool => $s->isFinal()),
+        ));
     }
 }

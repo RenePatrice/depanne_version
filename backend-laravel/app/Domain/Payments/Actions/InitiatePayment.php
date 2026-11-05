@@ -41,6 +41,10 @@ final class InitiatePayment
             throw new DomainException('Cette intervention ne t\'appartient pas.');
         }
 
+        if ($ticket->is_warranty) {
+            throw new DomainException('Un retour sous garantie est gratuit : il n\'y a rien à payer.');
+        }
+
         if ($ticket->state->etat() !== TicketState::TERMINEE) {
             throw new DomainException($ticket->state->etat() === TicketState::PAYEE
                 ? 'Cette intervention est déjà payée.'

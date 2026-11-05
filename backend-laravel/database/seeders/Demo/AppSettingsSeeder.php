@@ -236,6 +236,15 @@ final class AppSettingsSeeder extends Seeder
                 'label' => 'Fenêtre de réclamation',
                 'description' => "Délai après la fin de l'intervention pendant lequel le client peut ouvrir un litige.",
             ],
+            [
+                'key' => AppSetting::WARRANTY_DAYS,
+                'value' => 7,
+                'group' => 'litiges',
+                'type' => 'integer',
+                'label' => 'Durée de la garantie',
+                'description' => 'Nombre de jours après la clôture pendant lesquels une panne qui revient '
+                    .'ouvre droit à un retour gratuit du même technicien. 0 désactive la garantie.',
+            ],
         ];
     }
 }

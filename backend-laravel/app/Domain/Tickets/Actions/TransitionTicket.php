@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Tickets\Actions;
 
+use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Events\TicketEtatChange;
@@ -68,6 +69,23 @@ final class TransitionTicket
             // incident ne doit pas effacer la date d'origine.
             if ($jalon !== null && $ticket->{$jalon} === null) {
                 $modifications[$jalon] = now();
+            }
+
+            // La garantie se fige ici, à la clôture d'une intervention payante
+            // (#4). C'est le seul entonnoir que toutes les clôtures traversent —
+            // validation du client, libération automatique, clôture forcée.
+            // Un retour sous garantie (gratuit) n'en ouvre pas lui-même.
+            if (
+                $cible === TicketState::CLOTUREE
+                && ! $ticket->is_warranty
+                && $ticket->total_gnf > 0
+                && $ticket->warranty_until === null
+            ) {
+                $jours = (int) AppSetting::get(AppSetting::WARRANTY_DAYS, 7);
+
+                if ($jours > 0) {
+                    $modifications['warranty_until'] = now()->addDays($jours);
+                }
             }
 
             $ticket->forceFill($modifications)->save();

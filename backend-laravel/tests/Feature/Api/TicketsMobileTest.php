@@ -358,11 +358,14 @@ it('n’expose aucune route permettant de modifier le prix d’un ticket', funct
         'POST api/v1/tickets/{ticket}/choisir',               // choix du technicien — technicien_id, sans montant
         'POST api/v1/tickets/{ticket}/diagnostic',            // supplément — SEULE à prendre un montant
         'POST api/v1/tickets/{ticket}/diagnostic/reponse',    // décision du client, sans montant
+        'POST api/v1/tickets/{ticket}/garantie',              // ouvrir un retour sous garantie — sans montant (#4)
+        'POST api/v1/tickets/{ticket}/garantie/confirmer',    // clôturer la garantie — sans paramètre
         'POST api/v1/tickets/{ticket}/messages',              // chat
         'POST api/v1/tickets/{ticket}/paiement',              // encaisser — montant lu sur le ticket
         'POST api/v1/tickets/{ticket}/paiement-especes',      // déclarer un paiement espèces — sans montant
         'POST api/v1/tickets/{ticket}/paiement-especes/confirmer', // confirmation du client — sans montant
         'POST api/v1/tickets/{ticket}/reclamation',           // litige
+        'POST api/v1/tickets/{ticket}/signaler-hors-plateforme', // signalement anti-contournement — sans montant (#3)
         'POST api/v1/tickets/{ticket}/valider',               // libérer le séquestre — sans paramètre
     ], $modifiantes->sort()->values()->all());
 });

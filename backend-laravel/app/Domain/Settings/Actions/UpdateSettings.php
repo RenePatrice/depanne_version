@@ -31,6 +31,7 @@ final class UpdateSettings
         AppSetting::NEWCOMER_JOBS_THRESHOLD => [0, 50],
         AppSetting::ESCROW_AUTO_RELEASE_HOURS => [1, 168],
         AppSetting::DISPUTE_WINDOW_HOURS => [1, 720],
+        AppSetting::WARRANTY_DAYS => [0, 90],
         AppSetting::HAVERSINE_ROAD_FACTOR => [1.0, 3.0],
     ];
 

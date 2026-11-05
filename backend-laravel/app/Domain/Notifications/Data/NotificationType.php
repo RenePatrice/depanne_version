@@ -37,6 +37,9 @@ enum NotificationType: string
     case DEMANDE_ATTRIBUEE = 'DEMANDE_ATTRIBUEE';
     case DEMANDE_RETIREE = 'DEMANDE_RETIREE';
 
+    case GARANTIE_OUVERTE = 'GARANTIE_OUVERTE';
+    case GARANTIE_RESOLUE = 'GARANTIE_RESOLUE';
+
     public function titre(): string
     {
         return match ($this) {
@@ -58,6 +61,8 @@ enum NotificationType: string
             self::DEMANDE_EXPIREE => 'Demande expirée',
             self::DEMANDE_ATTRIBUEE => 'Demande attribuée',
             self::DEMANDE_RETIREE => 'Demande retirée',
+            self::GARANTIE_OUVERTE => 'Retour sous garantie',
+            self::GARANTIE_RESOLUE => 'Garantie clôturée',
         };
     }
 
@@ -100,6 +105,9 @@ enum NotificationType: string
             self::TECHNICIEN_INDISPONIBLE => '{technicien} n\'a pas confirmé pour {reference}. '
                 .'Choisis un autre technicien, ta demande reste active.',
             self::DEMANDE_RETIREE => 'Le support t\'a retiré la demande {reference}. Motif : {motif}',
+            self::GARANTIE_OUVERTE => 'Le client signale que la panne de {reference} est revenue. '
+                .'Un retour sous garantie {garantie} est ouvert, sans frais pour lui.',
+            self::GARANTIE_RESOLUE => 'Le retour sous garantie {reference} est clôturé. Merci !',
         };
     }
 

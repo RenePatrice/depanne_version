@@ -602,6 +602,46 @@ estimerait son propre litige urgent. Elle n'est pas exposée au déclarant, pas
 plus que l'échéance interne — les afficher inviterait à négocier son rang dans la
 file.
 
+### Garantie après intervention (#4)
+Une panne qui revient dans les `warranty_days` suivant la clôture (7 jours par
+défaut, réglable, 0 désactive) ouvre droit au **retour du même technicien, sans
+nouveau paiement**. `OpenWarranty` crée un **ticket à part** rattaché à
+l'origine (`parent_ticket_id`, `is_warranty`), qui démarre directement en
+ACCEPTEE — la place de marché ne joue pas, le technicien est déjà désigné — et
+suit ensuite la même machine à états. `CloseWarranty` le clôt quand le client
+confirme la réparation : c'est le seul usage de la transition TERMINEE →
+CLOTUREE.
+
+- La fenêtre est **figée dans `warranty_until`** à la clôture de l'intervention
+  payante, dans `TransitionTicket` — le seul entonnoir que toutes les clôtures
+  traversent. Raccourcir le délai en back-office ne retire pas une garantie
+  déjà promise.
+- Un retour sous garantie **n'ouvre pas lui-même de garantie** (gratuit, total
+  0, commission 0) : sinon un technicien de mauvaise foi enchaînerait les
+  retours. Un seul retour vivant à la fois par intervention.
+- Les deux actions de paiement (`InitiatePayment`, `DeclareCashPayment`)
+  **refusent** un ticket `is_warranty` : c'est gratuit, il n'y a rien à encaisser.
+- Réservé au client (Policy `garantir`, 404 sinon) : c'est lui qui constate le
+  retour de la panne, puis sa réparation.
+
+### Anti-contournement « hors plateforme » (#3)
+Le §11 appelle le contournement « risque business n°1 ». Trois leviers, dans la
+continuité de l'ADR-0030 (*filtrer et signaler, ne pas bloquer*) :
+
+- **La garantie (#4) est le premier rempart** : elle n'existe que dans
+  l'application. Un technicien qui pousse à régler « en dehors » prive le client
+  de ce recours, et le client le sait — les CGU et le message de clôture le
+  rappellent.
+- **Le masquage du chat** (`ContactMaskingFilter`) reste la parade au partage de
+  coordonnées.
+- **Le signalement explicite** (`ReportOffPlatform`, route
+  `/tickets/{t}/signaler-hors-plateforme`) : le client ou le technicien nomme la
+  tentative, qui atterrit dans le journal **`activity_log` sous `securite`**,
+  imputée à l'autre partie. On **ne bloque rien, on trace** : au support de
+  rapprocher les signalements et d'agir sur un compte. Ouvert aux deux parties
+  (Policy `reclamer`), refusé sur un brouillon (personne n'est encore en
+  relation).
+
 ### Paiement direct et commission due (#1, place de marché)
 Depuis le 5 novembre 2026, le client paie le technicien **directement**. Deux
 moyens, une seule règle de commission :
@@ -1095,6 +1135,8 @@ ferait mentir l'historique. Le cache est vidé à chaque changement de compte.
 | 0041 | **Trancher un litige règle le séquestre, au prorata du remboursement** — plus aucun ticket gelé pour toujours |
 | 0042 | **Place de marché : le client choisit parmi les techniciens disponibles** — remplace le push séquentiel (0026/0027/0028 ajustés) |
 | 0043 | **Le prix ferme est le tarif propre du technicien choisi** — le catalogue n'est qu'un défaut ; remplace l'ADR-0029 |
+| 0044 | **Garantie liée à la plateforme** — un retour sous garantie est un ticket gratuit rattaché à l'origine, fenêtre figée à la clôture ; c'est aussi le premier rempart anti-contournement |
+| 0045 | **Le contournement se trace, il ne se bloque pas** — signalement « hors plateforme » au journal `securite`, dans la lignée de l'ADR-0030 |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

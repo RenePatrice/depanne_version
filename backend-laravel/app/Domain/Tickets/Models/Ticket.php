@@ -16,6 +16,7 @@ use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\States\TicketStatus;
 use App\Domain\Wallet\Models\Transaction;
 use App\Domain\Zones\Models\Zone;
+use Carbon\CarbonImmutable;
 use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -39,16 +40,21 @@ use Spatie\ModelStates\HasStates;
  * @property int|null $technician_id
  * @property int|null $zone_id
  * @property int|null $address_id
+ * @property int|null $parent_ticket_id
+ * @property bool $is_warranty
+ * @property CarbonImmutable|null $warranty_until
  * @property-read User|null $technician
  * @property-read Zone|null $zone
  * @property-read Address|null $address
+ * @property-read Ticket|null $parent
  */
 final class Ticket extends Model
 {
     use HasStates;
 
     protected $fillable = [
-        'reference', 'client_id', 'technician_id', 'service_id', 'zone_id', 'state',
+        'reference', 'parent_ticket_id', 'is_warranty', 'warranty_until',
+        'client_id', 'technician_id', 'service_id', 'zone_id', 'state',
         'address_id', 'address_snapshot', 'location', 'problem_description', 'photos',
         'distance_km', 'distance_is_estimated',
         'base_price_gnf', 'short_trip_uplift_gnf', 'travel_fee_gnf', 'extra_fee_gnf',
@@ -63,6 +69,9 @@ final class Ticket extends Model
     {
         return [
             'state' => TicketStatus::class,
+            'parent_ticket_id' => 'integer',
+            'is_warranty' => 'boolean',
+            'warranty_until' => 'datetime',
             'address_snapshot' => 'array',
             'location' => Point::class,
             'photos' => 'array',
@@ -164,6 +173,26 @@ final class Ticket extends Model
         return $this->hasMany(Dispute::class);
     }
 
+    /**
+     * Intervention d'origine, quand ce ticket est un retour sous garantie (#4).
+     *
+     * @return BelongsTo<Ticket, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Ticket::class, 'parent_ticket_id');
+    }
+
+    /**
+     * Les retours sous garantie rattachés à cette intervention.
+     *
+     * @return HasMany<Ticket, $this>
+     */
+    public function warranties(): HasMany
+    {
+        return $this->hasMany(Ticket::class, 'parent_ticket_id');
+    }
+
     // ---------------------------------------------------------------- scopes --
 
     /**
@@ -237,6 +266,23 @@ final class Ticket extends Model
         return $utilisateur !== null
             && $this->technician_id !== null
             && (int) $this->technician_id === (int) $utilisateur->getKey();
+    }
+
+    /**
+     * La garantie court-elle encore sur cette intervention (#4) ?
+     *
+     * Un retour sous garantie n'ouvre pas lui-même de garantie : sinon un
+     * technicien de mauvaise foi pourrait enchaîner les retours indéfiniment.
+     * La fenêtre est figée dans `warranty_until` à la clôture, pas relue depuis
+     * le réglage : raccourcir le délai en back-office ne retire pas une
+     * garantie déjà promise.
+     */
+    public function garantieActive(): bool
+    {
+        return ! $this->is_warranty
+            && $this->warranty_until !== null
+            && $this->warranty_until->isFuture()
+            && $this->state->etat() === TicketState::CLOTUREE;
     }
 
     /** Délai entre la publication et l'acceptation, en secondes. */
