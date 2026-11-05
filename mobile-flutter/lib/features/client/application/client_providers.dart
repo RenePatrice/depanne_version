@@ -49,6 +49,12 @@ final supplementProvider = FutureProvider.family<SupplementPropose, int>(
       ref.watch(clientRepositoryProvider).supplementPropose(ticketId),
 );
 
+/// Mes réclamations et les motifs possibles.
+final FutureProvider<DossierReclamations> reclamationsProvider =
+    FutureProvider<DossierReclamations>(
+      (Ref ref) => ref.watch(clientRepositoryProvider).reclamations(),
+    );
+
 /// Brouillon de demande, entre le catalogue et la publication.
 ///
 /// Il vit hors des écrans pour que le client puisse revenir en arrière choisir

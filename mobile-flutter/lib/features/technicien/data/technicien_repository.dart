@@ -121,6 +121,7 @@ class TechnicienRepository {
       parametres: enCoursSeulement
           ? <String, dynamic>{'filtre': 'en_cours'}
           : null,
+      repliHorsLigne: true,
     );
 
     return ((reponse['data'] as List<dynamic>?) ?? const <dynamic>[])
@@ -130,11 +131,15 @@ class TechnicienRepository {
 
   // ---------------------------------------------------------- portefeuille --
 
-  Future<Portefeuille> portefeuille() async =>
-      Portefeuille.depuisJson(await _api.get('/portefeuille'));
+  Future<Portefeuille> portefeuille() async => Portefeuille.depuisJson(
+    await _api.get('/portefeuille', repliHorsLigne: true),
+  );
 
   Future<List<Retrait>> retraits() async {
-    final Map<String, dynamic> reponse = await _api.get('/retraits');
+    final Map<String, dynamic> reponse = await _api.get(
+      '/retraits',
+      repliHorsLigne: true,
+    );
 
     return ((reponse['retraits'] as List<dynamic>?) ?? const <dynamic>[])
         .map((dynamic r) => Retrait.depuisJson(r as Map<String, dynamic>))

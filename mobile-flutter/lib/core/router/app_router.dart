@@ -12,7 +12,9 @@ import '../../features/client/presentation/adresse_form_screen.dart';
 import '../../features/client/presentation/avis_screen.dart';
 import '../../features/client/presentation/catalogue_screen.dart';
 import '../../features/client/presentation/nouvelle_demande_screen.dart';
+import '../../features/client/presentation/reclamation_screen.dart';
 import '../../features/client/presentation/suivi_ticket_screen.dart';
+import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/technicien/presentation/intervention_screen.dart';
 import '../../features/shared/accueil_screen.dart';
@@ -93,6 +95,10 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
         builder: (_, _) => const DossierTechnicienScreen(),
       ),
       GoRoute(path: '/accueil', builder: (_, _) => const AccueilScreen()),
+      GoRoute(
+        path: '/notifications',
+        builder: (_, _) => const NotificationsScreen(),
+      ),
 
       // --- Parcours client ------------------------------------------------
       //
@@ -126,6 +132,15 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
         path: '/client/chat/:id',
         builder: (_, GoRouterState state) =>
             ChatScreen(ticketId: _identifiant(state)),
+      ),
+      GoRoute(
+        path: '/client/reclamation/:id',
+        builder: (_, GoRouterState state) =>
+            ReclamationScreen(ticketId: _identifiant(state)),
+      ),
+      GoRoute(
+        path: '/client/reclamations',
+        builder: (_, _) => const MesReclamationsScreen(),
       ),
 
       // --- Parcours technicien --------------------------------------------

@@ -18,9 +18,23 @@ class AppConfig {
     required this.baseUrl,
     this.connectTimeout = const Duration(seconds: 10),
     this.receiveTimeout = const Duration(seconds: 20),
+    this.reverbUrl = '',
+    this.reverbCle = '',
   });
 
   final String baseUrl;
+
+  /// Adresse du serveur Reverb, par exemple `ws://10.0.2.2:8080`.
+  ///
+  /// La clé d'application Reverb n'est **pas** un secret : c'est l'équivalent
+  /// d'une clé publique Pusher, qui ne permet que de se connecter. Les canaux
+  /// privés exigent en plus une signature délivrée par l'API, jeton à l'appui.
+  /// Sans clé, le temps réel est simplement désactivé et l'application
+  /// interroge le serveur, comme en D3.
+  final String reverbUrl;
+  final String reverbCle;
+
+  bool get tempsReelConfigure => reverbUrl.isNotEmpty && reverbCle.isNotEmpty;
 
   /// Délais volontairement larges. Le cahier des charges vise des réponses
   /// sous 300 ms, mais c'est une cible de serveur : sur le réseau de Conakry,
@@ -34,5 +48,10 @@ class AppConfig {
       'API_BASE_URL',
       defaultValue: 'http://10.0.2.2:8000/api/v1',
     ),
+    reverbUrl: String.fromEnvironment(
+      'REVERB_URL',
+      defaultValue: 'ws://10.0.2.2:8080',
+    ),
+    reverbCle: String.fromEnvironment('REVERB_APP_KEY'),
   );
 }

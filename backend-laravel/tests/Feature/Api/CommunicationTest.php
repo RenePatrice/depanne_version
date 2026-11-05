@@ -7,6 +7,7 @@ use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Chat\Events\MessageEnvoye;
 use App\Domain\Chat\Models\Message;
+use App\Domain\Disputes\Actions\ResolveDispute;
 use App\Domain\Disputes\Data\DisputePriority;
 use App\Domain\Disputes\Data\DisputeReason;
 use App\Domain\Disputes\Models\Dispute;
@@ -14,6 +15,7 @@ use App\Domain\Reviews\Models\Review;
 use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
+use Database\Seeders\Demo\AdminUserSeeder;
 use Database\Seeders\Demo\AppSettingsSeeder;
 use Database\Seeders\Demo\CatalogSeeder;
 use Database\Seeders\Demo\ZoneSeeder;
@@ -389,4 +391,38 @@ it('liste les réclamations de son auteur seulement', function (): void {
 
     Sanctum::actingAs(User::factory()->create());
     $this->getJson('/api/v1/reclamations')->assertOk()->assertJsonCount(0, 'reclamations');
+});
+
+it('sert les motifs de réclamation plutôt que de les laisser recopier', function (): void {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->getJson('/api/v1/reclamations')
+        ->assertOk()
+        ->assertJsonCount(count(DisputeReason::cases()), 'motifs')
+        ->assertJsonPath('motifs.0.code', DisputeReason::cases()[0]->value)
+        ->assertJsonPath('motifs.0.libelle', DisputeReason::cases()[0]->label());
+});
+
+it('montre au déclarant la décision motivée du support', function (): void {
+    [$ticket, $client] = interventionEnCours(TicketState::TERMINEE);
+
+    Sanctum::actingAs($client);
+    $this->postJson("/api/v1/tickets/{$ticket->id}/reclamation", [
+        'motif' => DisputeReason::RETARD->value,
+        'description' => 'Le technicien est arrivé avec deux heures de retard sans prévenir.',
+    ])->assertCreated();
+
+    $this->getJson('/api/v1/reclamations')->assertJsonPath('reclamations.0.decision', null);
+
+    $this->seed(AdminUserSeeder::class);
+    app(ResolveDispute::class)->rejeter(
+        Dispute::query()->sole(),
+        'Le retard était annoncé dans le fil de discussion.',
+        adminAvecRole('SUPPORT')->id,
+    );
+
+    $this->getJson('/api/v1/reclamations')
+        ->assertJsonPath('reclamations.0.decision.libelle', 'Aucune action')
+        ->assertJsonPath('reclamations.0.decision.motivation', 'Le retard était annoncé dans le fil de discussion.')
+        ->assertJsonPath('reclamations.0.decision.rembourse_gnf', 0);
 });

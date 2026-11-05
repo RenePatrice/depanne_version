@@ -106,6 +106,7 @@ class SessionController extends Notifier<Session> {
 
   Future<void> deconnecter() async {
     await _depot.deconnecter();
+    await _oublierLesLectures();
     state = const Session(etat: EtatSession.deconnecte);
   }
 
@@ -113,8 +114,13 @@ class SessionController extends Notifier<Session> {
   /// échoué : la session est perdue côté serveur, l'application doit le
   /// refléter sans attendre le prochain écran.
   void sessionPerdue() {
+    _oublierLesLectures();
     state = const Session(etat: EtatSession.deconnecte);
   }
+
+  /// Le cache hors-ligne appartient à un compte : le suivant, sur le même
+  /// téléphone, ne doit y trouver ni les tickets ni le portefeuille d'avant.
+  Future<void> _oublierLesLectures() => ref.read(cacheLectureProvider).vider();
 
   void effacerErreur() {
     if (state.erreur != null) state = state.copie(effacerErreur: true);
@@ -125,6 +131,7 @@ class SessionController extends Notifier<Session> {
 
     try {
       final ResultatAuth resultat = await action();
+      await _oublierLesLectures();
       state = _pour(
         resultat.utilisateur,
         etapeSuivante: resultat.etapeSuivante,

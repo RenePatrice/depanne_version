@@ -6,6 +6,7 @@ namespace App\Domain\Tickets\Actions;
 
 use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
+use App\Domain\Tickets\Events\TicketEtatChange;
 use App\Domain\Tickets\Events\TicketTransitioned;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Models\TicketEvent;
@@ -84,6 +85,7 @@ final class TransitionTicket
             // recevoir un état qu'une transaction annulée aurait effacé.
             DB::afterCommit(static function () use ($ticket, $depuis, $cible, $acteur): void {
                 TicketTransitioned::dispatch($ticket, $depuis, $cible, $acteur);
+                TicketEtatChange::dispatch((int) $ticket->getKey(), $cible);
             });
 
             return $ticket;

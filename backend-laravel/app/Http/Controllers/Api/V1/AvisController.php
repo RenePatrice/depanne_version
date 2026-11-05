@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Accounts\Models\User;
 use App\Domain\Disputes\Actions\OpenDispute;
+use App\Domain\Disputes\Actions\ResolveDispute;
 use App\Domain\Disputes\Data\DisputeReason;
 use App\Domain\Disputes\Models\Dispute;
 use App\Domain\Reviews\Actions\SubmitReview;
@@ -143,6 +144,12 @@ final class AvisController extends Controller
 
         return response()->json([
             'reclamations' => $litiges->map(fn (Dispute $d): array => $this->presenter($d))->all(),
+            // Les motifs sont servis plutôt que recopiés dans l'application :
+            // un libellé corrigé ici n'attend pas une mise à jour du magasin.
+            'motifs' => array_map(
+                static fn (DisputeReason $motif): array => ['code' => $motif->value, 'libelle' => $motif->label()],
+                DisputeReason::cases(),
+            ),
         ]);
     }
 
@@ -167,6 +174,13 @@ final class AvisController extends Controller
             'statut_libelle' => $litige->status->label(),
             'ouverte_le' => $litige->created_at?->toIso8601String(),
             'resolue_le' => $litige->resolved_at?->toIso8601String(),
+            // La décision est motivée pour être lue : la taire laisserait le
+            // déclarant face à un « résolu » sans savoir ce qui a été décidé.
+            'decision' => $litige->resolution === null ? null : [
+                'libelle' => ResolveDispute::RESOLUTIONS[$litige->resolution] ?? $litige->resolution,
+                'motivation' => $litige->resolution_note,
+                'rembourse_gnf' => (int) $litige->refund_gnf,
+            ],
         ];
     }
 }

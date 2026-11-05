@@ -1,10 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/temps_reel/temps_reel_providers.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
 import '../../shared/data/modeles.dart';
@@ -19,10 +18,10 @@ import 'paiement_feuille.dart';
 /// il en est pour savoir où regarder, alors qu'il veut juste ouvrir
 /// l'application et voir ce qui se passe.
 ///
-/// L'écran se rafraîchit toutes les dix secondes tant que l'intervention est
-/// vivante. C'est un repli : le temps réel arrivera en D4 par Reverb, et cette
-/// interrogation deviendra la roue de secours quand le WebSocket ne s'ouvre
-/// pas — ce qui, sur le réseau de Conakry, arrivera.
+/// Chaque changement d'état arrive par Reverb sur `ticket.{id}` et déclenche
+/// une relecture. L'interrogation reste en repli — toutes les dix secondes sans
+/// WebSocket, toutes les trente avec — parce que sur le réseau de Conakry le
+/// WebSocket ne s'ouvrira pas toujours.
 class SuiviTicketScreen extends ConsumerStatefulWidget {
   const SuiviTicketScreen({required this.ticketId, super.key});
 
@@ -32,40 +31,32 @@ class SuiviTicketScreen extends ConsumerStatefulWidget {
   ConsumerState<SuiviTicketScreen> createState() => _SuiviTicketScreenState();
 }
 
-class _SuiviTicketScreenState extends ConsumerState<SuiviTicketScreen> {
-  static const Duration _cadence = Duration(seconds: 10);
-
-  Timer? _minuteur;
-
+class _SuiviTicketScreenState extends ConsumerState<SuiviTicketScreen>
+    with InterrogationDeRepli<SuiviTicketScreen> {
   @override
   void initState() {
     super.initState();
-    _minuteur = Timer.periodic(_cadence, (_) => _rafraichir());
+    demarrerInterrogation(_rafraichir);
   }
 
-  @override
-  void dispose() {
-    _minuteur?.cancel();
-    super.dispose();
-  }
-
-  void _rafraichir() {
-    if (!mounted) return;
-
+  bool _rafraichir() {
     final Ticket? ticket = ref.read(ticketProvider(widget.ticketId)).value;
 
     // On cesse d'interroger dès que le ticket est figé : continuer coûterait du
     // forfait au client pour un état qui ne changera plus.
-    if (ticket != null && ticket.etatFinal) {
-      _minuteur?.cancel();
-      return;
-    }
+    if (ticket != null && ticket.etatFinal) return false;
 
     ref.invalidate(ticketProvider(widget.ticketId));
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(
+      signauxProvider('ticket.${widget.ticketId}'),
+      (_, _) => ref.invalidate(ticketProvider(widget.ticketId)),
+    );
+
     final AsyncValue<Ticket> ticket = ref.watch(
       ticketProvider(widget.ticketId),
     );
@@ -389,6 +380,17 @@ class _Actions extends ConsumerWidget {
             libelle: 'Noter le technicien',
             secondaire: true,
             onPresse: () => context.push('/client/avis/${ticket.id}'),
+          ),
+        ],
+
+        // Le serveur tient la fenêtre de 72 heures et l'unicité : le bouton
+        // est offert sur tout ticket terminé, et un refus arrive en clair.
+        if (ticket.reclamable) ...<Widget>[
+          const SizedBox(height: DmSpace.x3),
+          TextButton.icon(
+            onPressed: () => context.push('/client/reclamation/${ticket.id}'),
+            icon: const Icon(Icons.report_problem_outlined),
+            label: const Text('Signaler un problème'),
           ),
         ],
 

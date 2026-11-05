@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/format/montant.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/temps_reel/temps_reel_providers.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
 import '../../client/application/client_providers.dart';
@@ -29,37 +28,26 @@ class InterventionScreen extends ConsumerStatefulWidget {
   ConsumerState<InterventionScreen> createState() => _InterventionScreenState();
 }
 
-class _InterventionScreenState extends ConsumerState<InterventionScreen> {
-  static const Duration _cadence = Duration(seconds: 10);
-
-  Timer? _minuteur;
+class _InterventionScreenState extends ConsumerState<InterventionScreen>
+    with InterrogationDeRepli<InterventionScreen> {
   bool _enCours = false;
 
   @override
   void initState() {
     super.initState();
-    _minuteur = Timer.periodic(_cadence, (_) => _rafraichir());
+    demarrerInterrogation(_rafraichir);
   }
 
-  @override
-  void dispose() {
-    _minuteur?.cancel();
-    super.dispose();
-  }
-
-  void _rafraichir() {
-    if (!mounted) return;
-
+  /// Le client peut accepter ou refuser un supplément pendant que le
+  /// technicien regarde l'écran : c'est ce changement-là qu'on guette. Il
+  /// arrive par Reverb ; cette boucle n'est que le repli.
+  bool _rafraichir() {
     final Ticket? ticket = ref.read(ticketProvider(widget.ticketId)).value;
 
-    // Le client peut accepter ou refuser un supplément pendant que le
-    // technicien regarde l'écran : c'est ce changement-là qu'on guette.
-    if (ticket != null && ticket.etatFinal) {
-      _minuteur?.cancel();
-      return;
-    }
+    if (ticket != null && ticket.etatFinal) return false;
 
     ref.invalidate(ticketProvider(widget.ticketId));
+    return true;
   }
 
   Future<void> _avancer(String etape) async {
@@ -86,6 +74,11 @@ class _InterventionScreenState extends ConsumerState<InterventionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(
+      signauxProvider('ticket.${widget.ticketId}'),
+      (_, _) => ref.invalidate(ticketProvider(widget.ticketId)),
+    );
+
     final AsyncValue<Ticket> ticket = ref.watch(
       ticketProvider(widget.ticketId),
     );

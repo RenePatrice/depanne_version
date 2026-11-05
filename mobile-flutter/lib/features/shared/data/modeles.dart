@@ -319,6 +319,11 @@ class Ticket {
   /// condition du paiement.
   bool get estNotable => etat == 'CLOTUREE' || etat == 'PAYEE';
 
+  /// Une intervention a eu lieu : un problème peut être signalé. La fenêtre
+  /// de 72 heures est tenue par le serveur.
+  bool get reclamable =>
+      etat == 'TERMINEE' || etat == 'PAYEE' || etat == 'CLOTUREE';
+
   String get adresseLisible =>
       (adresse?['formatted_address'] as String?) ?? 'Adresse non renseignée';
 
@@ -431,3 +436,77 @@ class Paiement {
 List<String> _textes(dynamic brut) => brut is List
     ? brut.map((dynamic v) => v.toString()).toList()
     : const <String>[];
+
+/// Une réclamation, telle que le déclarant la voit.
+///
+/// Ni la priorité ni l'échéance interne n'en font partie : le serveur ne les
+/// expose pas, pour que personne ne négocie son rang dans la file du support.
+class Reclamation {
+  const Reclamation({
+    required this.reference,
+    required this.ticket,
+    required this.motifLibelle,
+    required this.statut,
+    required this.statutLibelle,
+    this.description,
+    this.ouverteLe,
+    this.decision,
+  });
+
+  final String reference;
+  final String ticket;
+  final String motifLibelle;
+  final String statut;
+  final String statutLibelle;
+  final String? description;
+  final DateTime? ouverteLe;
+  final DecisionReclamation? decision;
+
+  bool get enCours => statut == 'OUVERT' || statut == 'EN_COURS';
+
+  factory Reclamation.depuisJson(Map<String, dynamic> json) {
+    final Map<String, dynamic>? decision =
+        json['decision'] as Map<String, dynamic>?;
+
+    return Reclamation(
+      reference: json['reference'] as String,
+      ticket: json['ticket'] as String? ?? '',
+      motifLibelle: json['motif_libelle'] as String? ?? '',
+      statut: json['statut'] as String? ?? '',
+      statutLibelle: json['statut_libelle'] as String? ?? '',
+      description: json['description'] as String?,
+      ouverteLe: DateTime.tryParse(json['ouverte_le'] as String? ?? '')
+          ?.toLocal(),
+      decision: decision == null
+          ? null
+          : DecisionReclamation(
+              libelle: decision['libelle'] as String? ?? '',
+              motivation: decision['motivation'] as String?,
+              remboursementGnf:
+                  (decision['rembourse_gnf'] as num?)?.toInt() ?? 0,
+            ),
+    );
+  }
+}
+
+/// Ce que le support a décidé, et pourquoi.
+class DecisionReclamation {
+  const DecisionReclamation({
+    required this.libelle,
+    required this.remboursementGnf,
+    this.motivation,
+  });
+
+  final String libelle;
+  final String? motivation;
+  final int remboursementGnf;
+}
+
+typedef MotifReclamation = ({String code, String libelle});
+
+class DossierReclamations {
+  const DossierReclamations({required this.reclamations, required this.motifs});
+
+  final List<Reclamation> reclamations;
+  final List<MotifReclamation> motifs;
+}

@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/providers.dart';
+import '../../../core/temps_reel/temps_reel_providers.dart';
+import '../../../core/temps_reel/temps_reel_service.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
 import '../../auth/application/session_controller.dart';
@@ -19,8 +21,10 @@ import '../data/modeles.dart';
 /// séquentiel, et une file de demandes concurrentes serait un mensonge sur ce
 /// que le technicien peut réellement accepter.
 ///
-/// L'interrogation périodique est un repli. Le temps réel arrive en D4 par
-/// Reverb ; sur le réseau de Conakry, cette boucle restera la roue de secours.
+/// Une sollicitation arrive par Reverb, sous la forme de la notification
+/// « nouvelle demande » sur le canal personnel du technicien : la fenêtre de
+/// réponse est de quarante-cinq secondes, et dix secondes d'attente d'une
+/// interrogation en mangeraient le quart. La boucle reste en repli.
 class DemandesScreen extends ConsumerStatefulWidget {
   const DemandesScreen({super.key});
 
@@ -28,36 +32,46 @@ class DemandesScreen extends ConsumerStatefulWidget {
   ConsumerState<DemandesScreen> createState() => _DemandesScreenState();
 }
 
-class _DemandesScreenState extends ConsumerState<DemandesScreen> {
-  static const Duration _cadence = Duration(seconds: 10);
-
-  Timer? _minuteur;
+class _DemandesScreenState extends ConsumerState<DemandesScreen>
+    with InterrogationDeRepli<DemandesScreen> {
+  /// Les notifications qui changent ce que l'écran doit montrer.
+  static const Set<String> _signaux = <String>{
+    'NOUVELLE_DEMANDE',
+    'DEMANDE_EXPIREE',
+    'DEMANDE_ATTRIBUEE',
+    'DEMANDE_RETIREE',
+  };
 
   @override
   void initState() {
     super.initState();
-    _minuteur = Timer.periodic(_cadence, (_) => _rafraichir());
+    demarrerInterrogation(_rafraichir);
   }
 
-  @override
-  void dispose() {
-    _minuteur?.cancel();
-    super.dispose();
-  }
-
-  void _rafraichir() {
-    if (!mounted) return;
-
+  bool _rafraichir() {
     // Hors ligne, il n'y a rien à attendre : interroger consommerait le
     // forfait de quelqu'un pour une réponse toujours vide.
-    if (!ref.read(disponibiliteProvider).enLigne) return;
+    if (ref.read(disponibiliteProvider).enLigne) {
+      ref.invalidate(sollicitationsProvider);
+    }
 
-    ref.invalidate(sollicitationsProvider);
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
     final Session session = ref.watch(sessionProvider);
+
+    ref.listen(signauxProvider('utilisateur.${session.utilisateur?.id}'), (
+      _,
+      AsyncValue<EvenementTempsReel> suivant,
+    ) {
+      if (_signaux.contains(suivant.value?.donnees['type'])) {
+        ref.invalidate(sollicitationsProvider);
+        ref.invalidate(interventionsProvider);
+      }
+    });
+
     final Disponibilite dispo = ref.watch(disponibiliteProvider);
     final AsyncValue<List<Sollicitation>> sollicitations = ref.watch(
       sollicitationsProvider(false),

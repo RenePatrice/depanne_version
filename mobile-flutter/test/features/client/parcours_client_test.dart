@@ -77,6 +77,13 @@ const Map<String, dynamic> _reponseFourreTout = <String, dynamic>{
   'reference': 'PAY-1',
   'statut': 'EN_ATTENTE',
   'montant_gnf': 90000,
+  'reclamation': <String, dynamic>{
+    'reference': 'LIT-2026-0001',
+    'ticket': 'DM-2026-000007',
+    'motif_libelle': 'Travail non conforme',
+    'statut': 'OUVERT',
+    'statut_libelle': 'Ouvert',
+  },
   'diagnostic': 'Le siphon est fendu.',
   'supplement_gnf': 25000,
   'total_actuel_gnf': 90000,
@@ -238,6 +245,13 @@ void main() {
       await depot.validerIntervention(7);
       await depot.annuler(7, motif: 'Plus besoin');
       await depot.noter(7, note: 5);
+      // Le client décrit son problème, il ne chiffre pas de remboursement :
+      // c'est le support qui décide du montant, au vu du dossier.
+      await depot.reclamer(
+        7,
+        motif: 'TRAVAIL_NON_CONFORME',
+        description: 'La fuite est revenue dès le lendemain matin.',
+      );
       await depot.ajouterAdresse(
         libelle: 'Maison',
         adresse: 'Kipé',

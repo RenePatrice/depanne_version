@@ -17,7 +17,10 @@ class ClientRepository {
   // ------------------------------------------------------------- catalogue --
 
   Future<List<CategoriePrestations>> catalogue() async {
-    final Map<String, dynamic> reponse = await _api.get('/catalogue');
+    final Map<String, dynamic> reponse = await _api.get(
+      '/catalogue',
+      repliHorsLigne: true,
+    );
 
     return ((reponse['categories'] as List<dynamic>?) ?? const <dynamic>[])
         .map(
@@ -30,7 +33,10 @@ class ClientRepository {
   // -------------------------------------------------------------- adresses --
 
   Future<List<Adresse>> adresses() async {
-    final Map<String, dynamic> reponse = await _api.get('/adresses');
+    final Map<String, dynamic> reponse = await _api.get(
+      '/adresses',
+      repliHorsLigne: true,
+    );
 
     return ((reponse['adresses'] as List<dynamic>?) ?? const <dynamic>[])
         .map((dynamic a) => Adresse.depuisJson(a as Map<String, dynamic>))
@@ -102,7 +108,10 @@ class ClientRepository {
   }
 
   Future<Ticket> ticket(int id) async {
-    final Map<String, dynamic> reponse = await _api.get('/tickets/$id');
+    final Map<String, dynamic> reponse = await _api.get(
+      '/tickets/$id',
+      repliHorsLigne: true,
+    );
 
     return Ticket.depuisJson(reponse['ticket'] as Map<String, dynamic>);
   }
@@ -117,6 +126,7 @@ class ClientRepository {
       parametres: enCoursSeulement
           ? <String, dynamic>{'filtre': 'en_cours'}
           : null,
+      repliHorsLigne: true,
     );
 
     return ((reponse['data'] as List<dynamic>?) ?? const <dynamic>[])
@@ -200,4 +210,56 @@ class ClientRepository {
         'commentaire': commentaire,
     },
   );
+
+  // ----------------------------------------------------------- réclamation --
+
+  /// Signaler un problème sur une intervention terminée.
+  ///
+  /// Aucun montant ne part d'ici : ce que le client réclame, c'est un examen.
+  /// Le remboursement éventuel est décidé et chiffré par le support, au vu du
+  /// dossier — le laisser saisir ici ouvrirait une négociation dans
+  /// l'application, l'inverse de ce que le séquestre cherche à éviter.
+  Future<Reclamation> reclamer(
+    int ticketId, {
+    required String motif,
+    required String description,
+  }) async {
+    final Map<String, dynamic> reponse = await _api.post(
+      '/tickets/$ticketId/reclamation',
+      corps: <String, dynamic>{'motif': motif, 'description': description},
+    );
+
+    return Reclamation.depuisJson(
+      reponse['reclamation'] as Map<String, dynamic>,
+    );
+  }
+
+  /// Mes réclamations, et les motifs possibles — servis par le serveur plutôt
+  /// que recopiés ici, pour qu'un libellé corrigé n'attende pas une mise à
+  /// jour de l'application.
+  Future<DossierReclamations> reclamations() async {
+    final Map<String, dynamic> reponse = await _api.get(
+      '/reclamations',
+      repliHorsLigne: true,
+    );
+
+    return DossierReclamations(
+      reclamations:
+          ((reponse['reclamations'] as List<dynamic>?) ?? const <dynamic>[])
+              .map(
+                (dynamic r) =>
+                    Reclamation.depuisJson(r as Map<String, dynamic>),
+              )
+              .toList(),
+      motifs: ((reponse['motifs'] as List<dynamic>?) ?? const <dynamic>[]).map((
+        dynamic m,
+      ) {
+        final Map<String, dynamic> motif = m as Map<String, dynamic>;
+        return (
+          code: motif['code'] as String,
+          libelle: motif['libelle'] as String,
+        );
+      }).toList(),
+    );
+  }
 }

@@ -10,7 +10,7 @@ consomme l'API `/api/v1` du backend Laravel, sans jamais toucher à la base.
 | **D1** | Design system, thèmes, client Dio + refresh, auth, navigation, sélecteur de mode | ✅ terminée |
 | **D2** | Parcours client : catalogue → adresse → prix → publication → suivi → supplément → paiement → avis → historique | ✅ terminée |
 | **D3** | Parcours technicien : disponibilité, réception, intervention, supplément, portefeuille, position GPS | ✅ terminée |
-| D4 | Chat, push, temps réel, mode hors-ligne | à faire |
+| **D4** | Chat, notifications, temps réel Reverb, lecture hors-ligne, réclamations | ✅ terminée — push FCM en attente de Firebase |
 | D5 | Build, signature, publication | à faire |
 
 ## Outillage
@@ -66,6 +66,14 @@ APK ou lancer sur un appareil.
 scripts\flutter.cmd run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 ```
 
+Avec le temps réel (D4), ajouter l'adresse de Reverb et sa clé publique —
+`REVERB_APP_KEY` du `.env` du backend. Sans elles, l'application interroge le
+serveur comme avant :
+
+```cmd
+scripts\flutter.cmd run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1 --dart-define=REVERB_URL=ws://10.0.2.2:8080 --dart-define=REVERB_APP_KEY=...
+```
+
 `10.0.2.2` est l'adresse de la machine hôte vue depuis l'émulateur Android ;
 `localhost` y désignerait l'émulateur lui-même. Rien de sensible n'est écrit
 dans le code : tout passe par `--dart-define`.
@@ -80,6 +88,8 @@ lib/
     auth/                  couple de jetons, coffre sécurisé
     network/               client Dio, intercepteur de refresh, erreurs
     router/                go_router et sa règle de redirection unique
+    temps_reel/            client Reverb (protocole Pusher) et repli
+    hors_ligne/            cache des lectures et bandeau « hors connexion »
     providers.dart         câblage des dépendances
   design_system/
     design_tokens.dart     miroir de resources/scss/_tokens.scss
@@ -94,12 +104,13 @@ lib/
     client/
       data/                ClientRepository
       application/         fournisseurs Riverpod et brouillon de demande
-      presentation/        catalogue, demande, suivi, paiement, avis, profil
+      presentation/        catalogue, demande, suivi, paiement, avis, réclamation, profil
     technicien/
       data/                TechnicienRepository, sollicitation, portefeuille
       application/         fournisseurs, disponibilité, service de position
       presentation/        demandes, intervention, diagnostic, portefeuille
-    chat/                  messagerie — annoncée, livrée en D4
+    chat/                  messagerie de l'intervention
+    notifications/         centre de notifications et cloche
 ```
 
 ## Ce qu'il faut savoir avant de toucher au code

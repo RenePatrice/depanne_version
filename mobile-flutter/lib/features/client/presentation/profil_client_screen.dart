@@ -61,6 +61,19 @@ class ProfilClientScreen extends ConsumerWidget {
             ),
           ),
 
+          const SizedBox(height: DmSpace.x3),
+          DmCarte(
+            onTape: () => context.push('/client/reclamations'),
+            enfant: const Row(
+              children: <Widget>[
+                Icon(Icons.report_problem_outlined),
+                SizedBox(width: DmSpace.x4),
+                Expanded(child: Text('Mes réclamations')),
+                Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+
           Padding(
             padding: const EdgeInsets.fromLTRB(
               DmSpace.x2,

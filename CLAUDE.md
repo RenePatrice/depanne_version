@@ -26,8 +26,8 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | D — Mobile Flutter | **D1** — design system, auth, navigation, client Dio | ✅ terminée |
 | | **D2** — parcours client complet | ✅ terminée |
 | | **D3** — parcours technicien | ✅ terminée |
-| | **D4** — chat, push, temps réel, hors-ligne | ⏳ suivante |
-| | D5 | à faire |
+| | **D4** — chat, notifications, temps réel, hors-ligne, réclamations | ✅ terminée (push FCM en attente de Firebase) |
+| | **D5** — build, signature, publication | ⏳ suivante |
 
 ## 2. Décisions du client (5 septembre 2026)
 
@@ -207,6 +207,16 @@ qu'un lien affiché est toujours un lien ouvrable.
   et met immédiatement un technicien suspendu hors ligne.
 - `ReviewTechnicianApplication` refuse de trancher deux fois le même dossier et
   exige un motif au rejet.
+- **Réassigner** (`Matching\Actions\ReassignTicket`, ADR-0040) remet en
+  recherche un ticket ACCEPTEE ou EN_ROUTE dont le technicien ne vient pas. Il
+  n'est jamais resollicité ; le prix redevient une estimation ; `accepted_at` et
+  `en_route_at` sont effacés — **seule exception** à la règle du jalon, les
+  dates d'origine restent dans l'événement. Imputé au technicien, le
+  désistement passe en `DESISTE` et compte dans son taux d'annulation.
+- **Forcer la clôture** libère le séquestre qu'elle trouve, et refuse un ticket
+  en litige : c'est la décision du litige qui le ferme.
+- **Rembourser** ne s'invente pas en marge : le bouton mène au litige ouvert,
+  seul endroit où un remboursement se décide.
 
 ### Administration
 - Le catalogue, les zones et la configuration sont modifiables par qui détient
@@ -232,10 +242,19 @@ qu'un lien affiché est toujours un lien ouvrable.
 - Le solde est **revérifié au moment du paiement**, dans la même transaction SQL
   que l'écriture du mouvement : entre la demande et le versement, un
   remboursement de litige a pu passer.
-- Un remboursement de litige écrit **deux mouvements symétriques** — le client
-  est crédité, la part correspondante est reprise au technicien. Le grand livre
-  reste équilibré. Le versement vers Mobile Money relève du fournisseur de
-  paiement (phase C5) ; l'écran le dit explicitement.
+- **Trancher un litige règle l'argent** (ADR-0041), résolution comme rejet, dans
+  la même transaction. Le remboursement sort **avant** la répartition (prorata,
+  décision client du 4 novembre 2026) : la commission ne porte que sur ce qui
+  reste facturé, au taux figé sur le ticket.
+  - séquestre gelé → libéré diminué du remboursement, ticket CLOTUREE ;
+  - fonds déjà libérés → le technicien rend le remboursement, la plateforme lui
+    restitue la commission de la part remboursée : même résultat ;
+  - rien encaissé → pas de remboursement possible, ticket ramené en TERMINEE.
+- Avant ADR-0041, un litige tranché laissait ticket et argent gelés **pour
+  toujours** — B5 et C5 n'avaient jamais été raccordés. Une intervention
+  arbitrée ne peut plus être remise en litige depuis l'application.
+- Le client est crédité au grand livre ; **le reversement sur son Mobile Money
+  reste manuel** : `PaymentProvider` n'expose pas de remboursement.
 - La file des litiges est triée par **échéance de traitement**, pas par ordre
   d'arrivée : ce qui est hors délai remonte.
 - `dispute_messages` est un fil distinct de `messages` : celui-ci est entre le
@@ -777,7 +796,8 @@ Trois écrans portent l'essentiel des décisions :
   l'état renvoyé, jamais par une pile d'écrans propre à chaque étape. Il
   interroge le ticket toutes les dix secondes et **s'arrête sur un état final** :
   une interrogation qui continue après la clôture consomme le forfait de
-  quelqu'un. Reverb remplacera cette boucle en D4 ; elle restera le repli.
+  quelqu'un. Depuis D4, Reverb signale chaque changement et la boucle
+  n'est plus que le repli.
 - **`paiement_feuille.dart`** — l'application ne conclut jamais qu'un paiement a
   réussi ; elle interroge `/paiements/{reference}` jusqu'à ce que le serveur le
   dise (ADR-0032). Une interrogation qui échoue est ignorée : le réseau a
@@ -848,19 +868,56 @@ supervision.
   quelqu'un à qui on demande sa position avant de lui avoir montré pourquoi
   refuse, et un refus définitif est difficile à rattraper.
 
-### Ce que D3 ne fait pas
-La messagerie répond sous ses adresses définitives — `/client/chat/:id` et
-`/technicien/chat/:id` — en annonçant qu'elle arrive en D4, pour la même raison
-qu'en back-office (ADR-0015) : le bouton « Discuter » mène quelque part qui
-explique, plutôt que nulle part.
+### Temps réel, messagerie, hors-ligne (D4)
+**Le WebSocket ne transporte que des signaux.** `TicketEtatChange` part sur
+`ticket.{id}` à chaque transition et ne dit que l'état : l'application relit
+`/tickets/{id}`, seule source de vérité. Y mettre le total obligerait à
+recopier les règles de visibilité de chaque partie, et la recopie fuirait.
 
-Le dépôt des pièces du dossier technicien reste à faire : il demande l'appareil
-photo et le téléversement, et arrive avec eux. L'écran existe malgré tout et dit
-où en est la validation.
+- L'application a sa route d'autorisation, **`/api/v1/broadcasting/auth`**
+  derrière Sanctum : celle du back-office s'appuie sur la session web et ne
+  reconnaît pas un jeton Bearer. Les règles restent dans `routes/channels.php`.
+- Le client Reverb (`core/temps_reel/temps_reel_service.dart`) est **écrit à la
+  main** sur `web_socket_channel` : six messages du protocole Pusher 7, une
+  reconnexion qui double son délai jusqu'à une minute, un réabonnement à chaque
+  reconnexion — une signature est liée à un socket. Aucune erreur n'en sort.
+- `InterrogationDeRepli` garde la boucle : dix secondes sans WebSocket, trente
+  avec. Elle ne s'arrête jamais tout à fait — un WebSocket peut se croire ouvert
+  bien après que la ligne est tombée.
+- Lancement : `--dart-define=REVERB_URL=ws://10.0.2.2:8080
+  --dart-define=REVERB_APP_KEY=…`. La clé Reverb est publique par nature ; sans
+  elle, le temps réel est simplement absent et l'application interroge.
 
-Les cinq écrans interrogent le serveur toutes les dix secondes. C'est le repli :
-Reverb prend le relais en D4, et cette boucle reste la roue de secours — sur le
-réseau de Conakry, le WebSocket ne s'ouvrira pas toujours.
+**Messagerie.** Le filtre est côté serveur et seulement là ; l'avertissement
+s'affiche tel que le serveur l'a rédigé, le message masqué porte « Coordonnées
+masquées ». Un envoi échoué **garde le texte saisi**. L'appel masqué annonce
+franchement qu'il est simulé.
+
+**Notifications.** Cloche sur l'accueil, relue à chaque notification poussée
+sur `utilisateur.{id}`. La destination suit **le type** avant le mode : un
+technicien qui a aussi la casquette client doit arriver sur le suivi client.
+
+**Réclamations.** « Signaler un problème » sur tout ticket terminé ; le serveur
+tient la fenêtre et l'unicité. Aucun montant ne part : le client décrit, le
+support chiffre. Les motifs et la décision motivée sont **servis par l'API**.
+
+**Hors-ligne, en lecture seule** (`core/hors_ligne/`). Un `get` qui déclare
+`repliHorsLigne: true` mémorise sa réponse et la rend sur coupure réseau ; un
+bandeau dit de quand datent les données. Le choix est **par chemin** : jamais
+pour `/technicien/sollicitations` ni `/paiements/*` — une sollicitation d'il y a
+dix minutes a expiré, un paiement a peut-être abouti. Les écritures ne sont
+**jamais mises en file** : un « je suis arrivé » rejoué vingt minutes plus tard
+ferait mentir l'historique. Le cache est vidé à chaque changement de compte.
+
+### Ce que D4 ne fait pas
+- **Push FCM** : Firebase n'existe pas pour le pilote. Le serveur écrit dans
+  `laravel.log` ; l'application reçoit tout par Reverb quand elle est ouverte
+  et par le centre de notifications sinon. Brancher FCM demande
+  `google-services.json` et `firebase_messaging`.
+- **Dépôt des pièces du dossier technicien** : appareil photo et téléversement
+  restent à faire. L'écran dit où en est la validation.
+- Profil (nom, mot de passe), seconde casquette et avis publics d'un technicien
+  ont leurs routes API mais pas encore d'écran.
 
 ## 8. Conventions de code
 
@@ -898,7 +955,9 @@ réseau de Conakry, le WebSocket ne s'ouvrira pas toujours.
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **360 tests passent** (1 423 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **390 tests passent** (1 508 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- Ne jamais lancer deux suites en même temps, ni `pest --parallel` : elles
+  partagent `depanne_moi_test`, et les bases parallèles n'ont pas PostGIS.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
   le type de retour déclaré de `casts()` et prend une date castée pour une
   chaîne. Les tests Pest sont exclus de l'analyse : leurs closures liées
@@ -941,6 +1000,8 @@ réseau de Conakry, le WebSocket ne s'ouvrira pas toujours.
 | 0037 | **L'itinéraire passe par l'application de cartographie du téléphone** — elle guide mieux, connaît le trafic, et ne demande aucune clé |
 | 0038 | **Le suivi GPS est lié à l'intervention, jamais à un interrupteur** — personne n'est suivi sans raison |
 | 0039 | **Le SDK Android s'installe par le binaire `android`, jamais par AGP** — le sdkmanager déprécié plante et laisse une plateforme corrompue |
+| 0040 | **Le support réassigne tant que le technicien n'est pas sur place** — jamais resollicité, prix ramené à l'estimation |
+| 0041 | **Trancher un litige règle le séquestre, au prorata du remboursement** — plus aucun ticket gelé pour toujours |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

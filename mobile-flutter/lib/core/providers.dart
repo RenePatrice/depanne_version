@@ -13,6 +13,7 @@ import '../features/shared/mode/mode_controller.dart';
 import 'app_mode.dart';
 import 'auth/token_store.dart';
 import 'config/app_config.dart';
+import 'hors_ligne/cache_lecture.dart';
 import 'network/api_client.dart';
 
 final Provider<AppConfig> configProvider = Provider<AppConfig>(
@@ -22,6 +23,25 @@ final Provider<AppConfig> configProvider = Provider<AppConfig>(
 final Provider<TokenStore> tokenStoreProvider = Provider<TokenStore>(
   (Ref ref) => SecureTokenStore(),
 );
+
+/// Dernières lectures, pour l'affichage hors connexion.
+final Provider<CacheLecture> cacheLectureProvider = Provider<CacheLecture>(
+  (Ref ref) => CacheFichiers(),
+);
+
+/// Heure des données affichées quand elles viennent du cache, `null` quand le
+/// serveur répond. Le bandeau « hors connexion » ne lit que ceci.
+class EtatReseauController extends Notifier<DateTime?> {
+  @override
+  DateTime? build() => null;
+
+  void signaler(DateTime? donneesDu) {
+    if (state != donneesDu) state = donneesDu;
+  }
+}
+
+final NotifierProvider<EtatReseauController, DateTime?> etatReseauProvider =
+    NotifierProvider<EtatReseauController, DateTime?>(EtatReseauController.new);
 
 final Provider<ModeStore> modeStoreProvider = Provider<ModeStore>(
   (Ref ref) => const SecureModeStore(),
@@ -41,6 +61,9 @@ final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((Ref ref) {
   return ApiClient.creer(
     config: ref.watch(configProvider),
     store: ref.watch(tokenStoreProvider),
+    cache: ref.watch(cacheLectureProvider),
+    surReseau: (DateTime? donneesDu) =>
+        ref.read(etatReseauProvider.notifier).signaler(donneesDu),
     surDeconnexion: () async {
       ref.read(sessionProvider.notifier).sessionPerdue();
     },

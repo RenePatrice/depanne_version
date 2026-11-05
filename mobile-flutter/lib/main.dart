@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/app_mode.dart';
+import 'core/hors_ligne/bandeau_hors_ligne.dart';
 import 'core/providers.dart';
 import 'core/router/app_router.dart';
 import 'design_system/app_theme.dart';
@@ -56,6 +57,8 @@ class _DepanneMoiAppState extends ConsumerState<DepanneMoiApp> {
       theme: AppTheme.clair(mode),
       darkTheme: AppTheme.sombre(mode),
       routerConfig: ref.watch(routerProvider),
+      builder: (BuildContext context, Widget? enfant) =>
+          BandeauHorsLigne(enfant: enfant ?? const SizedBox.shrink()),
     );
   }
 }

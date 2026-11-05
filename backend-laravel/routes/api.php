@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\ProfilController;
 use App\Http\Controllers\Api\V1\TechnicienController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -80,6 +81,15 @@ Route::prefix('v1')->group(function (): void {
     // --- Authentifié -------------------------------------------------------
 
     Route::middleware('auth:sanctum')->group(function (): void {
+
+        /*
+         * Autorisation des canaux privés pour l'application (D4). La route du
+         * back-office, `/broadcasting/auth`, s'appuie sur la session web : un
+         * jeton Bearer n'y est pas reconnu, et l'application ne pouvait donc
+         * s'abonner à aucun canal. Les règles restent celles de
+         * `routes/channels.php`, écrites une seule fois pour les deux.
+         */
+        Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
         Route::post('/auth/deconnexion', [SessionController::class, 'destroy'])->name('api.deconnexion');
 

@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_mode.dart';
 import '../../core/providers.dart';
+import '../../core/temps_reel/temps_reel_providers.dart';
+import '../../core/temps_reel/temps_reel_service.dart';
 import '../auth/application/session_controller.dart';
 import '../client/presentation/catalogue_screen.dart';
 import '../client/presentation/historique_screen.dart';
 import '../client/presentation/profil_client_screen.dart';
+import '../notifications/application/notifications_providers.dart';
+import '../notifications/presentation/notifications_screen.dart';
 import '../technicien/presentation/demandes_screen.dart';
 import '../technicien/presentation/mes_interventions_screen.dart';
 import '../technicien/presentation/portefeuille_screen.dart';
@@ -36,6 +40,16 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
     final AppMode mode = ref.watch(modeProvider);
     final Session session = ref.watch(sessionProvider);
 
+    // Toute notification poussée sur le canal personnel rallume la cloche.
+    ref.listen(signauxProvider('utilisateur.${session.utilisateur?.id}'), (
+      _,
+      AsyncValue<EvenementTempsReel> suivant,
+    ) {
+      if (suivant.value?.nom == 'notification') {
+        ref.invalidate(notificationsProvider);
+      }
+    });
+
     // Le changement de mode remet l'onglet à zéro : garder l'index d'un mode
     // à l'autre pointerait vers un onglet qui ne veut pas dire la même chose.
     final List<_Onglet> onglets = mode == AppMode.client
@@ -50,6 +64,7 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
       appBar: AppBar(
         title: Text('Mode ${mode.libelle}'),
         actions: <Widget>[
+          const ClocheNotifications(),
           if (peutBasculer)
             IconButton(
               tooltip: 'Changer de mode',
