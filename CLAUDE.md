@@ -78,7 +78,13 @@ lots, **sans casser l'existant** (chaque refonte remplace l'ADR concerné).
   au dashboard, CRUD utilisateurs, cloisonnement des modules admin, revue des
   failles (injection SQL, XSS, SSRF, path traversal, élévation de privilèges
   verticale/horizontale, RCE).
-- **#10 IA locale** (sans API) pour des prédictions back-office et mobile.
+- **#10 IA locale** (sans API) pour des prédictions back-office et mobile. ✅
+  `PredictionService` : modèle statistique **calculé sur place** (tendance
+  linéaire par moindres carrés × saisonnalité par jour de semaine), sans aucun
+  appel externe. Carte « Prévision de la demande » (7 j) au tableau de bord ;
+  affluence prévue du moment servie au technicien (`/technicien/affluence`,
+  banneau sur l'écran Demandes). Annoncé pour ce qu'il est — une estimation,
+  pas une magie — avec sa fiabilité.
 - **#11 Durcissement APK** : obfuscation R8, aucun secret dans le binaire,
   en-têtes, vérification d'intégrité. (Le « chiffrer tout si dépaquetage »
   n'est pas un mécanisme standard réalisable ; on tient ce qui protège vraiment.)
@@ -156,7 +162,7 @@ les contrôleurs web et API ne font que valider, appeler, présenter.
 | `Disputes` | `Dispute`, ses trois énumérations, `OpenDispute` et `ResolveDispute` |
 | `Notifications` | `AppNotification`, `NotificationType`, `SendNotification`, `PushProvider` et son pilote `log` |
 | `Settings` | `AppSetting` et ses clés de configuration |
-| `Reporting` | `Periode`, `DashboardService` — toutes les agrégations du tableau de bord |
+| `Reporting` | `Periode`, `DashboardService` — agrégations du tableau de bord ; `PredictionService` — prédictions locales sans API (#10) |
 
 Les fournisseurs externes sont configurés dans **`config/depanne.php`** : c'est
 le seul fichier autorisé à appeler `env()`, ailleurs la valeur disparaîtrait dès

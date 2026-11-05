@@ -209,4 +209,10 @@ class TechnicienRepository {
   /// tant qu'il ne l'a pas fait, rien n'est inscrit.
   Future<void> declarerEspeces(int ticketId) =>
       _api.post('/tickets/$ticketId/paiement-especes');
+
+  // ------------------------------------------------------- affluence (#10) --
+
+  /// Affluence prévue maintenant — prédiction locale, calculée côté serveur.
+  Future<Affluence> affluence() async =>
+      Affluence.depuisJson(await _api.get('/technicien/affluence'));
 }

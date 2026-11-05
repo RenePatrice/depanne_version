@@ -165,6 +165,10 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/technicien/sollicitations', [TechnicienController::class, 'sollicitations'])
             ->name('api.technicien.sollicitations');
 
+        // Affluence prévue maintenant (#10, IA locale) : aide à rester en ligne.
+        Route::get('/technicien/affluence', [TechnicienController::class, 'affluence'])
+            ->name('api.technicien.affluence');
+
         // Tarifs propres du technicien (#2) : le catalogue n'est qu'un défaut.
         Route::get('/technicien/tarifs', [TechnicienController::class, 'tarifs'])
             ->name('api.technicien.tarifs');

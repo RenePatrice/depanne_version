@@ -94,3 +94,11 @@ it('ne casse pas sur une série vide', function (): void {
 
     expect($service->projeter([], [], 5)['valeurs'])->toBe([0, 0, 0, 0, 0]);
 });
+
+it('classe le niveau d’affluence selon le ratio au rythme moyen', function (): void {
+    expect(PredictionService::niveauAffluence(2.0))->toBe('forte')
+        ->and(PredictionService::niveauAffluence(1.3))->toBe('forte')
+        ->and(PredictionService::niveauAffluence(0.9))->toBe('moyenne')
+        ->and(PredictionService::niveauAffluence(0.6))->toBe('moyenne')
+        ->and(PredictionService::niveauAffluence(0.2))->toBe('faible');
+});

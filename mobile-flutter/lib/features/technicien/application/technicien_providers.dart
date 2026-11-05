@@ -48,6 +48,12 @@ final FutureProvider<List<TarifTechnicien>> tarifsProvider =
       (Ref ref) => ref.watch(technicienRepositoryProvider).tarifs(),
     );
 
+/// Affluence prévue maintenant (#10). `autoDispose` : recalculée à chaque
+/// ouverture de l'écran, l'affluence de l'heure passée n'a plus d'intérêt.
+final affluenceProvider = FutureProvider.autoDispose<Affluence>(
+  (Ref ref) => ref.watch(technicienRepositoryProvider).affluence(),
+);
+
 /// Disponibilité, telle que l'écran doit l'afficher.
 ///
 /// L'état vient du serveur — c'est lui qui refuse un dossier non validé ou une

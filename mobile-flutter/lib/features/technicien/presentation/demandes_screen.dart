@@ -96,6 +96,14 @@ class _DemandesScreenState extends ConsumerState<DemandesScreen>
           _Interrupteur(disponibilite: dispo),
           const SizedBox(height: DmSpace.x4),
 
+          // Affluence prévue (#10) : un repère pour savoir si le moment est
+          // porteur. Seulement en ligne, et jamais bloquant — un bonus, pas une
+          // information dont dépend le parcours.
+          if (dispo.enLigne) ...<Widget>[
+            const _Affluence(),
+            const SizedBox(height: DmSpace.x4),
+          ],
+
           sollicitations.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(DmSpace.x8),
@@ -121,6 +129,49 @@ class _DemandesScreenState extends ConsumerState<DemandesScreen>
           const SizedBox(height: DmSpace.x8),
         ],
       ),
+    );
+  }
+}
+
+/// Banneau d'affluence prévue (#10). Silencieux tant que la donnée n'est pas
+/// là : une prédiction qui tarde ne doit pas afficher d'erreur ni de sablier.
+class _Affluence extends ConsumerWidget {
+  const _Affluence();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<Affluence> affluence = ref.watch(affluenceProvider);
+
+    return affluence.maybeWhen(
+      data: (Affluence a) {
+        final ThemeData theme = Theme.of(context);
+        final (IconData icone, Color couleur) style = switch (a.niveau) {
+          'forte' => (Icons.trending_up, DmColors.success),
+          'moyenne' => (Icons.trending_flat, theme.colorScheme.primary),
+          'faible' => (Icons.trending_down, DmColors.neutral500),
+          _ => (Icons.help_outline, DmColors.neutral500),
+        };
+
+        return DmCarte(
+          enfant: Row(
+            children: <Widget>[
+              Icon(style.$1, color: style.$2),
+              const SizedBox(width: DmSpace.x3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(a.libelle, style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 2),
+                    Text(a.message, style: theme.textTheme.bodySmall),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
     );
   }
 }

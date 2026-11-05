@@ -11,6 +11,7 @@ use App\Domain\Catalog\Models\Service;
 use App\Domain\Matching\Actions\RespondToMatch;
 use App\Domain\Matching\Data\MatchResponse;
 use App\Domain\Matching\Models\MatchAttempt;
+use App\Domain\Reporting\Services\PredictionService;
 use App\Domain\Tickets\Actions\AdvanceIntervention;
 use App\Domain\Tickets\Models\Ticket;
 use App\Http\Controllers\Controller;
@@ -37,6 +38,17 @@ final class TechnicienController extends Controller
         private readonly RespondToMatch $reponse,
         private readonly AdvanceIntervention $intervention,
     ) {}
+
+    /**
+     * Affluence prévue maintenant (#10, IA locale) : indique si le moment est
+     * porteur, pour aider le technicien à décider de rester en ligne.
+     */
+    public function affluence(Request $request, PredictionService $prediction): JsonResponse
+    {
+        $this->technicien($request);
+
+        return response()->json($prediction->affluence());
+    }
 
     /**
      * Se mettre en ligne ou hors ligne.

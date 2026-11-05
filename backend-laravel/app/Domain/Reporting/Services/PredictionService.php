@@ -100,6 +100,97 @@ final class PredictionService
     }
 
     /**
+     * Affluence prévue à un instant donné (#10, volet mobile).
+     *
+     * Dit au technicien si le moment est porteur, en comparant le rythme
+     * historique de ce créneau (même jour de semaine, heure ± 1 h) au rythme
+     * moyen. C'est la même idée que la prévision, ramenée à « maintenant,
+     * est-ce que ça vaut le coup d'être en ligne ? ».
+     *
+     * @return array{niveau: string, libelle: string, message: string, fiabilite: string}
+     */
+    public function affluence(?CarbonImmutable $instant = null): array
+    {
+        $instant ??= CarbonImmutable::now();
+        $debut = $instant->subDays(28)->startOfDay();
+
+        $lignes = DB::table('tickets')
+            ->where('created_at', '>=', $debut)
+            ->selectRaw('EXTRACT(ISODOW FROM created_at)::int AS dow, EXTRACT(HOUR FROM created_at)::int AS heure, COUNT(*) AS total')
+            ->groupBy('dow', 'heure')
+            ->get();
+
+        $total = (int) $lignes->sum('total');
+
+        if ($total < 14) {
+            // Trop peu d'historique pour trancher : on le dit plutôt que de
+            // bluffer un niveau.
+            return [
+                'niveau' => 'inconnue',
+                'libelle' => 'Affluence inconnue',
+                'message' => 'Pas encore assez d\'historique pour estimer l\'affluence. Reste en ligne pour capter les demandes.',
+                'fiabilite' => 'faible',
+            ];
+        }
+
+        $dow = (int) $instant->dayOfWeekIso;
+        $heure = (int) $instant->format('G');
+        $heures = [($heure + 23) % 24, $heure, ($heure + 1) % 24];
+
+        $creneau = 0;
+        foreach ($lignes as $ligne) {
+            if ((int) $ligne->dow === $dow && in_array((int) $ligne->heure, $heures, true)) {
+                $creneau += (int) $ligne->total;
+            }
+        }
+
+        // Référence : rythme moyen sur une cellule (jour × heure), multiplié par
+        // les trois heures de la fenêtre et les ~4 occurrences du jour en 28 j.
+        $moyenneCellule = $total / (7 * 24);
+        $attendu = $moyenneCellule * 3 * 4;
+        $ratio = $attendu > 0 ? $creneau / $attendu : 0.0;
+
+        $niveau = self::niveauAffluence($ratio);
+
+        return [
+            'niveau' => $niveau,
+            'libelle' => self::libelleAffluence($niveau),
+            'message' => self::messageAffluence($niveau),
+            'fiabilite' => $total >= 60 ? 'bonne' : 'moyenne',
+        ];
+    }
+
+    /** Seuils du niveau d'affluence, isolés pour être testés sans base. */
+    public static function niveauAffluence(float $ratio): string
+    {
+        return match (true) {
+            $ratio >= 1.3 => 'forte',
+            $ratio >= 0.6 => 'moyenne',
+            default => 'faible',
+        };
+    }
+
+    private static function libelleAffluence(string $niveau): string
+    {
+        return match ($niveau) {
+            'forte' => 'Affluence forte',
+            'moyenne' => 'Affluence moyenne',
+            'faible' => 'Affluence faible',
+            default => 'Affluence inconnue',
+        };
+    }
+
+    private static function messageAffluence(string $niveau): string
+    {
+        return match ($niveau) {
+            'forte' => 'C\'est un bon moment : la demande est plus forte que d\'habitude à cette heure. Reste en ligne.',
+            'moyenne' => 'Demande habituelle pour ce créneau.',
+            'faible' => 'Créneau plutôt calme d\'ordinaire. Les demandes peuvent se faire rares.',
+            default => 'Affluence inconnue pour le moment.',
+        };
+    }
+
+    /**
      * Le cœur du modèle, **sans base de données** : à partir d'une série
      * quotidienne et du jour de semaine de chaque point, projette les
      * `$joursPrevus` suivants.

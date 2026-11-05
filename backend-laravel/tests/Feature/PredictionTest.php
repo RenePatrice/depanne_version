@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\Demo\CatalogSeeder;
 use Database\Seeders\Demo\ZoneSeeder;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Sanctum\Sanctum;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,4 +75,26 @@ it('rend une prévision alignée sur l’historique, prête pour le graphe', fun
     foreach ($historiqueFutur as $valeur) {
         expect($valeur)->toBeNull();
     }
+});
+
+it('sert l’affluence prévue au technicien', function (): void {
+    $client = User::factory()->create();
+    $serviceId = (int) Service::query()->value('id');
+
+    // De l'historique pour que l'estimation ne soit pas « inconnue ».
+    for ($i = 0; $i < 20; $i++) {
+        ticketLe(CarbonImmutable::now()->subDays($i % 14)->setTime(10, 0), $client->id, $serviceId);
+    }
+
+    Sanctum::actingAs(User::factory()->technician()->create());
+
+    $this->getJson('/api/v1/technicien/affluence')
+        ->assertOk()
+        ->assertJsonStructure(['niveau', 'libelle', 'message', 'fiabilite']);
+});
+
+it('refuse l’affluence à un non-technicien', function (): void {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->getJson('/api/v1/technicien/affluence')->assertStatus(403);
 });

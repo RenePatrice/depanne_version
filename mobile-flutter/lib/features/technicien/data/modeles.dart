@@ -256,3 +256,26 @@ class Retrait {
 List<String> _textes(dynamic brut) => brut is List
     ? brut.map((dynamic v) => v.toString()).toList()
     : const <String>[];
+
+/// Affluence prévue maintenant (#10) : prédiction locale servie par le serveur.
+class Affluence {
+  const Affluence({
+    required this.niveau,
+    required this.libelle,
+    required this.message,
+    required this.fiabilite,
+  });
+
+  /// forte | moyenne | faible | inconnue
+  final String niveau;
+  final String libelle;
+  final String message;
+  final String fiabilite;
+
+  factory Affluence.depuisJson(Map<String, dynamic> json) => Affluence(
+    niveau: json['niveau'] as String? ?? 'inconnue',
+    libelle: json['libelle'] as String? ?? 'Affluence inconnue',
+    message: json['message'] as String? ?? '',
+    fiabilite: json['fiabilite'] as String? ?? 'faible',
+  );
+}
