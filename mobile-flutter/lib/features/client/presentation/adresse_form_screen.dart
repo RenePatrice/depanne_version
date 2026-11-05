@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
 import '../../shared/data/modeles.dart';
 import '../application/client_providers.dart';
+import 'selecteur_carte.dart';
 
 /// Un quartier de la zone pilote et son point de référence.
 ///
@@ -67,6 +69,11 @@ class _AdresseFormScreenState extends ConsumerState<AdresseFormScreen> {
   final TextEditingController _repere = TextEditingController();
 
   _Quartier? _quartier;
+
+  /// Point affiné sur la carte OSM (#7). Part du centre du quartier choisi,
+  /// puis suit chaque toucher sur la carte.
+  LatLng? _point;
+
   bool _parDefaut = false;
   bool _enCours = false;
   ApiException? _erreur;
@@ -111,14 +118,19 @@ class _AdresseFormScreenState extends ConsumerState<AdresseFormScreen> {
       _erreur = null;
     });
 
+    // Le point affiné sur la carte prime sur le centre du quartier ; sans
+    // affinage, le centre du quartier reste un repère valable.
+    final LatLng point =
+        _point ?? LatLng(quartier.latitude, quartier.longitude);
+
     try {
       final Adresse creee = await ref
           .read(clientRepositoryProvider)
           .ajouterAdresse(
             libelle: _libelle.text.trim(),
             adresse: _adresse.text.trim(),
-            latitude: quartier.latitude,
-            longitude: quartier.longitude,
+            latitude: point.latitude,
+            longitude: point.longitude,
             repere: _repere.text.trim().isEmpty ? null : _repere.text.trim(),
             parDefaut: _parDefaut,
           );
@@ -164,7 +176,10 @@ class _AdresseFormScreenState extends ConsumerState<AdresseFormScreen> {
                   ChoiceChip(
                     label: Text(q.nom),
                     selected: _quartier?.nom == q.nom,
-                    onSelected: (_) => setState(() => _quartier = q),
+                    onSelected: (_) => setState(() {
+                      _quartier = q;
+                      _point = LatLng(q.latitude, q.longitude);
+                    }),
                   ),
               ],
             ),
@@ -173,6 +188,24 @@ class _AdresseFormScreenState extends ConsumerState<AdresseFormScreen> {
               'Nous intervenons aujourd\'hui dans la commune de Ratoma.',
               style: theme.textTheme.bodySmall,
             ),
+
+            // Carte OSM (#7) : affine le point une fois le quartier choisi.
+            if (_quartier != null && _point != null) ...<Widget>[
+              const SizedBox(height: DmSpace.x4),
+              Text('Affine l\'emplacement', style: theme.textTheme.titleMedium),
+              const SizedBox(height: DmSpace.x2),
+              Text(
+                'Touche la carte pour poser le repère au plus près de ta porte. '
+                'La position sert à trouver un technicien proche ; le point de '
+                'repère écrit, plus bas, reste le plus utile.',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: DmSpace.x3),
+              SelecteurCarte(
+                point: _point!,
+                onChange: (LatLng p) => setState(() => _point = p),
+              ),
+            ],
 
             const SizedBox(height: DmSpace.x6),
             Text('Comment l\'appeler ?', style: theme.textTheme.titleLarge),

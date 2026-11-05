@@ -71,7 +71,9 @@ lots, **sans casser l'existant** (chaque refonte remplace l'ADR concerné).
   `DEPANNAGE`.
 - **#6 Écrans** calqués sur les maquettes fournies (design adapté).
 - **#7 Cartographie : OpenStreetMap**, pas de clé Google (Leaflet déjà en place
-  côté back-office ; `flutter_map` côté mobile).
+  côté back-office ; `flutter_map` côté mobile). ✅ `flutter_map` + `latlong2`
+  ajoutés ; `SelecteurCarte` (OSM, attribution, aucun secret) dans le formulaire
+  d'adresse pour affiner le point exact par toucher. Aucune clé.
 - **#8 Pas d'API SMS** : OTP par lien **WhatsApp** (`wa.me`) ou passerelle
   open-source, sans API Google.
 - **#9 Back-office durci** : fin de l'admin en dur, changement de mot de passe
@@ -960,12 +962,13 @@ mutants du parcours et refuse qu'une clé contienne « montant », « prix », �
 ou « km » — le pendant mobile du garde-fou de l'API. C'est la porte d'entrée
 d'une facture négociée dans l'application, et elle reste fermée des deux côtés.
 
-Le carnet d'adresses passe par une liste de **neuf quartiers** de Ratoma plutôt
-que par un sélecteur sur carte : celui-ci demande une clé Google Maps que le
-pilote n'a pas encore. La position n'a pas à être exacte au mètre — elle sert à
-trouver la zone et à mesurer une distance, tous deux à l'échelle du kilomètre —
-et c'est le **point de repère écrit** qui amène réellement quelqu'un devant la
-bonne porte. Le jour où la carte arrive, seul `adresse_form_screen.dart` change.
+Le carnet d'adresses part d'une liste de **neuf quartiers** de Ratoma, puis
+affine sur une **carte OpenStreetMap** (#7, `SelecteurCarte` via `flutter_map`,
+sans clé Google) : le quartier donne le centre, un toucher pose le point exact.
+La position n'a pas à être exacte au mètre — elle sert à trouver la zone et à
+mesurer une distance, tous deux à l'échelle du kilomètre — et c'est le **point
+de repère écrit** qui amène réellement quelqu'un devant la bonne porte. La carte
+n'a remplacé que `adresse_form_screen.dart`, via le widget `selecteur_carte.dart`.
 
 ### Le parcours technicien (D3)
 Disponibilité, sollicitation, intervention, supplément, portefeuille, retrait —

@@ -43,6 +43,10 @@ dependencies:
   url_launcher: ^6.3.2
   web_socket_channel: ^3.0.3
   path_provider: ^2.1.6
+  # Cartographie OpenStreetMap (#7), sans clé Google. flutter_map est pur Dart
+  # (aucun greffon natif) ; les tuiles viennent d'OSM et exigent l'attribution.
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:
