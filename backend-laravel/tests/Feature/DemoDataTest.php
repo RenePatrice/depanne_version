@@ -26,7 +26,9 @@ beforeEach(function (): void {
 
 it('produit la population attendue par le cahier des charges', function (): void {
     expect(TechnicianProfile::query()->count())->toBe(40)
-        ->and(Service::query()->count())->toBe(20)
+        // 20 prestations du pilote (plomberie, électricité) + 18 ouvertes au BTP
+        // (#5 : maçonnerie, peinture, menuiserie, carrelage).
+        ->and(Service::query()->count())->toBe(38)
         ->and(Zone::query()->count())->toBe(3)
         ->and(Ticket::query()->count())->toBe(150)
         ->and(DB::table('client_profiles')->count())->toBeGreaterThanOrEqual(20);

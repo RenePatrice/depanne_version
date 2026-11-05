@@ -63,7 +63,12 @@ lots, **sans casser l'existant** (chaque refonte remplace l'ADR concerné).
 - **#3 Anti-« off ».** Parade au technicien qui demande d'annuler pour traiter
   hors plateforme (garantie liée à la plateforme, signalement, etc.).
 - **#4 Garantie** après intervention (panne qui revient sous 24 h / X jours).
-- **#5 BTP** : ouvrir le catalogue aux métiers du BTP (futur).
+- **#5 BTP** : ouvrir le catalogue aux métiers du BTP. ✅ Quatre corps d'état
+  ajoutés (maçonnerie, peinture, menuiserie, carrelage) par la même structure
+  que la plomberie et l'électricité — spécialité = catégorie, le matching, la
+  validation du dossier et le back-office suivent sans code dédié. Les grosses
+  prestations sont typées `INSTALLATION` (zéro photo), les reprises
+  `DEPANNAGE`.
 - **#6 Écrans** calqués sur les maquettes fournies (design adapté).
 - **#7 Cartographie : OpenStreetMap**, pas de clé Google (Leaflet déjà en place
   côté back-office ; `flutter_map` côté mobile).

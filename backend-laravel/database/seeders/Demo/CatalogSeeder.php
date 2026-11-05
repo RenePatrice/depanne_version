@@ -12,9 +12,9 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 /**
- * Catalogue du pilote : deux catégories, vingt prestations à prix fixes.
- * Les montants sont en GNF entiers et reflètent des ordres de grandeur
- * plausibles pour Conakry.
+ * Catalogue du pilote : plomberie et électricité, plus les métiers du BTP
+ * ouverts en #5 (maçonnerie, peinture, menuiserie, carrelage). Prix fixes en
+ * GNF entiers, reflétant des ordres de grandeur plausibles pour Conakry.
  */
 final class CatalogSeeder extends Seeder
 {
@@ -44,8 +44,63 @@ final class CatalogSeeder extends Seeder
             ],
         );
 
+        // Métiers du BTP (#5) : le catalogue s'ouvre aux corps d'état du
+        // bâtiment. Majoritairement des installations — il n'y a rien à
+        // photographier avant la venue de l'artisan.
+        $maconnerie = ServiceCategory::query()->updateOrCreate(
+            ['code' => Specialty::MACONNERIE],
+            [
+                'name' => 'Maçonnerie',
+                'description' => 'Murs, enduits, dalles, scellements et petites reprises.',
+                'icon' => 'bi-bricks',
+                'color' => '#8B5E3C',
+                'sort_order' => 3,
+                'is_active' => true,
+            ],
+        );
+
+        $peinture = ServiceCategory::query()->updateOrCreate(
+            ['code' => Specialty::PEINTURE],
+            [
+                'name' => 'Peinture',
+                'description' => 'Peinture intérieure et extérieure, enduits de lissage, reprises.',
+                'icon' => 'bi-palette',
+                'color' => '#7C3AED',
+                'sort_order' => 4,
+                'is_active' => true,
+            ],
+        );
+
+        $menuiserie = ServiceCategory::query()->updateOrCreate(
+            ['code' => Specialty::MENUISERIE],
+            [
+                'name' => 'Menuiserie',
+                'description' => 'Portes, fenêtres, serrures, meubles et ajustements bois ou alu.',
+                'icon' => 'bi-hammer',
+                'color' => '#B45309',
+                'sort_order' => 5,
+                'is_active' => true,
+            ],
+        );
+
+        $carrelage = ServiceCategory::query()->updateOrCreate(
+            ['code' => Specialty::CARRELAGE],
+            [
+                'name' => 'Carrelage',
+                'description' => 'Pose de carrelage, faïence, joints et reprises de sol.',
+                'icon' => 'bi-grid-3x3-gap',
+                'color' => '#0D9488',
+                'sort_order' => 6,
+                'is_active' => true,
+            ],
+        );
+
         $this->createServices($plomberie->id, self::plumbingServices());
         $this->createServices($electricite->id, self::electricalServices());
+        $this->createServices($maconnerie->id, self::masonryServices());
+        $this->createServices($peinture->id, self::paintingServices());
+        $this->createServices($menuiserie->id, self::carpentryServices());
+        $this->createServices($carrelage->id, self::tilingServices());
     }
 
     /** @param  array<int, array<string, mixed>>  $services */
@@ -148,6 +203,98 @@ final class CatalogSeeder extends Seeder
             ['name' => 'Mise à la terre', 'price' => 180_000, 'duration' => 150, 'type' => ServiceType::INSTALLATION->value,
                 'description' => "Installation ou reprise d'une prise de terre, avec mesure de la résistance.",
                 'included' => array_merge($mainOeuvre, ['Mesure de résistance']), 'excluded' => ['Piquet de terre et câble', 'Terrassement']],
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private static function masonryServices(): array
+    {
+        $base = ['Déplacement du technicien', 'Diagnostic sur place', "Main-d'œuvre", 'Garantie 30 jours'];
+        $materiaux = ['Ciment, sable et agrégats', 'Évacuation des gravats'];
+
+        return [
+            ['name' => 'Rebouchage de fissure', 'price' => 70_000, 'duration' => 60,
+                'description' => 'Reprise de fissures sur mur intérieur ou extérieur : ouverture, nettoyage et rebouchage.',
+                'included' => array_merge($base, ['Enduit de rebouchage']), 'excluded' => ['Reprise de structure porteuse']],
+            ['name' => 'Scellement et petits travaux', 'price' => 90_000, 'duration' => 90,
+                'description' => 'Scellement de support, pose de tasseau, reprise ponctuelle de maçonnerie.',
+                'included' => $base, 'excluded' => $materiaux],
+            ['name' => 'Montage de mur en agglos', 'price' => 350_000, 'duration' => 300, 'type' => ServiceType::INSTALLATION->value,
+                'description' => "Élévation d'un mur de séparation en parpaings, jointoiement compris.",
+                'included' => $base, 'excluded' => $materiaux],
+            ['name' => 'Enduit et crépi', 'price' => 250_000, 'duration' => 240, 'type' => ServiceType::INSTALLATION->value,
+                'description' => "Application d'enduit ou de crépi sur mur, dressage et finition.",
+                'included' => $base, 'excluded' => array_merge($materiaux, ['Échafaudage'])],
+            ['name' => 'Coulage de dalle', 'price' => 400_000, 'duration' => 360, 'type' => ServiceType::INSTALLATION->value,
+                'description' => "Préparation et coulage d'une dalle béton, mise à niveau et talochage.",
+                'included' => $base, 'excluded' => array_merge($materiaux, ['Ferraillage', 'Coffrage'])],
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private static function paintingServices(): array
+    {
+        $base = ['Déplacement du technicien', 'Diagnostic sur place', "Main-d'œuvre", 'Protection du sol et du mobilier', 'Garantie 30 jours'];
+
+        return [
+            ['name' => 'Reprise de peinture localisée', 'price' => 60_000, 'duration' => 60,
+                'description' => "Retouche d'un mur abîmé, trace d'humidité séchée ou éclat : ponçage et remise en peinture.",
+                'included' => $base, 'excluded' => ['Peinture (fournie par le client)']],
+            ['name' => 'Peinture d\'une pièce', 'price' => 300_000, 'duration' => 300, 'type' => ServiceType::INSTALLATION->value,
+                'description' => "Peinture complète d'une pièce standard : préparation, sous-couche et deux couches.",
+                'included' => $base, 'excluded' => ['Peinture et sous-couche', 'Rebouchage important']],
+            ['name' => 'Enduit de lissage', 'price' => 180_000, 'duration' => 180, 'type' => ServiceType::INSTALLATION->value,
+                'description' => 'Lissage des murs avant peinture : enduit, ponçage et dépoussiérage.',
+                'included' => $base, 'excluded' => ['Enduit (fourni par le client)']],
+            ['name' => 'Peinture de façade', 'price' => 500_000, 'duration' => 420, 'type' => ServiceType::INSTALLATION->value,
+                'description' => "Peinture extérieure d'une façade : nettoyage, traitement et mise en peinture.",
+                'included' => $base, 'excluded' => ['Peinture façade', 'Échafaudage', 'Reprise d\'enduit']],
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private static function carpentryServices(): array
+    {
+        $base = ['Déplacement du technicien', 'Diagnostic sur place', "Main-d'œuvre", 'Garantie 30 jours'];
+
+        return [
+            ['name' => 'Réparation de porte ou fenêtre', 'price' => 70_000, 'duration' => 60,
+                'description' => 'Porte qui ferme mal, gonds descellés, fenêtre qui frotte : réglage et reprise.',
+                'included' => $base, 'excluded' => ['Pièces de rechange']],
+            ['name' => 'Remplacement de serrure', 'price' => 90_000, 'duration' => 60,
+                'description' => "Dépose de l'ancienne serrure et pose de la neuve, avec essai des clés.",
+                'included' => $base, 'excluded' => ['Serrure (fournie par le client)']],
+            ['name' => 'Pose de porte intérieure', 'price' => 200_000, 'duration' => 150, 'type' => ServiceType::INSTALLATION->value,
+                'description' => "Pose d'un bloc-porte intérieur : fixation du bâti, réglage et quincaillerie.",
+                'included' => $base, 'excluded' => ['Bloc-porte', 'Reprise de maçonnerie']],
+            ['name' => 'Pose de fenêtre', 'price' => 280_000, 'duration' => 180, 'type' => ServiceType::INSTALLATION->value,
+                'description' => "Pose et réglage d'une fenêtre bois ou aluminium, étanchéité comprise.",
+                'included' => $base, 'excluded' => ['Fenêtre', 'Habillage', 'Reprise de maçonnerie']],
+            ['name' => 'Montage de meuble', 'price' => 80_000, 'duration' => 90, 'type' => ServiceType::INSTALLATION->value,
+                'description' => "Assemblage et fixation d'un meuble en kit, mise de niveau comprise.",
+                'included' => $base, 'excluded' => ['Meuble (fourni par le client)']],
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private static function tilingServices(): array
+    {
+        $base = ['Déplacement du technicien', 'Diagnostic sur place', "Main-d'œuvre", 'Garantie 30 jours'];
+        $materiaux = ['Carrelage et colle', 'Évacuation des gravats'];
+
+        return [
+            ['name' => 'Reprise de joints', 'price' => 70_000, 'duration' => 90,
+                'description' => 'Joints de carrelage noircis ou abîmés : grattage et refaçonnage.',
+                'included' => array_merge($base, ['Joint']), 'excluded' => ['Remplacement de carreaux']],
+            ['name' => 'Remplacement de carreaux cassés', 'price' => 90_000, 'duration' => 120,
+                'description' => 'Dépose des carreaux fêlés et pose de carreaux neufs, jointoiement compris.',
+                'included' => $base, 'excluded' => ['Carreaux (fournis par le client)']],
+            ['name' => 'Pose de carrelage au sol', 'price' => 350_000, 'duration' => 360, 'type' => ServiceType::INSTALLATION->value,
+                'description' => 'Pose de carrelage sur une pièce : préparation du support, pose et joints.',
+                'included' => $base, 'excluded' => $materiaux],
+            ['name' => 'Pose de faïence murale', 'price' => 300_000, 'duration' => 300, 'type' => ServiceType::INSTALLATION->value,
+                'description' => 'Pose de faïence sur mur de cuisine ou salle de bain, découpes comprises.',
+                'included' => $base, 'excluded' => $materiaux],
         ];
     }
 }

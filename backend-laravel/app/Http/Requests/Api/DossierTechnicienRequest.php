@@ -39,7 +39,7 @@ final class DossierTechnicienRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'specialties.required' => 'Choisis au moins une spécialité : plomberie ou électricité.',
+            'specialties.required' => 'Choisis au moins une spécialité (plomberie, électricité ou un métier du BTP).',
             'latitude.between' => 'Le point de départ doit se situer en Guinée.',
             'longitude.between' => 'Le point de départ doit se situer en Guinée.',
             'id_doc_front_url.required' => 'Le recto de la pièce d\'identité est obligatoire.',
