@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Catalog\Models;
 
+use App\Domain\Catalog\Data\ServiceType;
 use App\Domain\Tickets\Models\Ticket;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -22,13 +23,14 @@ final class Service extends Model
     use LogsActivity;
 
     protected $fillable = [
-        'category_id', 'slug', 'name', 'description', 'included', 'excluded',
+        'category_id', 'slug', 'name', 'description', 'type', 'included', 'excluded',
         'base_price_gnf', 'estimated_duration_min', 'is_active', 'sort_order',
     ];
 
     protected function casts(): array
     {
         return [
+            'type' => ServiceType::class,
             'included' => 'array',
             'excluded' => 'array',
             'base_price_gnf' => 'integer',
@@ -36,6 +38,24 @@ final class Service extends Model
             'is_active' => 'boolean',
             'sort_order' => 'integer',
         ];
+    }
+
+    /** @return HasMany<TechnicianServiceRate, $this> */
+    public function rates(): HasMany
+    {
+        return $this->hasMany(TechnicianServiceRate::class);
+    }
+
+    /** Le tarif d'un technicien pour cette prestation, ou le prix catalogue. */
+    public function priceForTechnician(int $technicianId): int
+    {
+        $rate = $this->relationLoaded('rates')
+            ? $this->rates->firstWhere('user_id', $technicianId)
+            : $this->rates()->where('user_id', $technicianId)->first();
+
+        return $rate instanceof TechnicianServiceRate
+            ? (int) $rate->price_gnf
+            : (int) $this->base_price_gnf;
     }
 
     /**
@@ -46,7 +66,7 @@ final class Service extends Model
     {
         return LogOptions::defaults()
             ->useLogName('catalogue')
-            ->logOnly(['name', 'description', 'base_price_gnf', 'estimated_duration_min', 'is_active', 'category_id'])
+            ->logOnly(['name', 'description', 'type', 'base_price_gnf', 'estimated_duration_min', 'is_active', 'category_id'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges()
             ->setDescriptionForEvent(fn (string $evenement): string => match ($evenement) {
