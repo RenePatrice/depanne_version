@@ -8,6 +8,7 @@ use App\Domain\Chat\Contracts\MaskedCallProvider;
 use App\Domain\Chat\Providers\MockMaskedCallProvider;
 use App\Domain\Notifications\Channels\LogPushProvider;
 use App\Domain\Notifications\Channels\LogSmsProvider;
+use App\Domain\Notifications\Channels\WhatsAppOtpProvider;
 use App\Domain\Notifications\Contracts\PushProvider;
 use App\Domain\Notifications\Contracts\SmsProvider;
 use App\Domain\Payments\Contracts\PaymentProvider;
@@ -30,8 +31,10 @@ final class DomainServiceProvider extends ServiceProvider
     {
         $this->app->bind(SmsProvider::class, function (): SmsProvider {
             return match (config('depanne.sms.provider')) {
-                // Les passerelles réelles se brancheront ici ; tant qu'aucune
-                // n'est choisie, le code part dans laravel.log.
+                // OTP par WhatsApp (#8) : pas d'API SMS. Le code est journalisé
+                // en pilote ; une passerelle open-source prendra le relais.
+                'whatsapp' => new WhatsAppOtpProvider,
+                // `log` et tout le reste : écrit dans laravel.log.
                 default => new LogSmsProvider,
             };
         });

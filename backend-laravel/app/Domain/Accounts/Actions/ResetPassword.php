@@ -33,9 +33,14 @@ final class ResetPassword
      * Envoie un code. Ne lève d'exception que si la demande est abusive —
      * jamais parce que le numéro est inconnu.
      *
+     * Renvoie le code généré, ou null si aucun compte ne correspond. Cette
+     * valeur ne sort **jamais** telle quelle vers le client : le contrôleur ne
+     * l'expose qu'en mode test explicite (#8), pour tester sur l'appareil sans
+     * passerelle WhatsApp.
+     *
      * @throws DomainException
      */
-    public function demander(string $telephoneSaisi, string $ip): void
+    public function demander(string $telephoneSaisi, string $ip): ?string
     {
         $telephone = Telephone::normaliser($telephoneSaisi);
 
@@ -58,7 +63,7 @@ final class ResetPassword
 
         if ($utilisateur === null) {
             // Silence volontaire : le contrôleur répondra la même chose.
-            return;
+            return null;
         }
 
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -87,6 +92,8 @@ final class ResetPassword
                 PasswordResetCode::LIFETIME_MINUTES,
             ),
         );
+
+        return $code;
     }
 
     /** @throws DomainException */

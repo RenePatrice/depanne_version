@@ -27,7 +27,7 @@ Mémoire de travail du projet : conventions, commandes, décisions. À tenir à 
 | | **D2** — parcours client complet | ✅ terminée |
 | | **D3** — parcours technicien | ✅ terminée |
 | | **D4** — chat, notifications, temps réel, hors-ligne, réclamations | ✅ terminée (push FCM en attente de Firebase) |
-| | **D5** — build, signature, publication | ⏳ suivante |
+| | **D5** — build, signature, publication | 🟡 icône + signature + build durci faits ; publication en attente du vrai keystore |
 
 ## 2. Décisions du client (5 septembre 2026)
 
@@ -75,7 +75,13 @@ lots, **sans casser l'existant** (chaque refonte remplace l'ADR concerné).
   ajoutés ; `SelecteurCarte` (OSM, attribution, aucun secret) dans le formulaire
   d'adresse pour affiner le point exact par toucher. Aucune clé.
 - **#8 Pas d'API SMS** : OTP par lien **WhatsApp** (`wa.me`) ou passerelle
-  open-source, sans API Google.
+  open-source, sans API Google. ✅ Pilote `whatsapp` (`WhatsAppOtpProvider`,
+  derrière `SmsProvider`) : le code est journalisé, une passerelle open-source
+  (Baileys, whatsapp-web.js) l'enverra en production. L'app reformule « par
+  WhatsApp » et propose un lien support `wa.me`. **Mode test** (flag
+  `SMS_EXPOSE_TEST_CODE`, hors production) : le code est renvoyé et pré-rempli
+  pour tester sur l'appareil sans passerelle — ce flag affaiblit la garde
+  anti-énumération, à laisser à `false` ailleurs.
 - **#9 Back-office durci** : fin de l'admin en dur, changement de mot de passe
   au dashboard, CRUD utilisateurs, cloisonnement des modules admin, revue des
   failles (injection SQL, XSS, SSRF, path traversal, élévation de privilèges
@@ -387,7 +393,7 @@ Préfixe `/api/v1`, documentation OpenAPI générée par Scramble sur **`/docs/a
 - Présenter deux fois le même refresh token révoque **toutes** les sessions du
   compte : c'est le signe qu'une copie circule. Mieux vaut une reconnexion
   qu'une session volée qui perdure.
-- Changer de mot de passe — par le profil ou par code SMS — coupe les autres
+- Changer de mot de passe — par le profil ou par code WhatsApp — coupe les autres
   sessions.
 
 ### Ce que l'API ne dit pas

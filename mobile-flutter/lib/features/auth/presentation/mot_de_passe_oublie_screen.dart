@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/providers.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
 
-/// Mot de passe oublié, par code SMS (§4).
+/// Mot de passe oublié, par code **WhatsApp** (§4, #8).
 ///
-/// Le seul endroit où un OTP intervient. Deux temps sur un même écran plutôt
-/// que deux écrans : l'utilisateur reçoit son code pendant qu'il regarde
-/// l'application, et le faire naviguer entre-temps lui ferait perdre le fil.
+/// Le seul endroit où un OTP intervient. Pas d'API SMS : le code arrive par
+/// WhatsApp. Deux temps sur un même écran plutôt que deux écrans : l'utilisateur
+/// reçoit son code pendant qu'il regarde l'application.
 ///
 /// L'API répond **la même chose** pour un numéro inconnu (ADR-0023). L'écran
 /// affiche donc toujours le second temps : il ne doit pas non plus révéler qui
-/// est inscrit.
+/// est inscrit. En **mode test** (flag serveur, hors production), le serveur
+/// renvoie le code et l'écran le pré-remplit, pour tester sans passerelle.
 class MotDePasseOublieScreen extends ConsumerStatefulWidget {
   const MotDePasseOublieScreen({super.key});
 
@@ -34,6 +36,12 @@ class _MotDePasseOublieScreenState
   bool _enCours = false;
   ApiException? _erreur;
 
+  /// Lien WhatsApp du support (wa.me), si le serveur en fournit un.
+  String? _waSupportUrl;
+
+  /// Vrai quand le code a été pré-rempli par le mode test du serveur.
+  bool _codePrerempli = false;
+
   @override
   void dispose() {
     _telephone.dispose();
@@ -42,10 +50,9 @@ class _MotDePasseOublieScreenState
     super.dispose();
   }
 
-  Future<void> _executer(
-    Future<void> Function() action, {
-    bool passerAuCode = false,
-  }) async {
+  /// Exécute le changement de mot de passe (second temps) et revient à la
+  /// connexion. La demande du code passe, elle, par `_demanderCode`.
+  Future<void> _executer(Future<void> Function() action) async {
     if (_enCours) return;
 
     setState(() {
@@ -56,16 +63,55 @@ class _MotDePasseOublieScreenState
     try {
       await action();
       if (!mounted) return;
-
-      if (passerAuCode) {
-        setState(() => _codeDemande = true);
-      } else {
-        _confirmerEtRevenir();
-      }
+      _confirmerEtRevenir();
     } on ApiException catch (e) {
       if (mounted) setState(() => _erreur = e);
     } finally {
       if (mounted) setState(() => _enCours = false);
+    }
+  }
+
+  /// Demande (ou renvoie) le code par WhatsApp et traite la réponse : passage
+  /// au second temps, lien support, et pré-remplissage en mode test.
+  Future<void> _demanderCode() async {
+    if (_enCours) return;
+
+    setState(() {
+      _enCours = true;
+      _erreur = null;
+    });
+
+    try {
+      final Map<String, dynamic> reponse = await ref
+          .read(authRepositoryProvider)
+          .demanderCodeMotDePasse(_telephone.text.trim());
+
+      if (!mounted) return;
+
+      final String? codeTest = reponse['code_test'] as String?;
+
+      setState(() {
+        _codeDemande = true;
+        _waSupportUrl = reponse['wa_support_url'] as String?;
+        if (codeTest != null && codeTest.isNotEmpty) {
+          _code.text = codeTest;
+          _codePrerempli = true;
+        }
+      });
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _erreur = e);
+    } finally {
+      if (mounted) setState(() => _enCours = false);
+    }
+  }
+
+  Future<void> _ouvrirSupport() async {
+    final String? url = _waSupportUrl;
+    if (url == null) return;
+
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -92,8 +138,8 @@ class _MotDePasseOublieScreenState
             children: <Widget>[
               Text(
                 _codeDemande
-                    ? 'Saisis le code reçu par SMS et choisis un nouveau mot de passe.'
-                    : 'Indique ton numéro : nous t\'enverrons un code par SMS.',
+                    ? 'Saisis le code reçu par WhatsApp et choisis un nouveau mot de passe.'
+                    : 'Indique ton numéro : nous t\'enverrons un code par WhatsApp.',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: DmColors.neutral500,
                 ),
@@ -117,14 +163,24 @@ class _MotDePasseOublieScreenState
               if (_codeDemande) ...<Widget>[
                 const SizedBox(height: DmSpace.x4),
                 DmChamp(
-                  libelle: 'Code reçu par SMS',
+                  libelle: 'Code reçu par WhatsApp',
                   indication: '6 chiffres',
                   controleur: _code,
                   clavier: TextInputType.number,
                   autoRemplissage: const <String>[AutofillHints.oneTimeCode],
-                  prefixe: const Icon(Icons.sms_outlined),
+                  prefixe: const Icon(Icons.chat_outlined),
                   erreur: _erreur?.pourChamp('code'),
                 ),
+                if (_codePrerempli) ...<Widget>[
+                  const SizedBox(height: DmSpace.x2),
+                  Text(
+                    'Code pré-rempli (mode test). En production, il arrivera '
+                    'sur ton WhatsApp.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: DmColors.neutral500,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: DmSpace.x4),
                 DmChamp(
                   libelle: 'Nouveau mot de passe',
@@ -154,10 +210,7 @@ class _MotDePasseOublieScreenState
                       ),
                     );
                   } else {
-                    _executer(
-                      () => repo.demanderCodeMotDePasse(_telephone.text.trim()),
-                      passerAuCode: true,
-                    );
+                    _demanderCode();
                   }
                 },
               ),
@@ -165,16 +218,15 @@ class _MotDePasseOublieScreenState
               if (_codeDemande) ...<Widget>[
                 const SizedBox(height: DmSpace.x3),
                 TextButton(
-                  onPressed: _enCours
-                      ? null
-                      : () => _executer(
-                          () => ref
-                              .read(authRepositoryProvider)
-                              .demanderCodeMotDePasse(_telephone.text.trim()),
-                          passerAuCode: true,
-                        ),
+                  onPressed: _enCours ? null : _demanderCode,
                   child: const Text('Renvoyer le code'),
                 ),
+                if (_waSupportUrl != null)
+                  TextButton.icon(
+                    onPressed: _ouvrirSupport,
+                    icon: const Icon(Icons.chat_outlined),
+                    label: const Text('Besoin d\'aide ? Ouvrir WhatsApp'),
+                  ),
               ],
             ],
           ),

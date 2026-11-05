@@ -22,8 +22,10 @@ final class MotDePasseController extends Controller
     /**
      * Demander un code.
      *
-     * Envoie un code à six chiffres par SMS, valable dix minutes. En
-     * développement, le code est écrit dans `laravel.log`.
+     * Envoie un code à six chiffres par **WhatsApp** (#8), valable dix minutes.
+     * En pilote, le code est écrit dans `laravel.log` ; en mode test explicite
+     * (`SMS_EXPOSE_TEST_CODE=true`, hors production), il est aussi renvoyé pour
+     * tester sur l'appareil sans passerelle.
      */
     public function demander(Request $request, ResetPassword $reinitialiser): JsonResponse
     {
@@ -32,15 +34,34 @@ final class MotDePasseController extends Controller
         ], attributes: ['phone' => 'numéro de téléphone']);
 
         try {
-            $reinitialiser->demander($donnees['phone'], (string) $request->ip());
+            $code = $reinitialiser->demander($donnees['phone'], (string) $request->ip());
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 429);
         }
 
-        return response()->json([
-            'message' => 'Si un compte existe avec ce numéro, un code vient d\'être envoyé par SMS.',
+        $canal = config('depanne.sms.provider') === 'whatsapp' ? 'whatsapp' : 'sms';
+        $support = (string) config('depanne.whatsapp.support_number');
+
+        $reponse = [
+            'message' => $canal === 'whatsapp'
+                ? 'Si un compte existe avec ce numéro, un code vient d\'être envoyé par WhatsApp.'
+                : 'Si un compte existe avec ce numéro, un code vient d\'être envoyé par SMS.',
+            'canal' => $canal,
             'expire_dans' => 600,
-        ]);
+            'wa_support_url' => $support === '' ? null : 'https://wa.me/'.$support,
+        ];
+
+        // Mode test SEULEMENT (jamais en production) : le code est renvoyé pour
+        // pouvoir le saisir sur l'appareil sans passerelle. Ce flag affaiblit la
+        // garde anti-énumération — à n'activer que sur un environnement de test.
+        if ($code !== null
+            && ! app()->isProduction()
+            && config('depanne.sms.expose_test_code') === true
+        ) {
+            $reponse['code_test'] = $code;
+        }
+
+        return response()->json($reponse);
     }
 
     /**

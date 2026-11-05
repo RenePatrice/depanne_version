@@ -60,12 +60,28 @@ return [
         'fcm_credentials_path' => env('FCM_CREDENTIALS_PATH'),
     ],
 
-    // --- SMS (uniquement le code de réinitialisation de mot de passe) --------
+    // --- OTP : code de réinitialisation de mot de passe (§4, #8) -------------
+    // Pas d'API SMS (décision #8). Le code part par WhatsApp :
+    //   whatsapp : le code est journalisé (pilote) ; en production, une
+    //              passerelle open-source (Baileys, whatsapp-web.js) enverra
+    //              depuis le compte WhatsApp de la plateforme. Aucune API Google.
+    //   log      : écrit dans laravel.log, pour les tests automatisés.
+    // `expose_test_code` : en mode test SEULEMENT (jamais en production), le
+    // code est renvoyé dans la réponse pour pouvoir tester sur l'appareil sans
+    // passerelle. Il affaiblit la garde anti-énumération — à laisser à false
+    // partout sauf sur un environnement de test qu'on maîtrise.
     'sms' => [
-        'provider' => env('SMS_PROVIDER', 'log'),
-        'sender_id' => env('SMS_SENDER_ID', 'DepanneMoi'),
+        'provider' => env('SMS_PROVIDER', 'whatsapp'),
+        'sender_id' => env('SMS_SENDER_ID', 'ParemaConnect'),
         'api_url' => env('SMS_API_URL'),
         'api_key' => env('SMS_API_KEY'),
+        'expose_test_code' => (bool) env('SMS_EXPOSE_TEST_CODE', false),
+    ],
+
+    // Numéro WhatsApp du support, pour le lien « besoin d'aide » de
+    // l'application (wa.me). Format E.164 sans le +.
+    'whatsapp' => [
+        'support_number' => env('WHATSAPP_SUPPORT_NUMBER', ''),
     ],
 
     // --- Appel à numéro masqué ----------------------------------------------

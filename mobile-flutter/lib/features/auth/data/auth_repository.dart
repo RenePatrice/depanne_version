@@ -68,10 +68,13 @@ class AuthRepository {
     );
   }
 
-  Future<void> demanderCodeMotDePasse(String telephone) => _api.post(
-    '/auth/mot-de-passe-oublie',
-    corps: <String, dynamic>{'phone': telephone},
-  );
+  /// Demande un code par WhatsApp (#8). Renvoie la réponse du serveur :
+  /// `canal`, `wa_support_url`, et — en mode test seulement — `code_test`.
+  Future<Map<String, dynamic>> demanderCodeMotDePasse(String telephone) =>
+      _api.post(
+        '/auth/mot-de-passe-oublie',
+        corps: <String, dynamic>{'phone': telephone},
+      );
 
   Future<void> reinitialiserMotDePasse({
     required String telephone,
