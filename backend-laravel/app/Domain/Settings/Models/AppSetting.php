@@ -69,6 +69,23 @@ final class AppSetting extends Model
 
     public const NOTIF_PAIEMENT_RECU = 'notif_paiement_recu';
 
+    // --- Site vitrine (plateforme web publique) ------------------------------
+    public const SITE_HERO_TITRE = 'site_hero_titre';
+
+    public const SITE_HERO_SOUS_TITRE = 'site_hero_sous_titre';
+
+    public const SITE_APK_URL = 'site_apk_url';
+
+    public const SITE_PLAYSTORE_URL = 'site_playstore_url';
+
+    public const SITE_TELECHARGEMENT_ACTIF = 'site_telechargement_actif';
+
+    public const SITE_CONTACT_EMAIL = 'site_contact_email';
+
+    public const SITE_CONTACT_WHATSAPP = 'site_contact_whatsapp';
+
+    public const SITE_ANNONCE = 'site_annonce';
+
     private const CACHE_PREFIX = 'app_settings:';
 
     public $timestamps = true;

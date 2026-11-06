@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Web;
 use App\Domain\Reporting\Data\Periode;
 use App\Domain\Reporting\Services\DashboardService;
 use App\Domain\Reporting\Services\PredictionService;
+use App\Domain\Site\Services\SiteStatistiques;
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,7 @@ final class DashboardController extends Controller
     public function __construct(
         private readonly DashboardService $dashboard,
         private readonly PredictionService $prediction,
+        private readonly SiteStatistiques $vitrine,
     ) {}
 
     public function __invoke(Request $request): View
@@ -38,6 +40,8 @@ final class DashboardController extends Controller
             'tauxAcceptation' => $this->dashboard->tauxAcceptation($periode),
             'prevision' => $this->prediction->previsionDemande(),
             'activite' => $this->dashboard->activiteRecente(),
+            'vitrine' => $this->vitrine->resume($periode),
+            'vitrineSerie' => $this->vitrine->serieParJour($periode),
         ]);
     }
 

@@ -166,4 +166,55 @@
         </div>
     </div>
 
+    {{-- Fréquentation du site vitrine (plateforme web publique) --}}
+    <div class="dm-page-head mt-4">
+        <div class="flex-grow-1">
+            <h2 class="dm-page-head__title h4 mb-0">Site vitrine</h2>
+            <p class="dm-page-head__lede mb-0">
+                Fréquentation de la plateforme publique sur la période.
+                <a href="{{ route('site-admin') }}" class="small">Gérer le site →</a>
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-8">
+            <div class="dm-chart-card h-100">
+                <div class="dm-chart-card__head">
+                    <h3 class="dm-chart-card__title">Visites du site</h3>
+                    <span class="dm-chart-card__note">
+                        {{ number_format($vitrine['visites'], 0, ',', ' ') }} visites ·
+                        {{ number_format($vitrine['visiteurs'], 0, ',', ' ') }} visiteurs uniques
+                        @if ($vitrine['evolution'] !== null)
+                            <span class="dm-badge dm-badge--{{ $vitrine['evolution'] >= 0 ? 'success' : 'danger' }}">
+                                {{ $vitrine['evolution'] >= 0 ? '+' : '' }}{{ $vitrine['evolution'] }} %
+                            </span>
+                        @endif
+                    </span>
+                </div>
+                <div class="dm-chart"
+                     data-graphique="ligne"
+                     data-serie="{{ json_encode($vitrineSerie, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) }}"></div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4">
+            <div class="dm-chart-card h-100">
+                <div class="dm-chart-card__head">
+                    <h3 class="dm-chart-card__title">Clics mesurés</h3>
+                    <span class="dm-chart-card__note">{{ number_format($vitrine['total_clics'], 0, ',', ' ') }} au total</span>
+                </div>
+                <ul class="list-unstyled d-flex flex-column gap-2 mt-2 mb-0">
+                    @foreach ($vitrine['clics'] as $clic)
+                        <li class="d-flex align-items-center gap-3">
+                            <i class="bi {{ $clic['icone'] }} fs-5 text-primary flex-shrink-0" aria-hidden="true"></i>
+                            <span class="flex-grow-1 text-body-secondary">{{ $clic['libelle'] }}</span>
+                            <strong class="fs-5">{{ number_format($clic['total'], 0, ',', ' ') }}</strong>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+
 @endsection

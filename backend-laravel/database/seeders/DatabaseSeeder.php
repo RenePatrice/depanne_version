@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use Database\Seeders\Demo\AdminUserSeeder;
 use Database\Seeders\Demo\AppSettingsSeeder;
 use Database\Seeders\Demo\CatalogSeeder;
+use Database\Seeders\Demo\SiteMembreSeeder;
 use Database\Seeders\Demo\TicketSeeder;
 use Database\Seeders\Demo\UserSeeder;
 use Database\Seeders\Demo\ZoneSeeder;
@@ -32,6 +33,7 @@ final class DatabaseSeeder extends Seeder
             ZoneSeeder::class,
             UserSeeder::class,
             TicketSeeder::class,
+            SiteMembreSeeder::class,
         ]);
 
         Model::preventLazyLoading(! app()->isProduction());

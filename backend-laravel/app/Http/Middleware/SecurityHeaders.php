@@ -22,9 +22,17 @@ final class SecurityHeaders
 
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('Referrer-Policy', 'same-origin');
-        $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
         $response->headers->set('Permissions-Policy', 'geolocation=(self), camera=(), microphone=()');
+
+        // Le site vitrine est public et doit être référencé ; le back-office,
+        // jamais. Seules les routes `site.*` autorisent l'indexation.
+        if ($request->routeIs('site.*')) {
+            $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+            $response->headers->set('X-Robots-Tag', 'index, follow');
+        } else {
+            $response->headers->set('Referrer-Policy', 'same-origin');
+            $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
+        }
 
         return $response;
     }

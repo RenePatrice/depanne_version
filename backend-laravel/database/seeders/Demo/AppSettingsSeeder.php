@@ -245,6 +245,71 @@ final class AppSettingsSeeder extends Seeder
                 'description' => 'Nombre de jours après la clôture pendant lesquels une panne qui revient '
                     .'ouvre droit à un retour gratuit du même technicien. 0 désactive la garantie.',
             ],
+
+            // --- Site vitrine (plateforme web publique) ----------------------
+            [
+                'key' => AppSetting::SITE_HERO_TITRE,
+                'value' => 'Un technicien de confiance, à votre porte en quelques minutes.',
+                'group' => 'vitrine',
+                'type' => 'string',
+                'label' => 'Titre de la page d\'accueil',
+                'description' => 'Grande accroche affichée en haut du site public.',
+            ],
+            [
+                'key' => AppSetting::SITE_HERO_SOUS_TITRE,
+                'value' => 'Plomberie, électricité, maçonnerie et plus encore à Conakry. '
+                    .'Comparez les techniciens vérifiés, choisissez votre prix, payez en toute sécurité.',
+                'group' => 'vitrine',
+                'type' => 'string',
+                'label' => 'Sous-titre de la page d\'accueil',
+            ],
+            [
+                'key' => AppSetting::SITE_ANNONCE,
+                'value' => '',
+                'group' => 'vitrine',
+                'type' => 'string',
+                'label' => 'Bandeau d\'annonce',
+                'description' => 'Message court affiché en haut du site (promotion, information). Vide = aucun bandeau.',
+            ],
+            [
+                'key' => AppSetting::SITE_TELECHARGEMENT_ACTIF,
+                'value' => true,
+                'group' => 'vitrine',
+                'type' => 'boolean',
+                'label' => 'Téléchargement de l\'application activé',
+                'description' => 'Affiche les boutons de téléchargement sur le site. À désactiver tant que l\'app n\'est pas prête.',
+            ],
+            [
+                'key' => AppSetting::SITE_APK_URL,
+                'value' => '',
+                'group' => 'vitrine',
+                'type' => 'string',
+                'label' => 'Lien de téléchargement direct (APK)',
+                'description' => 'URL du fichier .apk. Vide = bouton de téléchargement direct masqué.',
+            ],
+            [
+                'key' => AppSetting::SITE_PLAYSTORE_URL,
+                'value' => '',
+                'group' => 'vitrine',
+                'type' => 'string',
+                'label' => 'Lien Google Play Store',
+                'description' => 'URL de la fiche Play Store. Vide = badge Play Store masqué.',
+            ],
+            [
+                'key' => AppSetting::SITE_CONTACT_EMAIL,
+                'value' => 'contact@parema.gn',
+                'group' => 'vitrine',
+                'type' => 'string',
+                'label' => 'E-mail de contact public',
+            ],
+            [
+                'key' => AppSetting::SITE_CONTACT_WHATSAPP,
+                'value' => '',
+                'group' => 'vitrine',
+                'type' => 'string',
+                'label' => 'WhatsApp de contact public',
+                'description' => 'Numéro au format international sans le +, ex. 224620000000. Vide = bouton WhatsApp masqué.',
+            ],
         ];
     }
 }

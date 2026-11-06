@@ -18,7 +18,10 @@ beforeEach(function (): void {
 });
 
 it('renvoie un visiteur non connecté vers l\'écran de connexion', function (): void {
-    $this->get('/')->assertRedirect(route('connexion'));
+    // La racine « / » est désormais le site vitrine public ; le back-office
+    // vit sous /tableau-de-bord et renvoie toujours un visiteur anonyme vers
+    // l'écran de connexion.
+    $this->get(route('tableau-de-bord'))->assertRedirect(route('connexion'));
     $this->get('/tickets')->assertRedirect(route('connexion'));
 });
 
@@ -26,7 +29,7 @@ it('affiche l\'écran de connexion', function (): void {
     $this->get(route('connexion'))
         ->assertOk()
         ->assertSee('Connexion')
-        ->assertSee('Back-office', escape: false);
+        ->assertSee('Parema Connect', escape: false);
 });
 
 it('connecte un administrateur et horodate sa visite', function (): void {

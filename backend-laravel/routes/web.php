@@ -16,6 +16,8 @@ use App\Http\Controllers\Web\JournalAuditController;
 use App\Http\Controllers\Web\LitigeController;
 use App\Http\Controllers\Web\MonProfilController;
 use App\Http\Controllers\Web\RetraitController;
+use App\Http\Controllers\Web\Site\VitrineController;
+use App\Http\Controllers\Web\SiteAdminController;
 use App\Http\Controllers\Web\SystemeController;
 use App\Http\Controllers\Web\TechnicienController;
 use App\Http\Controllers\Web\TicketController;
@@ -34,6 +36,22 @@ use Illuminate\Support\Facades\Route;
 // Sonde publique, volontairement avare en détails pour un visiteur anonyme.
 Route::get('/health', HealthController::class)->name('health');
 
+/*
+|--------------------------------------------------------------------------
+| Site vitrine public (plateforme web)
+|--------------------------------------------------------------------------
+| Aucune authentification : la porte d'entrée grand public. Les clics qui
+| comptent passent par une route serveur qui enregistre puis redirige, si
+| bien que la mesure ne dépend d'aucun JavaScript.
+*/
+Route::name('site.')->group(function (): void {
+    Route::get('/', [VitrineController::class, 'accueil'])->name('accueil');
+    Route::get('/telecharger', [VitrineController::class, 'telecharger'])->name('telecharger');
+    Route::get('/playstore', [VitrineController::class, 'playstore'])->name('playstore');
+    Route::get('/devenir-technicien', [VitrineController::class, 'devenirTechnicien'])->name('devenir-technicien');
+    Route::get('/contact', [VitrineController::class, 'contact'])->name('contact');
+});
+
 Route::middleware('guest:admin')->group(function (): void {
     Route::get('/connexion', [LoginController::class, 'show'])->name('connexion');
     Route::post('/connexion', [LoginController::class, 'store']);
@@ -46,7 +64,7 @@ Route::middleware('auth:admin')->group(function (): void {
     Route::get('/systeme', [SystemeController::class, 'etat'])->name('systeme');
 
     Route::middleware('permission:tableau-de-bord.voir')->group(function (): void {
-        Route::get('/', DashboardController::class)->name('tableau-de-bord');
+        Route::get('/tableau-de-bord', DashboardController::class)->name('tableau-de-bord');
 
         // Alimente l'ilot React du flux d'activite (et son repli en B6).
         Route::get('/flux-activite', [DashboardController::class, 'activite'])
@@ -212,6 +230,20 @@ Route::middleware('auth:admin')->group(function (): void {
      * permission `administrateurs.gerer` : SUPPORT et FINANCE n'en voient ni le
      * lien ni les routes. Les comptes ne se suppriment pas, ils se désactivent.
      */
+    /*
+     * Site vitrine (plateforme web publique). Réservé à l'ADMIN par la
+     * permission `site.gerer` : fréquentation, contenu éditorial et équipe.
+     * Les membres se suppriment (aucune contrainte d'historique), ou se masquent.
+     */
+    Route::middleware('permission:site.gerer')->group(function (): void {
+        Route::get('/site', [SiteAdminController::class, 'index'])->name('site-admin');
+        Route::post('/site/contenu', [SiteAdminController::class, 'enregistrerContenu'])->name('site-admin.contenu');
+        Route::post('/site/equipe', [SiteAdminController::class, 'stockerMembre'])->name('site-admin.equipe.creer');
+        Route::post('/site/equipe/{membre}', [SiteAdminController::class, 'modifierMembre'])->name('site-admin.equipe.modifier');
+        Route::post('/site/equipe/{membre}/basculer', [SiteAdminController::class, 'basculerMembre'])->name('site-admin.equipe.basculer');
+        Route::delete('/site/equipe/{membre}', [SiteAdminController::class, 'supprimerMembre'])->name('site-admin.equipe.supprimer');
+    });
+
     Route::middleware('permission:administrateurs.gerer')->group(function (): void {
         Route::get('/administrateurs', [AdministrateurController::class, 'index'])->name('administrateurs');
         Route::post('/administrateurs', [AdministrateurController::class, 'store'])->name('administrateurs.creer');

@@ -7,7 +7,14 @@ export default defineConfig({
         laravel({
             // Un seul point d'entrée CSS (thème Bootstrap surchargé) et un seul
             // point d'entrée JS, qui monte les îlots React là où Blade les déclare.
-            input: ['resources/scss/app.scss', 'resources/js/app.js'],
+            input: [
+                'resources/scss/app.scss',
+                'resources/js/app.js',
+                // Site vitrine public : feuille et script autonomes, sans le
+                // poids du back-office (DataTables, îlots React…).
+                'resources/scss/site.scss',
+                'resources/js/site.js',
+            ],
             refresh: ['resources/views/**', 'routes/**'],
         }),
         react(),

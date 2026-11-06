@@ -55,6 +55,7 @@ final class RolesPermissionsSeeder extends Seeder
             'configuration.voir', 'configuration.modifier',
             'journal-audit.voir',
             'administrateurs.gerer',
+            'site.gerer',
         ];
     }
 

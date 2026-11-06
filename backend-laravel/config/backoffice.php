@@ -109,6 +109,12 @@ return [
                     'permission' => 'configuration.voir',
                 ],
                 [
+                    'cle' => 'site-admin',
+                    'libelle' => 'Site vitrine',
+                    'icone' => 'bi-globe2',
+                    'permission' => 'site.gerer',
+                ],
+                [
                     'cle' => 'journal-audit',
                     'libelle' => 'Journal d\'audit',
                     'icone' => 'bi-clock-history',
