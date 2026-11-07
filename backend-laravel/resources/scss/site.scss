@@ -167,7 +167,7 @@ img, svg { max-width: 100%; display: block; }
   border-radius: 42px; padding: 13px; box-shadow: var(--pc-shadow-lg), inset 0 0 0 1.5px rgba(255, 255, 255, 0.08);
 }
 .pc-phone__notch { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); width: 110px; height: 22px; background: #0f1a30; border-radius: 0 0 14px 14px; z-index: 3; }
-.pc-phone__screen { background: #f1f5fb; border-radius: 30px; padding: 1rem 0.85rem; display: flex; flex-direction: column; gap: 0.6rem; min-height: 466px; }
+.pc-phone__screen { background: #f1f5fb; border-radius: 30px; padding: 2rem 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.6rem; min-height: 466px; }
 .pc-appcard { background: #fff; border-radius: 14px; padding: 0.75rem 0.85rem; box-shadow: 0 8px 20px -14px rgba(20, 31, 56, 0.4); font-size: 0.85rem; }
 .pc-appcard--head { display: flex; align-items: center; gap: 0.6rem; background: var(--pc-grad); color: #fff; box-shadow: none;
   strong { display: block; font-size: 0.9rem; } span { font-size: 0.72rem; opacity: 0.9; } img { border-radius: 8px; background: #fff; padding: 2px; } }
@@ -622,6 +622,16 @@ section[id] { scroll-margin-top: 88px; }
 .pc-scr__txt strong { display: block; font-size: 0.82rem; color: var(--pc-ink); }
 .pc-scr__txt span { font-size: 0.7rem; color: var(--pc-muted); }
 .pc-scr__chev { color: var(--pc-muted); font-size: 0.8rem; }
+.pc-scr__txt span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+// Comparaison compacte dans le téléphone plus étroit (pas de retour à la ligne)
+.pc-phone--showcase .pc-appcard { padding: 0.58rem 0.68rem; }
+.pc-phone--showcase .pc-tech { gap: 0.5rem; }
+.pc-phone--showcase .pc-tech__avatar { width: 30px; height: 30px; border-radius: 9px; font-size: 0.8rem; }
+.pc-phone--showcase .pc-tech__info strong { font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-phone--showcase .pc-tech__info span { font-size: 0.67rem; white-space: nowrap; }
+.pc-phone--showcase .pc-tech__prix { font-size: 0.82rem; white-space: nowrap; }
+.pc-phone--showcase .pc-tech__prix small { font-size: 0.52rem; }
+.pc-phone--showcase .pc-appcard--head strong { font-size: 0.82rem; }
 
 // Écran « suivi sur la carte »
 .pc-scr--map { padding: 0 !important; position: relative; overflow: hidden; }
@@ -634,16 +644,22 @@ section[id] { scroll-margin-top: 88px; }
 .pc-scr__act--chat { background: var(--pc-blue); }
 .pc-scr__movdot { animation: pc-pulse 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 
-// --- Partenaires & technologies (marquee) ------------------------------------
-.pc-marquee { overflow: hidden; padding: 0.6rem 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
-.pc-marquee__track { display: flex; gap: 1rem; width: max-content; animation: pc-marq 32s linear infinite; }
-.pc-marquee:hover .pc-marquee__track { animation-play-state: paused; }
-@keyframes pc-marq { to { transform: translateX(-50%); } }
-.pc-partner { display: flex; align-items: center; gap: 0.75rem; background: #fff; border: 1px solid var(--pc-line); border-radius: 14px; padding: 0.85rem 1.15rem; box-shadow: var(--pc-shadow-sm); white-space: nowrap; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.pc-partner:hover { transform: translateY(-3px); box-shadow: var(--pc-shadow); }
-.pc-partner__ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: #fff; font-size: 1.25rem; flex-shrink: 0; }
-.pc-partner strong { display: block; font-size: 0.92rem; color: var(--pc-ink); }
-.pc-partner span { font-size: 0.74rem; color: var(--pc-muted); }
+// --- Partenaires de paiement (cartes) ----------------------------------------
+.pc-pay { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; max-width: 900px; margin: 0 auto; }
+.pc-pay__card { position: relative; overflow: hidden; background: #fff; border: 1px solid var(--pc-line); border-radius: var(--pc-radius); padding: 2rem 1.6rem; text-align: center; box-shadow: var(--pc-shadow-sm); transition: transform 0.3s cubic-bezier(.22,1,.36,1), box-shadow 0.3s ease; }
+.pc-pay__card::before { content: ''; position: absolute; width: 190px; height: 190px; border-radius: 50%; top: -90px; left: 50%; transform: translateX(-50%); z-index: 0; opacity: 0.1; background: var(--pc-pc); transition: opacity 0.35s ease; }
+.pc-pay__card:hover { transform: translateY(-7px); box-shadow: var(--pc-shadow-lg); }
+.pc-pay__card:hover::before { opacity: 0.2; }
+.pc-pay__card > * { position: relative; z-index: 1; }
+.pc-pay__ico { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; color: #fff; font-size: 1.8rem; margin: 0 auto 1.1rem; background: var(--pc-pc); box-shadow: 0 14px 26px -12px var(--pc-pc); transition: transform 0.4s cubic-bezier(.34,1.56,.64,1); }
+.pc-pay__card:hover .pc-pay__ico { transform: rotate(-8deg) scale(1.08); }
+.pc-pay__card h3 { font-size: 1.18rem; }
+.pc-pay__card p { color: var(--pc-muted); font-size: 0.9rem; margin-top: 0.4rem; }
+.pc-pay__status { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 1.1rem; font-size: 0.74rem; font-weight: 700; padding: 0.35rem 0.8rem; border-radius: 999px; }
+.pc-pay__status--on { background: #e9f8ef; color: #15803d; }
+.pc-pay__status--on .pc-pay__led { width: 7px; height: 7px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5); animation: pc-led 1.8s ease-out infinite; }
+.pc-pay__status--soon { background: var(--pc-bg-soft); color: var(--pc-muted); }
+@keyframes pc-led { 0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5); } 70%, 100% { box-shadow: 0 0 0 7px rgba(22, 163, 74, 0); } }
 
 // --- Responsive --------------------------------------------------------------
 @media (max-width: 920px) {
@@ -672,6 +688,7 @@ section[id] { scroll-margin-top: 88px; }
 @media (max-width: 520px) {
   .pc-stats__grid { grid-template-columns: 1fr 1fr; }
   .pc-metiers { grid-template-columns: 1fr; }
+  .pc-pay { grid-template-columns: 1fr; }
   .pc-footer__grid, .pc-footer__bottom { grid-template-columns: 1fr; }
   .pc-footer__bottom { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
 }

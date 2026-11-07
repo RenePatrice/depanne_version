@@ -717,35 +717,35 @@
     </div>
 </section>
 
-{{-- ======================= PARTENAIRES ======================= --}}
+{{-- ======================= PARTENAIRES DE PAIEMENT ======================= --}}
 @php
-    $partenaires = [
-        ['Orange Money', 'Paiement Mobile Money', 'bi-phone-fill', '#f97316'],
-        ['MTN MoMo', 'Mobile Money (bientôt)', 'bi-wallet2', '#f5b100'],
-        ['OpenStreetMap', 'Cartographie ouverte', 'bi-geo-alt-fill', '#16a34a'],
-        ['WhatsApp', 'Vérification & support', 'bi-whatsapp', '#25d366'],
-        ['Google Play', 'Distribution Android', 'bi-google-play', '#2f6bed'],
-        ['Android', 'Application mobile', 'bi-android2', '#3ddc84'],
+    $paiements = [
+        ['Orange Money', 'Payez directement et en sécurité depuis votre compte Orange Money.', 'bi-phone-fill', '#f97316', 'on'],
+        ['MTN MoMo', 'Bientôt intégré, pour encore plus de liberté de paiement.', 'bi-wallet-fill', '#f5b100', 'soon'],
+        ['Wave', 'Des frais réduits, bientôt disponible dans l\'application.', 'bi-credit-card-2-front-fill', '#1dc8e8', 'soon'],
     ];
 @endphp
 <section class="pc-section pc-section--soft" id="partenaires">
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
-            <span class="pc-eyebrow">Un écosystème de confiance</span>
-            <h2>Partenaires &amp; technologies</h2>
-            <p>Les moyens de paiement et les technologies sur lesquels Parema Connect s'appuie pour fonctionner en toute fiabilité.</p>
+            <span class="pc-eyebrow">Nos partenaires</span>
+            <h2>Partenaires de paiement</h2>
+            <p>Réglez en toute sécurité via les opérateurs Mobile Money de confiance — ou en espèces, toujours tracé.</p>
         </div>
-    </div>
-    <div class="pc-marquee" data-reveal>
-        <div class="pc-marquee__track">
-            @for ($pass = 0; $pass < 2; $pass++)
-                @foreach ($partenaires as [$nom, $tag, $ic, $col])
-                    <div class="pc-partner" @if ($pass === 1) aria-hidden="true" @endif>
-                        <span class="pc-partner__ico" style="background:{{ $col }}"><i class="bi {{ $ic }}" aria-hidden="true"></i></span>
-                        <div><strong>{{ $nom }}</strong><span>{{ $tag }}</span></div>
-                    </div>
-                @endforeach
-            @endfor
+
+        <div class="pc-pay">
+            @foreach ($paiements as $i => [$nom, $desc, $ic, $col, $etat])
+                <div class="pc-pay__card" data-reveal data-reveal-delay="{{ $i }}" style="--pc-pc:{{ $col }}">
+                    <span class="pc-pay__ico"><i class="bi {{ $ic }}" aria-hidden="true"></i></span>
+                    <h3>{{ $nom }}</h3>
+                    <p>{{ $desc }}</p>
+                    @if ($etat === 'on')
+                        <span class="pc-pay__status pc-pay__status--on"><span class="pc-pay__led" aria-hidden="true"></span> Disponible</span>
+                    @else
+                        <span class="pc-pay__status pc-pay__status--soon"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Bientôt</span>
+                    @endif
+                </div>
+            @endforeach
         </div>
     </div>
 </section>
