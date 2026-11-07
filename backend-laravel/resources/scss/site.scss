@@ -612,8 +612,8 @@ section[id] { scroll-margin-top: 88px; }
 .pc-shot:nth-child(3) .pc-shot__step { background: linear-gradient(135deg, #22c55e, #16a34a); }
 .pc-shot__cap strong { display: block; font-family: dm.$dm-font-heading; font-size: 1.05rem; }
 .pc-shot__cap span { color: var(--pc-muted); font-size: 0.88rem; }
-.pc-phone--showcase { width: 244px; }
-.pc-phone--showcase .pc-phone__screen { min-height: 436px; }
+.pc-phone--showcase { width: min(300px, 100%); }
+.pc-phone--showcase .pc-phone__screen { min-height: 452px; }
 
 .pc-scr__head { font-family: dm.$dm-font-heading; font-weight: 700; font-size: 0.92rem; color: var(--pc-ink); padding: 0.1rem 0.15rem 0.35rem; }
 .pc-scr__row { display: flex; align-items: center; gap: 0.6rem; background: #fff; border: 1px solid var(--pc-line); border-radius: 12px; padding: 0.6rem 0.7rem; box-shadow: 0 6px 16px -14px rgba(20, 31, 56, 0.4); }
@@ -623,15 +623,10 @@ section[id] { scroll-margin-top: 88px; }
 .pc-scr__txt span { font-size: 0.7rem; color: var(--pc-muted); }
 .pc-scr__chev { color: var(--pc-muted); font-size: 0.8rem; }
 .pc-scr__txt span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-// Comparaison compacte dans le téléphone plus étroit (pas de retour à la ligne)
-.pc-phone--showcase .pc-appcard { padding: 0.58rem 0.68rem; }
-.pc-phone--showcase .pc-tech { gap: 0.5rem; }
-.pc-phone--showcase .pc-tech__avatar { width: 30px; height: 30px; border-radius: 9px; font-size: 0.8rem; }
-.pc-phone--showcase .pc-tech__info strong { font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pc-phone--showcase .pc-tech__info span { font-size: 0.67rem; white-space: nowrap; }
-.pc-phone--showcase .pc-tech__prix { font-size: 0.82rem; white-space: nowrap; }
-.pc-phone--showcase .pc-tech__prix small { font-size: 0.52rem; }
-.pc-phone--showcase .pc-appcard--head strong { font-size: 0.82rem; }
+// Sécurité anti-débordement sur les lignes de comparaison
+.pc-phone--showcase .pc-tech__info strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-phone--showcase .pc-tech__info span { white-space: nowrap; }
+.pc-phone--showcase .pc-tech__prix { white-space: nowrap; }
 
 // Écran « suivi sur la carte »
 .pc-scr--map { padding: 0 !important; position: relative; overflow: hidden; }
