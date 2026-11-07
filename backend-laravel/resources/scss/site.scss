@@ -458,9 +458,14 @@ img, svg { max-width: 100%; display: block; }
 .pc-zones__chip { display: inline-flex; align-items: center; gap: 0.4rem; background: #fff; border: 1px solid var(--pc-line); padding: 0.5rem 0.9rem; border-radius: 999px; font-weight: 600; font-size: 0.88rem; box-shadow: var(--pc-shadow-sm); transition: transform 0.2s ease; svg { color: var(--pc-green); } }
 .pc-zones__chip:hover { transform: translateY(-2px); }
 .pc-zones__chip--soon { color: var(--pc-muted); background: var(--pc-bg-soft); box-shadow: none; svg { color: var(--pc-muted); } }
-.pc-zones__visual { position: relative; display: grid; place-items: center; }
+.pc-zones__visual { position: relative; display: grid; place-items: center; perspective: 1000px; }
 .pc-zones__visual::before { content: ''; position: absolute; width: 320px; height: 320px; border-radius: 50%; filter: blur(55px); z-index: 0; background: radial-gradient(circle, rgba(47, 107, 237, 0.16), rgba(242, 133, 76, 0.1) 60%, transparent 75%); }
-.pc-zones__map { position: relative; z-index: 1; width: 100%; max-width: 440px; height: auto; filter: drop-shadow(0 24px 44px rgba(20, 31, 56, 0.14)); }
+.pc-zones__map { position: relative; z-index: 1; width: 100%; max-width: 440px; height: auto; filter: drop-shadow(0 24px 44px rgba(20, 31, 56, 0.14)); transition: transform 0.3s ease; transform-style: preserve-3d; will-change: transform; }
+// Étiquettes de quartier au survol des épingles
+.pc-zones__marker { cursor: pointer; }
+.pc-zones__label { opacity: 0; transition: opacity 0.25s ease, transform 0.25s ease; pointer-events: none; }
+.pc-zones__label text { font-family: dm.$dm-font-heading; font-size: 12px; font-weight: 700; fill: #141f38; }
+.pc-zones__marker:hover .pc-zones__label { opacity: 1; }
 // Flottement porté par le groupe INTERNE (le groupe externe garde la position) :
 // animer le transform d'un groupe déjà positionné le renverrait à l'origine.
 .pc-zones__pin { animation: pc-float 4s ease-in-out infinite; }

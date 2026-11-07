@@ -144,10 +144,37 @@ function initScrollspy() {
     parId.forEach((_, section) => obs.observe(section));
 }
 
+/* --- Inclinaison 3D de la carte, qui suit la souris ----------------------- */
+function initTilt() {
+    if (prefersReduced) return;
+    const wrap = document.querySelector('.pc-zones__visual');
+    const carte = wrap && wrap.querySelector('.pc-zones__map');
+    if (!carte) return;
+
+    const maxDeg = 8;
+    let frame = 0;
+
+    wrap.addEventListener('mousemove', (e) => {
+        if (frame) return;
+        frame = requestAnimationFrame(() => {
+            frame = 0;
+            const r = carte.getBoundingClientRect();
+            const px = (e.clientX - r.left) / r.width - 0.5;
+            const py = (e.clientY - r.top) / r.height - 0.5;
+            carte.style.transform =
+                `rotateY(${(px * maxDeg).toFixed(2)}deg) rotateX(${(-py * maxDeg).toFixed(2)}deg)`;
+        });
+    });
+    wrap.addEventListener('mouseleave', () => {
+        carte.style.transform = '';
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initNav();
     initReveal();
     initCompteurs();
     initProgress();
     initScrollspy();
+    initTilt();
 });

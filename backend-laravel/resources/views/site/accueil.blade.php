@@ -498,6 +498,14 @@
             </div>
         </div>
 
+        @php
+            $labels = [];
+            foreach ($zones as $z) {
+                $parts = preg_split('/[—–\-]/u', (string) $z) ?: [];
+                $labels[] = trim($parts[0] ?? (string) $z);
+            }
+            $labels = array_pad(array_slice($labels, 0, 3), 3, '');
+        @endphp
         <div class="pc-zones__visual" data-reveal data-reveal-delay="1">
             <svg class="pc-zones__map" viewBox="0 0 400 330" fill="none" aria-hidden="true">
                 <defs>
@@ -537,30 +545,30 @@
                 <path class="pc-zones__route" d="M120 147 Q235 150 305 195 Q248 242 196 245"/>
 
                 {{-- Épingles : groupe EXTERNE = position, groupe INTERNE = flottement --}}
-                <g transform="translate(120 98)">
-                    <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
-                    <circle class="pc-zones__ping" cx="0" cy="49" r="7" fill="none" stroke="#2f6bed" stroke-width="2.5"/>
-                    <g class="pc-zones__pin">
-                        <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#2f6bed"/>
-                        <circle cy="19" r="7.5" fill="#fff"/>
+                @php
+                    $pins = [
+                        ['x' => 120, 'y' => 98, 'c' => '#2f6bed', 'mod' => '', 'lib' => $labels[0]],
+                        ['x' => 305, 'y' => 146, 'c' => '#16a34a', 'mod' => ' pc-zones__ping--2', 'pmod' => ' pc-zones__pin--2', 'lib' => $labels[1]],
+                        ['x' => 196, 'y' => 196, 'c' => '#f2854c', 'mod' => ' pc-zones__ping--3', 'pmod' => ' pc-zones__pin--3', 'lib' => $labels[2]],
+                    ];
+                @endphp
+                @foreach ($pins as $p)
+                    <g class="pc-zones__marker" transform="translate({{ $p['x'] }} {{ $p['y'] }})">
+                        <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
+                        <circle class="pc-zones__ping{{ $p['mod'] }}" cx="0" cy="49" r="7" fill="none" stroke="{{ $p['c'] }}" stroke-width="2.5"/>
+                        <g class="pc-zones__pin{{ $p['pmod'] ?? '' }}">
+                            <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="{{ $p['c'] }}"/>
+                            <circle cy="19" r="7.5" fill="#fff"/>
+                        </g>
+                        @if ($p['lib'] !== '')
+                            <g class="pc-zones__label">
+                                <rect x="-50" y="-34" width="100" height="27" rx="13.5" fill="#fff" stroke="#e9edf4"/>
+                                <path d="M-5 -8 L0 -2 L5 -8 Z" fill="#fff"/>
+                                <text x="0" y="-15.5" text-anchor="middle">{{ $p['lib'] }}</text>
+                            </g>
+                        @endif
                     </g>
-                </g>
-                <g transform="translate(305 146)">
-                    <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
-                    <circle class="pc-zones__ping pc-zones__ping--2" cx="0" cy="49" r="7" fill="none" stroke="#16a34a" stroke-width="2.5"/>
-                    <g class="pc-zones__pin pc-zones__pin--2">
-                        <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#16a34a"/>
-                        <circle cy="19" r="7.5" fill="#fff"/>
-                    </g>
-                </g>
-                <g transform="translate(196 196)">
-                    <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
-                    <circle class="pc-zones__ping pc-zones__ping--3" cx="0" cy="49" r="7" fill="none" stroke="#f2854c" stroke-width="2.5"/>
-                    <g class="pc-zones__pin pc-zones__pin--3">
-                        <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#f2854c"/>
-                        <circle cy="19" r="7.5" fill="#fff"/>
-                    </g>
-                </g>
+                @endforeach
             </svg>
 
             <div class="pc-zones__badge">
