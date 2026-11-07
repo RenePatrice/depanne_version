@@ -177,12 +177,53 @@
             </ul>
         </div>
         <div class="pc-split__visual" data-reveal data-reveal-delay="1">
-            <div class="pc-glasscard">
-                <div class="pc-glasscard__row"><span class="pc-dot pc-dot--blue"></span> Comparaison en direct</div>
-                <div class="pc-bar"><span style="--w:92%"></span><em>Mamadou — 85 000 GNF</em></div>
-                <div class="pc-bar pc-bar--soft"><span style="--w:78%"></span><em>Ibrahima — 90 000 GNF</em></div>
-                <div class="pc-bar pc-bar--soft"><span style="--w:70%"></span><em>Alpha — 92 000 GNF</em></div>
-                <div class="pc-glasscard__foot"><i class="bi bi-hand-index-thumb"></i> Vous décidez en un toucher</div>
+            <svg class="pc-market__blob" viewBox="0 0 200 200" aria-hidden="true">
+                <defs><linearGradient id="pcBlobM" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#b9ccff"/><stop offset="1" stop-color="#d7c6ff"/>
+                </linearGradient></defs>
+                <g transform="translate(100 100)"><path fill="url(#pcBlobM)" d="M38.6,-57.8C51.5,-50.9,64.2,-42.1,70.3,-29.8C76.4,-17.5,75.9,-1.7,71.3,12.2C66.7,26.1,58,38.1,46.7,47.9C35.4,57.7,21.5,65.3,5.9,69.2C-9.7,73.1,-27,73.3,-40.9,66.1C-54.8,58.9,-65.3,44.3,-70.6,28.4C-75.9,12.5,-76,-4.7,-71.2,-20.3C-66.4,-35.9,-56.7,-49.9,-43.9,-57.3C-31.1,-64.7,-15.5,-65.5,-0.6,-64.6C14.4,-63.7,28.7,-61.1,38.6,-57.8Z"/></g>
+            </svg>
+
+            <div class="pc-glasscard pc-market">
+                <div class="pc-market__head">
+                    <span><span class="pc-dot pc-dot--blue pc-pulse"></span> 3 techniciens disponibles</span>
+                    <span class="pc-market__live">en direct</span>
+                </div>
+
+                <div class="pc-market__list">
+                    @foreach ([
+                        ['M', 'Mamadou D.', '4,9', '1,2 km', '~10 min', '85 000', true],
+                        ['I', 'Ibrahima S.', '4,7', '2,0 km', '~15 min', '90 000', false],
+                        ['A', 'Alpha B.', '4,8', '2,6 km', '~18 min', '92 000', false],
+                    ] as [$ini, $nom, $note, $dist, $eta, $prix, $best])
+                        <div class="pc-mrow {{ $best ? 'is-best' : '' }}">
+                            @if ($best)<span class="pc-mrow__ribbon">Meilleur choix</span>@endif
+                            <div class="pc-mrow__av">{{ $ini }}</div>
+                            <div class="pc-mrow__info">
+                                <strong>{{ $nom }}</strong>
+                                <span>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.2 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.2l1.4-6.7-5-4.6 6.8-.7z"/></svg>
+                                    {{ $note }} · {{ $dist }} · {{ $eta }}
+                                </span>
+                            </div>
+                            <div class="pc-mrow__price">{{ $prix }}<small>GNF</small></div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="pc-market__cta" aria-hidden="true">
+                    Choisir Mamadou
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </div>
+                <div class="pc-market__note">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3.1 7.8-7 9-3.9-1.2-7-4.4-7-9V6z"/><path d="M8.5 12l2.4 2.4L15.5 10"/></svg>
+                    Prix ferme — aucune surprise
+                </div>
+            </div>
+
+            <div class="pc-market__badge" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                Note vérifiée
             </div>
         </div>
     </div>
