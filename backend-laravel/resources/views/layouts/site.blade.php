@@ -57,9 +57,7 @@
             <a href="#metiers">Métiers</a>
             <a href="#securite">Sécurité</a>
             <a href="#equipe">Équipe</a>
-            <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--primary pc-btn--sm">
-                <i class="bi bi-download" aria-hidden="true"></i> Télécharger l'app
-            </a>
+            @include('site.partials.btn-telecharger', ['size' => 'pc-btn--sm', 'libelle' => "Télécharger l'app", 'libelleBientot' => 'Bientôt'])
         </nav>
     </div>
 </header>

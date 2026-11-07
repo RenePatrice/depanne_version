@@ -31,9 +31,7 @@
             <p class="pc-hero__lede">{{ $hero['sousTitre'] }}</p>
 
             <div class="pc-hero__cta">
-                <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--primary pc-btn--lg">
-                    <i class="bi bi-download" aria-hidden="true"></i> Télécharger l'application
-                </a>
+                @include('site.partials.btn-telecharger', ['size' => 'pc-btn--lg'])
                 <a href="#fonctionnement" class="pc-btn pc-btn--ghost pc-btn--lg">
                     <i class="bi bi-play-circle" aria-hidden="true"></i> Comment ça marche
                 </a>
@@ -510,9 +508,7 @@
                         </li>
                     @endforeach
                 </ul>
-                <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--primary pc-btn--lg">
-                    <i class="bi bi-download"></i> Télécharger l'application
-                </a>
+                @include('site.partials.btn-telecharger', ['size' => 'pc-btn--lg'])
             </div>
 
             <div class="pc-duo__card pc-duo__card--tech" data-reveal data-reveal-delay="1">
@@ -759,9 +755,7 @@
         <h2>Prêt à trouver le bon pro ?</h2>
         <p>Rejoignez les Guinéens qui font confiance à Parema Connect pour leurs dépannages, installations et travaux du quotidien.</p>
         <div class="pc-hero__cta pc-hero__cta--center">
-            <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--primary pc-btn--lg">
-                <i class="bi bi-download"></i> Télécharger l'application
-            </a>
+            @include('site.partials.btn-telecharger', ['size' => 'pc-btn--lg'])
             @if (($contact['whatsapp'] ?? '') !== '')
                 <a href="{{ route('site.contact') }}" class="pc-btn pc-btn--ghost pc-btn--lg">
                     <i class="bi bi-whatsapp"></i> Nous écrire

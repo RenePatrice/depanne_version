@@ -82,6 +82,8 @@ img, svg { max-width: 100%; display: block; }
 .pc-btn--primary:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -12px rgba(79, 102, 241, 0.7); }
 .pc-btn--ghost { background: #fff; border-color: var(--pc-line); color: var(--pc-ink); box-shadow: var(--pc-shadow-sm); }
 .pc-btn--ghost:hover { transform: translateY(-2px); border-color: #d7deea; }
+.pc-btn--disabled { background: var(--pc-bg-soft); color: var(--pc-muted); border-color: var(--pc-line); box-shadow: none; cursor: not-allowed; pointer-events: none; }
+.pc-btn--disabled i { opacity: 0.8; }
 
 // --- Bandeau d'annonce (adouci) ----------------------------------------------
 .pc-annonce {
