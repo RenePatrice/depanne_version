@@ -30,6 +30,8 @@
 </head>
 <body>
 
+<div class="pc-progress" aria-hidden="true"></div>
+
 @if (($hero['annonce'] ?? '') !== '')
     <div class="pc-annonce">
         <div class="pc-container">

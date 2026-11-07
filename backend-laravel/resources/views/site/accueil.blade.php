@@ -39,10 +39,15 @@
                 </a>
             </div>
 
-            <div class="pc-hero__trust">
-                <div class="pc-hero__avatars" aria-hidden="true"><span>P</span><span>M</span><span>S</span><span>+</span></div>
-                <p>Une équipe guinéenne, une mission : le dépannage simple, sûr et transparent.</p>
+            <div class="pc-hero__badges">
+                <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Techniciens vérifiés</span>
+                <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3.1 7.8-7 9-3.9-1.2-7-4.4-7-9V6z"/><path d="M8.5 12l2.4 2.4L15.5 10"/></svg> Paiement sécurisé</span>
+                <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.6"/><path d="M20 5v5h-5"/></svg> Garantie incluse</span>
             </div>
+            <p class="pc-hero__trustline">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.3 7-11a7 7 0 1 0-14 0c0 5.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+                Une équipe guinéenne, une mission : le dépannage simple, sûr et transparent.
+            </p>
         </div>
 
         <div class="pc-hero__visual" data-reveal data-reveal-delay="1">
@@ -431,6 +436,9 @@
 {{-- ======================= APPEL FINAL ======================= --}}
 <section class="pc-cta">
     <div class="pc-container pc-cta__inner" data-reveal>
+        <svg class="pc-cta__spark pc-cta__spark--1" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
+        <svg class="pc-cta__spark pc-cta__spark--2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
+        <svg class="pc-cta__spark pc-cta__spark--3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
         <h2>Prêt à dépanner autrement ?</h2>
         <p>Rejoignez les Guinéens qui font confiance à Parema Connect pour leurs dépannages du quotidien.</p>
         <div class="pc-hero__cta pc-hero__cta--center">

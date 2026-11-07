@@ -491,6 +491,46 @@ img, svg { max-width: 100%; display: block; }
 .pc-glasscard { transition: transform 0.4s ease, box-shadow 0.4s ease; }
 .pc-glasscard:hover { transform: translateY(-6px); box-shadow: var(--pc-shadow-lg); }
 
+// --- Passe premium -----------------------------------------------------------
+// Ancrage des sections sous la barre fixe (le titre n'est plus caché)
+section[id] { scroll-margin-top: 88px; }
+
+// Barre de progression de lecture
+.pc-progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; background: var(--pc-grad);
+  transform: scaleX(var(--pc-progress, 0)); transform-origin: left; transition: transform 0.08s linear; }
+
+// Liens de navigation : souligné animé + lien actif au défilement
+.pc-nav__links > a:not(.pc-btn) { position: relative; }
+.pc-nav__links > a:not(.pc-btn)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -5px; height: 2px; border-radius: 2px; background: var(--pc-grad); transform: scaleX(0); transform-origin: left; transition: transform 0.25s ease; }
+.pc-nav__links > a:not(.pc-btn):hover::after,
+.pc-nav__links > a.is-current::after { transform: scaleX(1); }
+.pc-nav__links > a.is-current { color: var(--pc-blue); }
+
+// Héros : blobs qui dérivent doucement + badges de confiance
+.pc-hero__blob--1 { animation: pc-drift1 15s ease-in-out infinite; }
+.pc-hero__blob--2 { animation: pc-drift2 18s ease-in-out infinite; }
+@keyframes pc-drift1 { 0%, 100% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(-16px, 20px) rotate(10deg); } }
+@keyframes pc-drift2 { 0%, 100% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(18px, -16px) rotate(-8deg); } }
+.pc-hero__badges { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 2rem; }
+.pc-hero__badges span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; color: var(--pc-ink-2); background: #fff; border: 1px solid var(--pc-line); padding: 0.5rem 0.85rem; border-radius: 999px; box-shadow: var(--pc-shadow-sm); transition: transform 0.2s ease, border-color 0.2s ease; }
+.pc-hero__badges span:hover { transform: translateY(-2px); border-color: #d7deea; }
+.pc-hero__badges span:nth-child(1) svg { color: var(--pc-blue); }
+.pc-hero__badges span:nth-child(2) svg { color: var(--pc-green); }
+.pc-hero__badges span:nth-child(3) svg { color: var(--pc-accent); }
+.pc-hero__trustline { display: flex; align-items: center; gap: 0.5rem; margin-top: 1.4rem; color: var(--pc-muted); font-size: 0.9rem; max-width: 44ch; svg { color: var(--pc-accent); flex-shrink: 0; } }
+
+// Équipe : anneau coloré au survol de la photo
+.pc-member__photo { transition: transform 0.45s cubic-bezier(.34,1.56,.64,1), box-shadow 0.35s ease; }
+.pc-member:hover .pc-member__photo { box-shadow: 0 0 0 5px rgba(47, 107, 237, 0.12), 0 14px 30px -14px rgba(79, 102, 241, 0.5); }
+
+// Appel final : étincelles décoratives
+.pc-cta__inner { overflow: hidden; }
+.pc-cta__spark { position: absolute; z-index: 0; animation: pc-twinkle 3s ease-in-out infinite; color: rgba(99, 102, 241, 0.55); }
+.pc-cta__spark--1 { top: 16%; left: 9%; width: 24px; }
+.pc-cta__spark--2 { bottom: 18%; right: 11%; width: 34px; animation-delay: 1s; color: rgba(242, 133, 76, 0.55); }
+.pc-cta__spark--3 { top: 32%; right: 20%; width: 16px; animation-delay: 1.8s; }
+@keyframes pc-twinkle { 0%, 100% { opacity: 0.3; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.12); } }
+
 // --- Responsive --------------------------------------------------------------
 @media (max-width: 920px) {
   .pc-hero__inner, .pc-split, .pc-download__card { grid-template-columns: 1fr; }

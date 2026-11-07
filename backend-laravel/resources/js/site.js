@@ -101,8 +101,53 @@ function initCompteurs() {
     compteurs.forEach((el) => obs.observe(el));
 }
 
+/* --- Barre de progression de lecture -------------------------------------- */
+function initProgress() {
+    const barre = document.querySelector('.pc-progress');
+    if (!barre) return;
+
+    const maj = () => {
+        const h = document.documentElement;
+        const dispo = h.scrollHeight - h.clientHeight;
+        const ratio = dispo > 0 ? Math.min(h.scrollTop / dispo, 1) : 0;
+        barre.style.setProperty('--pc-progress', ratio.toFixed(4));
+    };
+    maj();
+    window.addEventListener('scroll', maj, { passive: true });
+    window.addEventListener('resize', maj, { passive: true });
+}
+
+/* --- Lien de navigation actif selon la section visible --------------------- */
+function initScrollspy() {
+    const liens = Array.from(document.querySelectorAll('.pc-nav__links a[href^="#"]'));
+    if (!liens.length || !('IntersectionObserver' in window)) return;
+
+    const parId = new Map();
+    liens.forEach((a) => {
+        const id = a.getAttribute('href').slice(1);
+        const section = id && document.getElementById(id);
+        if (section) parId.set(section, a);
+    });
+    if (!parId.size) return;
+
+    const obs = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    liens.forEach((a) => a.classList.remove('is-current'));
+                    parId.get(entry.target)?.classList.add('is-current');
+                }
+            });
+        },
+        { rootMargin: '-45% 0px -50% 0px', threshold: 0 },
+    );
+    parId.forEach((_, section) => obs.observe(section));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initNav();
     initReveal();
     initCompteurs();
+    initProgress();
+    initScrollspy();
 });
