@@ -353,6 +353,57 @@ img, svg { max-width: 100%; display: block; }
 @keyframes pc-grow { from { width: 0; } }
 @keyframes pc-spin { to { transform: rotate(360deg); } }
 
+// --- Micro-interactions (cohérence sur tout le site) -------------------------
+@keyframes pc-floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+// Maquette : flottement doux et continu (parallaxe avec les badges)
+.pc-phone { animation: pc-floaty 6s ease-in-out infinite; }
+
+// Bouton primaire : balayage lumineux au survol
+.pc-btn--primary { position: relative; overflow: hidden; }
+.pc-btn--primary > * { position: relative; z-index: 1; }
+.pc-btn--primary::after { content: ''; position: absolute; top: 0; left: -130%; width: 60%; height: 100%; z-index: 0;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.4), transparent); transform: skewX(-18deg); transition: left 0.6s ease; }
+.pc-btn--primary:hover::after { left: 150%; }
+
+// Étapes : ressort de l'icône, numéro qui réagit, coin décoratif
+.pc-step > * { position: relative; z-index: 1; }
+.pc-step__icon { transition: transform 0.4s cubic-bezier(.34,1.56,.64,1), box-shadow 0.35s ease; }
+.pc-step:hover .pc-step__icon { transform: rotate(-8deg) scale(1.1); }
+.pc-step__num { transition: color 0.35s ease, transform 0.4s ease; }
+.pc-step:hover .pc-step__num { color: #e3ebfb; transform: scale(1.1); }
+.pc-step__corner { position: absolute; bottom: 16px; right: 16px; width: 40px; height: 40px; z-index: 0; color: #f0f3fb;
+  transition: transform 0.55s cubic-bezier(.22,1,.36,1), color 0.35s ease; }
+.pc-step:hover .pc-step__corner { transform: rotate(45deg) scale(1.12); color: #e4ebf7; }
+
+// Métiers : teinte de la couleur du métier, icône qui bondit, nom coloré
+.pc-metier { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease; }
+.pc-metier strong { transition: color 0.25s ease; }
+.pc-metier__icon { transition: transform 0.4s cubic-bezier(.34,1.56,.64,1), background 0.25s ease; }
+.pc-metier:hover { background: color-mix(in srgb, var(--pc-m) 5%, #fff); }
+.pc-metier:hover .pc-metier__icon { transform: translateY(-4px) rotate(-6deg) scale(1.1); background: color-mix(in srgb, var(--pc-m) 18%, white); }
+.pc-metier:hover strong { color: var(--pc-m); }
+
+// Statistiques : chaque chiffre se soulève, icône qui bondit
+.pc-stat { transition: transform 0.25s ease; }
+.pc-stat:hover { transform: translateY(-5px); }
+.pc-stat__icon { transition: transform 0.4s cubic-bezier(.34,1.56,.64,1); }
+.pc-stat:hover .pc-stat__icon { transform: rotate(-6deg) scale(1.1); }
+
+// Équipe : la photo s'anime légèrement
+.pc-member__photo { transition: transform 0.45s cubic-bezier(.34,1.56,.64,1), box-shadow 0.35s ease; }
+.pc-member:hover .pc-member__photo { transform: scale(1.07) rotate(-3deg); }
+.pc-member__link { transition: gap 0.2s ease, color 0.2s ease; }
+.pc-member__link:hover { gap: 0.7rem; color: var(--pc-blue); }
+
+// FAQ : léger relief au survol
+.pc-faq__item { transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+.pc-faq__item:hover { border-color: #d7deea; }
+
+// Place de marché : la carte vitrée respire doucement
+.pc-glasscard { transition: transform 0.4s ease, box-shadow 0.4s ease; }
+.pc-glasscard:hover { transform: translateY(-6px); box-shadow: var(--pc-shadow-lg); }
+
 // --- Responsive --------------------------------------------------------------
 @media (max-width: 920px) {
   .pc-hero__inner, .pc-split, .pc-download__card { grid-template-columns: 1fr; }

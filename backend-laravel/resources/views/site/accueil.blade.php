@@ -114,6 +114,11 @@
                 ['C\'est réparé, en sécurité', 'Suivi en temps réel, paiement sécurisé et garantie après intervention. Tout reste dans l\'app.'],
             ] as $i => [$titre, $texte])
                 <div class="pc-step" data-reveal data-reveal-delay="{{ $i }}">
+                    <svg class="pc-step__corner" viewBox="0 0 40 40" fill="currentColor" aria-hidden="true">
+                        <circle cx="5" cy="5" r="2.2"/><circle cx="20" cy="5" r="2.2"/><circle cx="35" cy="5" r="2.2"/>
+                        <circle cx="5" cy="20" r="2.2"/><circle cx="20" cy="20" r="2.2"/><circle cx="35" cy="20" r="2.2"/>
+                        <circle cx="5" cy="35" r="2.2"/><circle cx="20" cy="35" r="2.2"/><circle cx="35" cy="35" r="2.2"/>
+                    </svg>
                     <span class="pc-step__num">{{ sprintf('%02d', $i + 1) }}</span>
                     <span class="pc-step__icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $svgEtapes[$i] !!}</svg>
