@@ -293,7 +293,7 @@
     <div class="pc-container pc-download__card" data-reveal>
         <div class="pc-download__text">
             <span class="pc-eyebrow">Disponible maintenant</span>
-            <h2>Emportez Parema Connect dans votre poche</h2>
+            <h2>Emportez <span class="pc-grad-text">Parema Connect</span> dans votre poche</h2>
             <p>Téléchargez l'application Android et trouvez un technicien de confiance en quelques minutes. L'inscription est gratuite.</p>
 
             <div class="pc-download__pills">
@@ -305,23 +305,38 @@
                 @endforeach
             </div>
 
-            <div class="pc-download__buttons">
-                @if (($telechargement['apk_disponible'] ?? false))
-                    <a href="{{ route('site.telecharger') }}" class="pc-store">
-                        <i class="bi bi-android2"></i>
-                        <span><small>Téléchargement direct</small><strong>Fichier APK (Android)</strong></span>
-                    </a>
-                @endif
-                @if (($telechargement['playstore_disponible'] ?? false))
-                    <a href="{{ route('site.playstore') }}" class="pc-store">
-                        <i class="bi bi-google-play"></i>
-                        <span><small>Disponible sur</small><strong>Google Play</strong></span>
-                    </a>
-                @endif
-                @if (! ($telechargement['apk_disponible'] ?? false) && ! ($telechargement['playstore_disponible'] ?? false))
-                    <span class="pc-soon"><i class="bi bi-hourglass-split"></i> Lancement imminent — revenez très bientôt.</span>
-                @endif
-            </div>
+            @php $aApp = ($telechargement['apk_disponible'] ?? false) || ($telechargement['playstore_disponible'] ?? false); @endphp
+
+            @if ($aApp)
+                <div class="pc-download__buttons">
+                    @if (($telechargement['apk_disponible'] ?? false))
+                        <a href="{{ route('site.telecharger') }}" class="pc-store">
+                            <i class="bi bi-android2"></i>
+                            <span><small>Téléchargement direct</small><strong>Fichier APK (Android)</strong></span>
+                        </a>
+                    @endif
+                    @if (($telechargement['playstore_disponible'] ?? false))
+                        <a href="{{ route('site.playstore') }}" class="pc-store">
+                            <i class="bi bi-google-play"></i>
+                            <span><small>Disponible sur</small><strong>Google Play</strong></span>
+                        </a>
+                    @endif
+                </div>
+                <div class="pc-download__meta">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                    Android 7.0+ · ~55 Mo · sans publicité
+                </div>
+            @else
+                <div class="pc-dlsoon">
+                    <span class="pc-dlsoon__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12M6 20h12M8 4v3.5L12 11l4-3.5V4M8 20v-3.5L12 13l4 3.5V20"/></svg>
+                    </span>
+                    <div>
+                        <strong>Lancement imminent</strong>
+                        <span>L'application arrive très bientôt sur Android. Revenez vite !</span>
+                    </div>
+                </div>
+            @endif
 
             <a href="{{ route('site.devenir-technicien') }}" class="pc-download__tech">
                 <i class="bi bi-person-badge"></i> Vous êtes artisan ? Devenez technicien partenaire →
