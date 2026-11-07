@@ -4,7 +4,10 @@
 
 {{-- ======================= HÉRO ======================= --}}
 <section class="pc-hero">
-    <div class="pc-hero__glow" aria-hidden="true"></div>
+    <div class="pc-hero__grid" aria-hidden="true"></div>
+    <div class="pc-hero__orb pc-hero__orb--1" aria-hidden="true"></div>
+    <div class="pc-hero__orb pc-hero__orb--2" aria-hidden="true"></div>
+
     <div class="pc-container pc-hero__inner">
         <div class="pc-hero__text" data-reveal>
             <span class="pc-chip">
@@ -24,14 +27,11 @@
             </div>
 
             <div class="pc-hero__trust">
-                <div class="pc-hero__avatars" aria-hidden="true">
-                    <span>P</span><span>M</span><span>S</span><span>+</span>
-                </div>
+                <div class="pc-hero__avatars" aria-hidden="true"><span>P</span><span>M</span><span>S</span><span>+</span></div>
                 <p>Une équipe guinéenne, une mission : le dépannage simple, sûr et transparent.</p>
             </div>
         </div>
 
-        {{-- Maquette téléphone en pur CSS --}}
         <div class="pc-hero__visual" data-reveal data-reveal-delay="1">
             <div class="pc-phone">
                 <div class="pc-phone__notch" aria-hidden="true"></div>
@@ -43,7 +43,6 @@
                             <span>Plomberie · Ratoma</span>
                         </div>
                     </div>
-
                     @foreach ([['Mamadou D.', '4.9', '1,2 km', '85 000', true], ['Ibrahima S.', '4.7', '2,0 km', '90 000', false], ['Alpha B.', '4.8', '2,6 km', '92 000', false]] as [$nom, $note, $dist, $prix, $top])
                         <div class="pc-appcard pc-tech {{ $top ? 'is-top' : '' }}">
                             <div class="pc-tech__avatar">{{ mb_substr($nom, 0, 1) }}</div>
@@ -54,16 +53,11 @@
                             <div class="pc-tech__prix">{{ $prix }}<small>GNF</small></div>
                         </div>
                     @endforeach
-
                     <div class="pc-appcard pc-appcard--cta">Comparez et choisissez — prix ferme</div>
                 </div>
             </div>
-            <div class="pc-phone__badge pc-phone__badge--1" aria-hidden="true">
-                <i class="bi bi-shield-check"></i> Paiement sécurisé
-            </div>
-            <div class="pc-phone__badge pc-phone__badge--2" aria-hidden="true">
-                <i class="bi bi-lightning-charge-fill"></i> En quelques minutes
-            </div>
+            <div class="pc-phone__badge pc-phone__badge--1" aria-hidden="true"><i class="bi bi-shield-check"></i> Paiement sécurisé</div>
+            <div class="pc-phone__badge pc-phone__badge--2" aria-hidden="true"><i class="bi bi-lightning-charge-fill"></i> En quelques minutes</div>
         </div>
     </div>
 </section>
@@ -72,8 +66,8 @@
 <section class="pc-stats" aria-label="Chiffres de la plateforme">
     <div class="pc-container pc-stats__grid">
         @foreach ($statistiques as $stat)
-            <div class="pc-stat" data-reveal>
-                <i class="bi {{ $stat['icone'] }}" aria-hidden="true"></i>
+            <div class="pc-stat" data-reveal data-reveal-delay="{{ $loop->index % 4 }}">
+                <div class="pc-stat__icon"><i class="bi {{ $stat['icone'] }}" aria-hidden="true"></i></div>
                 <div class="pc-stat__num"
                      data-counter="{{ $stat['valeur'] }}"
                      data-suffix="{{ $stat['suffixe'] }}"
@@ -94,14 +88,23 @@
         </div>
 
         <div class="pc-steps">
+            @php
+                $svgEtapes = [
+                    '<rect x="4" y="3" width="16" height="18" rx="2.2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+                    '<circle cx="9" cy="8.5" r="3"/><circle cx="17" cy="10.5" r="2.2"/><path d="M3.5 19.5c0-3 2.4-5 5.5-5s5.5 2 5.5 5"/><path d="M15.5 19.5c.2-2 1.4-3.3 3.3-3.3"/>',
+                    '<path d="M12 3l7 3v5c0 4.6-3.1 7.8-7 9-3.9-1.2-7-4.4-7-9V6z"/><path d="M8.5 12l2.4 2.4L15.5 10"/>',
+                ];
+            @endphp
             @foreach ([
-                ['bi-pencil-square', 'Décrivez la panne', 'Choisissez le métier, ajoutez une photo si besoin et indiquez votre quartier. En moins d\'une minute.'],
-                ['bi-people-fill', 'Comparez les techniciens', 'Plusieurs techniciens vérifiés vous répondent avec leur prix ferme, leur note et leur distance. Vous choisissez.'],
-                ['bi-patch-check-fill', 'C\'est réparé, en toute sécurité', 'Suivi en temps réel, paiement sécurisé et garantie après intervention. Tout reste dans l\'application.'],
-            ] as $i => [$icone, $titre, $texte])
+                ['Décrivez la panne', 'Choisissez le métier, ajoutez une photo si besoin, indiquez votre quartier. En moins d\'une minute.'],
+                ['Comparez les techniciens', 'Plusieurs techniciens vérifiés vous répondent : prix ferme, note et distance. Vous choisissez.'],
+                ['C\'est réparé, en sécurité', 'Suivi en temps réel, paiement sécurisé et garantie après intervention. Tout reste dans l\'app.'],
+            ] as $i => [$titre, $texte])
                 <div class="pc-step" data-reveal data-reveal-delay="{{ $i }}">
-                    <div class="pc-step__num">{{ $i + 1 }}</div>
-                    <i class="bi {{ $icone }} pc-step__icon" aria-hidden="true"></i>
+                    <span class="pc-step__num">{{ sprintf('%02d', $i + 1) }}</span>
+                    <span class="pc-step__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $svgEtapes[$i] !!}</svg>
+                    </span>
                     <h3>{{ $titre }}</h3>
                     <p>{{ $texte }}</p>
                 </div>
@@ -118,11 +121,9 @@
             <h2>Des métiers, un seul réflexe</h2>
             <p>De la fuite d'eau au chantier du bâtiment, trouvez le bon professionnel près de chez vous.</p>
         </div>
-
         <div class="pc-metiers">
             @forelse ($metiers as $i => $metier)
-                <div class="pc-metier" data-reveal data-reveal-delay="{{ $i % 4 }}"
-                     style="--pc-m:{{ $metier['couleur'] }}">
+                <div class="pc-metier" data-reveal data-reveal-delay="{{ $i % 4 }}" style="--pc-m:{{ $metier['couleur'] }}">
                     <span class="pc-metier__icon"><i class="bi {{ $metier['icone'] }}" aria-hidden="true"></i></span>
                     <strong>{{ $metier['nom'] }}</strong>
                 </div>
@@ -139,27 +140,42 @@
         <div class="pc-split__text" data-reveal>
             <span class="pc-eyebrow">La place de marché</span>
             <h2>Vous choisissez. Toujours.</h2>
-            <p class="pc-lead">Fini le technicien imposé. Parema Connect vous montre plusieurs professionnels disponibles — leur prix, leur note, leur distance — et vous laisse décider.</p>
+            <p class="pc-lead">Fini le technicien imposé. Parema Connect vous montre plusieurs professionnels disponibles — prix, note, distance — et vous laisse décider.</p>
             <ul class="pc-list">
-                <li><i class="bi bi-check-circle-fill"></i> <span><strong>Prix ferme</strong> affiché avant de confirmer, jamais de facture surprise.</span></li>
-                <li><i class="bi bi-check-circle-fill"></i> <span><strong>Note et avis réels</strong> laissés par de vrais clients.</span></li>
-                <li><i class="bi bi-check-circle-fill"></i> <span><strong>Distance et temps d'arrivée</strong> estimés pour chaque technicien.</span></li>
-                <li><i class="bi bi-check-circle-fill"></i> <span><strong>Paiement au choix</strong> : espèces ou Mobile Money, toujours tracé.</span></li>
+                @foreach ([
+                    ['Prix ferme', 'affiché avant de confirmer, jamais de facture surprise.'],
+                    ['Note et avis réels', 'laissés par de vrais clients après intervention.'],
+                    ['Distance et temps d\'arrivée', 'estimés pour chaque technicien proche.'],
+                    ['Paiement au choix', 'espèces ou Mobile Money, toujours tracé.'],
+                ] as [$fort, $suite])
+                    <li>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle cx="12" cy="12" r="11" fill="#e6f6ec"/>
+                            <path d="M7.5 12.3l3 3 6-6.5" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span><strong>{{ $fort }}</strong> {{ $suite }}</span>
+                    </li>
+                @endforeach
             </ul>
         </div>
         <div class="pc-split__visual" data-reveal data-reveal-delay="1">
             <div class="pc-glasscard">
                 <div class="pc-glasscard__row"><span class="pc-dot pc-dot--blue"></span> Comparaison en direct</div>
                 <div class="pc-bar"><span style="--w:92%"></span><em>Mamadou — 85 000 GNF</em></div>
-                <div class="pc-bar"><span style="--w:78%"></span><em>Ibrahima — 90 000 GNF</em></div>
-                <div class="pc-bar"><span style="--w:70%"></span><em>Alpha — 92 000 GNF</em></div>
+                <div class="pc-bar pc-bar--soft"><span style="--w:78%"></span><em>Ibrahima — 90 000 GNF</em></div>
+                <div class="pc-bar pc-bar--soft"><span style="--w:70%"></span><em>Alpha — 92 000 GNF</em></div>
                 <div class="pc-glasscard__foot"><i class="bi bi-hand-index-thumb"></i> Vous décidez en un toucher</div>
             </div>
         </div>
     </div>
 </section>
 
-{{-- ======================= SÉCURITÉ ======================= --}}
+{{-- divider vers section sombre --}}
+<div class="pc-divider" style="background:var(--pc-bg)" aria-hidden="true">
+    <svg viewBox="0 0 1440 70" preserveAspectRatio="none"><path fill="#0c1526" d="M0,40 C240,72 480,72 720,46 C960,20 1200,20 1440,44 L1440,70 L0,70 Z"/></svg>
+</div>
+
+{{-- ======================= SÉCURITÉ (bento) ======================= --}}
 <section class="pc-section pc-section--dark" id="securite">
     <div class="pc-container">
         <div class="pc-section__head pc-section__head--light" data-reveal>
@@ -168,17 +184,30 @@
             <p>La plateforme la plus exigeante de Guinée en matière de sécurité — pour les clients comme pour les techniciens.</p>
         </div>
 
-        <div class="pc-features">
+        @php
+            $svgSecu = [
+                '<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.5 3.1-6 7-6 1.3 0 2.5.3 3.6.8"/><path d="M15.5 19l2 2 3.5-4"/>',
+                '<rect x="5" y="10" width="14" height="10" rx="2.2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.4"/>',
+                '<path d="M20 11a8 8 0 1 0-2.3 5.6"/><path d="M20 5v5h-5"/>',
+                '<path d="M4 6h16v10H8l-4 3z"/><path d="M8.5 11h7M8.5 8.5h4"/>',
+                '<path d="M12 21s7-5.3 7-11a7 7 0 1 0-14 0c0 5.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/>',
+                '<rect x="5" y="10" width="14" height="10" rx="2.2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+            ];
+        @endphp
+        <div class="pc-bento">
             @foreach ([
-                ['bi-person-vcard', 'Techniciens vérifiés', 'Pièce d\'identité et dossier validés par notre équipe avant toute intervention.'],
-                ['bi-shield-lock', 'Paiement sécurisé', 'Séquestre Mobile Money ou espèces confirmées : l\'argent n\'est libéré qu\'une fois le travail fait.'],
-                ['bi-arrow-repeat', 'Garantie incluse', 'Une panne qui revient ? Le même technicien repasse gratuitement, dans le délai de garantie.'],
-                ['bi-chat-left-dots', 'Échanges protégés', 'Messagerie intégrée et coordonnées masquées : tout reste dans un cadre sûr et traçable.'],
-                ['bi-geo-alt', 'Suivi en temps réel', 'Vous voyez le technicien arriver sur la carte, comme pour une course.'],
-                ['bi-lock', 'Données respectées', 'Positions GPS collectées seulement pendant une intervention, documents chiffrés et à accès limité.'],
-            ] as $i => [$icone, $titre, $texte])
-                <div class="pc-feature" data-reveal data-reveal-delay="{{ $i % 3 }}">
-                    <span class="pc-feature__icon"><i class="bi {{ $icone }}" aria-hidden="true"></i></span>
+                ['Techniciens vérifiés', 'Pièce d\'identité et dossier validés par notre équipe avant toute intervention.', true],
+                ['Paiement sécurisé', 'Séquestre Mobile Money ou espèces confirmées : l\'argent n\'est libéré qu\'une fois le travail fait.', false],
+                ['Garantie incluse', 'Une panne qui revient ? Le même technicien repasse gratuitement dans le délai de garantie.', false],
+                ['Échanges protégés', 'Messagerie intégrée, coordonnées masquées : tout reste dans un cadre sûr et traçable.', true],
+                ['Suivi en temps réel', 'Vous voyez le technicien arriver sur la carte, comme pour une course.', false],
+                ['Données respectées', 'GPS collecté seulement pendant une intervention, documents chiffrés et à accès limité.', false],
+            ] as $i => [$titre, $texte, $wide])
+                <div class="pc-bento__item {{ $wide ? 'pc-bento__item--wide' : '' }}" data-reveal data-reveal-delay="{{ $i % 3 }}">
+                    <span class="pc-bento__glow" aria-hidden="true"></span>
+                    <span class="pc-bento__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $svgSecu[$i] !!}</svg>
+                    </span>
                     <h3>{{ $titre }}</h3>
                     <p>{{ $texte }}</p>
                 </div>
@@ -187,11 +216,16 @@
     </div>
 </section>
 
+{{-- divider vers fond clair --}}
+<div class="pc-divider" style="background:#111c33" aria-hidden="true">
+    <svg viewBox="0 0 1440 70" preserveAspectRatio="none"><path fill="#fbfcfe" d="M0,44 C240,20 480,20 720,44 C960,68 1200,68 1440,40 L1440,70 L0,70 Z"/></svg>
+</div>
+
 {{-- ======================= TÉLÉCHARGEMENT ======================= --}}
 <section class="pc-section pc-download" id="telecharger">
     <div class="pc-container pc-download__card" data-reveal>
         <div class="pc-download__text">
-            <span class="pc-eyebrow">Disponible maintenant</span>
+            <span class="pc-eyebrow pc-eyebrow--light">Disponible maintenant</span>
             <h2>Emportez Parema Connect dans votre poche</h2>
             <p>Téléchargez l'application Android et trouvez un technicien de confiance en quelques minutes. L'inscription est gratuite.</p>
 
@@ -202,14 +236,12 @@
                         <span><small>Téléchargement direct</small><strong>Fichier APK (Android)</strong></span>
                     </a>
                 @endif
-
                 @if (($telechargement['playstore_disponible'] ?? false))
                     <a href="{{ route('site.playstore') }}" class="pc-store">
                         <i class="bi bi-google-play"></i>
                         <span><small>Disponible sur</small><strong>Google Play</strong></span>
                     </a>
                 @endif
-
                 @if (! ($telechargement['apk_disponible'] ?? false) && ! ($telechargement['playstore_disponible'] ?? false))
                     <span class="pc-soon"><i class="bi bi-hourglass-split"></i> Lancement imminent — revenez très bientôt.</span>
                 @endif
@@ -222,9 +254,7 @@
 
         <div class="pc-download__visual" aria-hidden="true">
             <div class="pc-phone pc-phone--mini">
-                <div class="pc-phone__screen pc-phone__screen--brand">
-                    <img src="{{ asset('images/logo.png') }}" alt="">
-                </div>
+                <div class="pc-phone__screen pc-phone__screen--brand"><img src="{{ asset('images/logo.png') }}" alt=""></div>
             </div>
         </div>
     </div>
@@ -238,7 +268,6 @@
             <h2>Une équipe guinéenne, engagée pour vous</h2>
             <p>Trois parcours, une même conviction : la technologie doit simplifier la vie des Guinéens.</p>
         </div>
-
         <div class="pc-team">
             @foreach ($equipe as $i => $membre)
                 <article class="pc-member" data-reveal data-reveal-delay="{{ $i % 3 }}">
@@ -265,13 +294,37 @@
     </div>
 </section>
 
+{{-- ======================= FAQ ======================= --}}
+<section class="pc-section" id="faq">
+    <div class="pc-container">
+        <div class="pc-section__head" data-reveal>
+            <span class="pc-eyebrow">Bon à savoir</span>
+            <h2>Questions fréquentes</h2>
+        </div>
+        <div class="pc-faq" data-reveal>
+            @foreach ([
+                ['Parema Connect, c\'est gratuit ?', 'Télécharger l\'application et publier une demande est gratuit. Vous ne payez que l\'intervention, au prix ferme affiché avant de confirmer.'],
+                ['Comment sont choisis les techniciens ?', 'Chaque technicien fournit une pièce d\'identité et un dossier validés par notre équipe. Vous voyez ensuite sa note, sa distance et son prix avant de choisir.'],
+                ['Comment se passe le paiement ?', 'Au choix : espèces ou Mobile Money. En Mobile Money, l\'argent est gardé en séquestre et libéré une fois l\'intervention validée.'],
+                ['Et si la panne revient ?', 'Une garantie couvre l\'intervention : si la panne réapparaît dans le délai, le même technicien repasse gratuitement.'],
+                ['Je suis artisan, puis-je m\'inscrire ?', 'Oui ! Téléchargez l\'application, créez votre profil technicien et déposez votre dossier. Après validation, vous recevez des demandes près de chez vous.'],
+            ] as [$q, $r])
+                <details class="pc-faq__item">
+                    <summary>{{ $q }}</summary>
+                    <p>{{ $r }}</p>
+                </details>
+            @endforeach
+        </div>
+    </div>
+</section>
+
 {{-- ======================= APPEL FINAL ======================= --}}
 <section class="pc-cta">
     <div class="pc-container pc-cta__inner" data-reveal>
         <h2>Prêt à dépanner autrement ?</h2>
         <p>Rejoignez les Guinéens qui font confiance à Parema Connect pour leurs dépannages du quotidien.</p>
         <div class="pc-hero__cta pc-hero__cta--center">
-            <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--primary pc-btn--lg">
+            <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--light pc-btn--lg">
                 <i class="bi bi-download"></i> Télécharger l'application
             </a>
             @if (($contact['whatsapp'] ?? '') !== '')
