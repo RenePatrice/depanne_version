@@ -4,9 +4,22 @@
 
 {{-- ======================= HÉRO ======================= --}}
 <section class="pc-hero">
-    <div class="pc-hero__grid" aria-hidden="true"></div>
-    <div class="pc-hero__orb pc-hero__orb--1" aria-hidden="true"></div>
-    <div class="pc-hero__orb pc-hero__orb--2" aria-hidden="true"></div>
+    <div class="pc-hero__dots" aria-hidden="true"></div>
+    <svg class="pc-hero__blob pc-hero__blob--1" viewBox="0 0 200 200" aria-hidden="true">
+        <defs><linearGradient id="pcBlob1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#a9c6ff"/><stop offset="1" stop-color="#c9b6ff"/>
+        </linearGradient></defs>
+        <g transform="translate(100 100)"><path fill="url(#pcBlob1)" d="M38.6,-57.8C51.5,-50.9,64.2,-42.1,70.3,-29.8C76.4,-17.5,75.9,-1.7,71.3,12.2C66.7,26.1,58,38.1,46.7,47.9C35.4,57.7,21.5,65.3,5.9,69.2C-9.7,73.1,-27,73.3,-40.9,66.1C-54.8,58.9,-65.3,44.3,-70.6,28.4C-75.9,12.5,-76,-4.7,-71.2,-20.3C-66.4,-35.9,-56.7,-49.9,-43.9,-57.3C-31.1,-64.7,-15.5,-65.5,-0.6,-64.6C14.4,-63.7,28.7,-61.1,38.6,-57.8Z"/></g>
+    </svg>
+    <svg class="pc-hero__blob pc-hero__blob--2" viewBox="0 0 200 200" aria-hidden="true">
+        <defs><linearGradient id="pcBlob2" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ffd0a8"/><stop offset="1" stop-color="#ffb3b3"/>
+        </linearGradient></defs>
+        <g transform="translate(100 100)"><path fill="url(#pcBlob2)" d="M42.7,-62.9C54.4,-55.6,62.3,-42.5,67.4,-28.5C72.5,-14.4,74.8,0.6,71.3,14.3C67.8,28,58.5,40.4,46.7,49.9C34.9,59.4,20.6,66,4.9,69.3C-10.8,72.6,-27.9,72.6,-41.8,65.4C-55.7,58.2,-66.4,43.8,-71.3,28C-76.2,12.2,-75.3,-5,-69.5,-19.9C-63.7,-34.8,-53,-47.4,-40,-54.8C-27,-62.2,-11.7,-64.4,2.5,-68C16.7,-71.6,31.1,-70.2,42.7,-62.9Z"/></g>
+    </svg>
+    <svg class="pc-hero__ring" viewBox="0 0 100 100" fill="none" aria-hidden="true"><circle cx="50" cy="50" r="46" stroke="currentColor" stroke-width="2" stroke-dasharray="5 10"/></svg>
+    <svg class="pc-hero__spark pc-hero__spark--1" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
+    <svg class="pc-hero__spark pc-hero__spark--2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
 
     <div class="pc-container pc-hero__inner">
         <div class="pc-hero__text" data-reveal>
@@ -170,16 +183,16 @@
     </div>
 </section>
 
-{{-- divider vers section sombre --}}
+{{-- divider vers section teintée --}}
 <div class="pc-divider" style="background:var(--pc-bg)" aria-hidden="true">
-    <svg viewBox="0 0 1440 70" preserveAspectRatio="none"><path fill="#0c1526" d="M0,40 C240,72 480,72 720,46 C960,20 1200,20 1440,44 L1440,70 L0,70 Z"/></svg>
+    <svg viewBox="0 0 1440 70" preserveAspectRatio="none"><path fill="#f7f5ff" d="M0,40 C240,72 480,72 720,46 C960,20 1200,20 1440,44 L1440,70 L0,70 Z"/></svg>
 </div>
 
 {{-- ======================= SÉCURITÉ (bento) ======================= --}}
-<section class="pc-section pc-section--dark" id="securite">
+<section class="pc-section pc-section--spot" id="securite">
     <div class="pc-container">
-        <div class="pc-section__head pc-section__head--light" data-reveal>
-            <span class="pc-eyebrow pc-eyebrow--light">Votre tranquillité d'abord</span>
+        <div class="pc-section__head" data-reveal>
+            <span class="pc-eyebrow">Votre tranquillité d'abord</span>
             <h2>Pensé pour la confiance, protégé par la sécurité</h2>
             <p>La plateforme la plus exigeante de Guinée en matière de sécurité — pour les clients comme pour les techniciens.</p>
         </div>
@@ -216,16 +229,16 @@
     </div>
 </section>
 
-{{-- divider vers fond clair --}}
-<div class="pc-divider" style="background:#111c33" aria-hidden="true">
-    <svg viewBox="0 0 1440 70" preserveAspectRatio="none"><path fill="#fbfcfe" d="M0,44 C240,20 480,20 720,44 C960,68 1200,68 1440,40 L1440,70 L0,70 Z"/></svg>
+{{-- divider vers fond blanc --}}
+<div class="pc-divider" style="background:#f6f8fc" aria-hidden="true">
+    <svg viewBox="0 0 1440 70" preserveAspectRatio="none"><path fill="#ffffff" d="M0,44 C240,20 480,20 720,44 C960,68 1200,68 1440,40 L1440,70 L0,70 Z"/></svg>
 </div>
 
 {{-- ======================= TÉLÉCHARGEMENT ======================= --}}
 <section class="pc-section pc-download" id="telecharger">
     <div class="pc-container pc-download__card" data-reveal>
         <div class="pc-download__text">
-            <span class="pc-eyebrow pc-eyebrow--light">Disponible maintenant</span>
+            <span class="pc-eyebrow">Disponible maintenant</span>
             <h2>Emportez Parema Connect dans votre poche</h2>
             <p>Téléchargez l'application Android et trouvez un technicien de confiance en quelques minutes. L'inscription est gratuite.</p>
 
@@ -324,7 +337,7 @@
         <h2>Prêt à dépanner autrement ?</h2>
         <p>Rejoignez les Guinéens qui font confiance à Parema Connect pour leurs dépannages du quotidien.</p>
         <div class="pc-hero__cta pc-hero__cta--center">
-            <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--light pc-btn--lg">
+            <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--primary pc-btn--lg">
                 <i class="bi bi-download"></i> Télécharger l'application
             </a>
             @if (($contact['whatsapp'] ?? '') !== '')
