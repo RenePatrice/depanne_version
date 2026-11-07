@@ -296,6 +296,15 @@
             <h2>Emportez Parema Connect dans votre poche</h2>
             <p>Téléchargez l'application Android et trouvez un technicien de confiance en quelques minutes. L'inscription est gratuite.</p>
 
+            <div class="pc-download__pills">
+                @foreach (['Gratuit', 'Sans engagement', 'Android'] as $pastille)
+                    <span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                        {{ $pastille }}
+                    </span>
+                @endforeach
+            </div>
+
             <div class="pc-download__buttons">
                 @if (($telechargement['apk_disponible'] ?? false))
                     <a href="{{ route('site.telecharger') }}" class="pc-store">
@@ -320,8 +329,23 @@
         </div>
 
         <div class="pc-download__visual" aria-hidden="true">
-            <div class="pc-phone pc-phone--mini">
-                <div class="pc-phone__screen pc-phone__screen--brand"><img src="{{ asset('images/logo.png') }}" alt=""></div>
+            <div class="pc-phone">
+                <div class="pc-phone__notch"></div>
+                <div class="pc-phone__screen pc-dlscreen">
+                    <div class="pc-dlscreen__logo"><img src="{{ asset('images/logo-mark.png') }}" alt=""></div>
+                    <strong>Parema Connect</strong>
+                    <span class="pc-dlscreen__stars">★★★★★</span>
+                    <span class="pc-dlscreen__meta">Dépannage de confiance · Conakry</span>
+                    <div class="pc-dlscreen__btn">Installer</div>
+                </div>
+            </div>
+            <div class="pc-dlbadge pc-dlbadge--1">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.2 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.2l1.4-6.7-5-4.6 6.8-.7z"/></svg>
+                4,8
+            </div>
+            <div class="pc-dlbadge pc-dlbadge--2">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                Gratuit
             </div>
         </div>
     </div>
