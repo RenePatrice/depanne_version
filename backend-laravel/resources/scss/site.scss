@@ -467,6 +467,14 @@ img, svg { max-width: 100%; display: block; }
 .pc-zones__pin--2 { animation-delay: 0.8s; }
 .pc-zones__pin--3 { animation-delay: 1.6s; }
 .pc-zones__badge { position: absolute; z-index: 2; top: 11%; right: 2%; background: #fff; border: 1px solid var(--pc-line); border-radius: 12px; padding: 0.5rem 0.8rem; box-shadow: var(--pc-shadow); font-weight: 600; font-size: 0.82rem; display: flex; align-items: center; gap: 0.45rem; animation: pc-float 5.5s ease-in-out infinite; svg { color: var(--pc-green); } strong { color: var(--pc-ink); } }
+// Onde qui pulse sous chaque épingle
+.pc-zones__ping { transform-box: fill-box; transform-origin: center; animation: pc-ping2 2.6s ease-out infinite; }
+.pc-zones__ping--2 { animation-delay: 0.9s; }
+.pc-zones__ping--3 { animation-delay: 1.7s; }
+@keyframes pc-ping2 { 0% { transform: scale(0.35); opacity: 0.6; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+// Itinéraire pointillé qui « coule » entre les zones
+.pc-zones__route { fill: none; stroke: #2f6bed; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 5 9; opacity: 0.5; animation: pc-flow 1s linear infinite; }
+@keyframes pc-flow { to { stroke-dashoffset: -14; } }
 
 // --- Appel final (CLAIR, panneau chaud) --------------------------------------
 .pc-cta { position: relative; overflow: hidden; padding: clamp(3rem, 6vw, 5rem) 0; }

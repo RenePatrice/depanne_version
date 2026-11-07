@@ -533,9 +533,13 @@
                     </g>
                 </g>
 
+                {{-- Itinéraire animé reliant les zones --}}
+                <path class="pc-zones__route" d="M120 147 Q235 150 305 195 Q248 242 196 245"/>
+
                 {{-- Épingles : groupe EXTERNE = position, groupe INTERNE = flottement --}}
                 <g transform="translate(120 98)">
                     <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
+                    <circle class="pc-zones__ping" cx="0" cy="49" r="7" fill="none" stroke="#2f6bed" stroke-width="2.5"/>
                     <g class="pc-zones__pin">
                         <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#2f6bed"/>
                         <circle cy="19" r="7.5" fill="#fff"/>
@@ -543,6 +547,7 @@
                 </g>
                 <g transform="translate(305 146)">
                     <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
+                    <circle class="pc-zones__ping pc-zones__ping--2" cx="0" cy="49" r="7" fill="none" stroke="#16a34a" stroke-width="2.5"/>
                     <g class="pc-zones__pin pc-zones__pin--2">
                         <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#16a34a"/>
                         <circle cy="19" r="7.5" fill="#fff"/>
@@ -550,6 +555,7 @@
                 </g>
                 <g transform="translate(196 196)">
                     <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
+                    <circle class="pc-zones__ping pc-zones__ping--3" cx="0" cy="49" r="7" fill="none" stroke="#f2854c" stroke-width="2.5"/>
                     <g class="pc-zones__pin pc-zones__pin--3">
                         <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#f2854c"/>
                         <circle cy="19" r="7.5" fill="#fff"/>
