@@ -137,7 +137,7 @@
 </section>
 
 {{-- ======================= MÉTIERS ======================= --}}
-<section class="pc-section pc-section--alt" id="metiers">
+<section class="pc-section pc-section--soft" id="metiers">
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Tous vos besoins</span>
@@ -375,8 +375,75 @@
     </div>
 </section>
 
+{{-- ======================= DEUX AUDIENCES ======================= --}}
+<section class="pc-section pc-section--soft" id="offres">
+    <div class="pc-container">
+        <div class="pc-section__head" data-reveal>
+            <span class="pc-eyebrow">Deux expériences, une seule app</span>
+            <h2>Que vous cherchiez ou que vous dépanniez</h2>
+            <p>Parema Connect réunit clients et techniciens dans un même espace, pensé pour chacun.</p>
+        </div>
+
+        <div class="pc-duo">
+            <div class="pc-duo__card pc-duo__card--client" data-reveal>
+                <span class="pc-duo__badge">Clients</span>
+                <div class="pc-duo__head">
+                    <span class="pc-duo__icon"><i class="bi bi-person-fill" aria-hidden="true"></i></span>
+                    <div>
+                        <h3>Vous avez une panne</h3>
+                        <p>Le bon pro, au bon prix</p>
+                    </div>
+                </div>
+                <ul class="pc-duo__list">
+                    @foreach ([
+                        'Comparez plusieurs techniciens vérifiés',
+                        'Prix ferme affiché avant de confirmer',
+                        'Payez en espèces ou Mobile Money, en sécurité',
+                        'Garantie et support après l\'intervention',
+                    ] as $pt)
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#e7efff"/><path d="M7.5 12.3l3 3 6-6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>{{ $pt }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+                <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--primary pc-btn--lg">
+                    <i class="bi bi-download"></i> Télécharger l'application
+                </a>
+            </div>
+
+            <div class="pc-duo__card pc-duo__card--tech" data-reveal data-reveal-delay="1">
+                <span class="pc-duo__badge">Techniciens</span>
+                <div class="pc-duo__head">
+                    <span class="pc-duo__icon"><i class="bi bi-tools" aria-hidden="true"></i></span>
+                    <div>
+                        <h3>Vous êtes artisan</h3>
+                        <p>Développez votre activité</p>
+                    </div>
+                </div>
+                <ul class="pc-duo__list">
+                    @foreach ([
+                        'Recevez des demandes près de chez vous',
+                        'Fixez vos propres tarifs par prestation',
+                        'Portefeuille et retraits simples et clairs',
+                        'Paiement sécurisé par la plateforme',
+                    ] as $pt)
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ffe9db"/><path d="M7.5 12.3l3 3 6-6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>{{ $pt }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+                <a href="{{ route('site.devenir-technicien') }}" class="pc-btn pc-btn--warm pc-btn--lg">
+                    <i class="bi bi-person-badge"></i> Devenir technicien
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ======================= ÉQUIPE ======================= --}}
-<section class="pc-section pc-section--alt" id="equipe">
+<section class="pc-section" id="equipe">
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Les visages derrière Parema</span>
@@ -409,14 +476,79 @@
     </div>
 </section>
 
+{{-- ======================= COUVERTURE CONAKRY ======================= --}}
+<section class="pc-section pc-section--soft" id="zones">
+    <div class="pc-container pc-zones">
+        <div data-reveal>
+            <span class="pc-eyebrow">Conakry, quartier par quartier</span>
+            <h2>Déjà présent près de chez vous</h2>
+            <p class="pc-lead">Nous couvrons un nombre croissant de zones à Conakry et nous nous étendons chaque semaine. Activez votre position dans l'app pour voir les techniciens les plus proches.</p>
+            <div class="pc-zones__chips">
+                @forelse ($zones as $zone)
+                    <span class="pc-zones__chip">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                        {{ $zone }}
+                    </span>
+                @empty
+                @endforelse
+                <span class="pc-zones__chip pc-zones__chip--soon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Bientôt dans tout Conakry
+                </span>
+            </div>
+        </div>
+
+        <div class="pc-zones__visual" data-reveal data-reveal-delay="1">
+            <svg class="pc-zones__map" viewBox="0 0 400 320" fill="none" aria-hidden="true">
+                <defs><linearGradient id="pcMap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eaf1fe"/><stop offset="1" stop-color="#fff2ea"/></linearGradient></defs>
+                <rect x="8" y="8" width="384" height="304" rx="26" fill="url(#pcMap)" stroke="#e7ecf5"/>
+                <g stroke="#d3deef" stroke-width="7" stroke-linecap="round">
+                    <path d="M40 120 L360 90"/>
+                    <path d="M70 40 L110 300"/>
+                    <path d="M60 220 L350 240"/>
+                    <path d="M250 30 L280 290"/>
+                </g>
+                <g fill="#ffffff" opacity="0.65">
+                    <rect x="120" y="60" width="70" height="46" rx="10"/>
+                    <rect x="300" y="150" width="56" height="60" rx="10"/>
+                    <rect x="120" y="250" width="80" height="40" rx="10"/>
+                </g>
+                <g class="pc-zones__pin" transform="translate(120 96)">
+                    <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#2f6bed"/>
+                    <circle cy="19" r="7.5" fill="#fff"/>
+                </g>
+                <g class="pc-zones__pin pc-zones__pin--2" transform="translate(285 170)">
+                    <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#16a34a"/>
+                    <circle cy="19" r="7.5" fill="#fff"/>
+                </g>
+                <g class="pc-zones__pin pc-zones__pin--3" transform="translate(170 250)">
+                    <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#f2854c"/>
+                    <circle cy="19" r="7.5" fill="#fff"/>
+                </g>
+            </svg>
+        </div>
+    </div>
+</section>
+
 {{-- ======================= FAQ ======================= --}}
 <section class="pc-section" id="faq">
-    <div class="pc-container">
-        <div class="pc-section__head" data-reveal>
-            <span class="pc-eyebrow">Bon à savoir</span>
-            <h2>Questions fréquentes</h2>
+    <div class="pc-container pc-faq-wrap">
+        <div class="pc-faq-aside" data-reveal>
+            <div class="pc-section__head">
+                <span class="pc-eyebrow">Bon à savoir</span>
+                <h2>Questions fréquentes</h2>
+                <p>Tout ce qu'il faut savoir avant de vous lancer.</p>
+            </div>
+            <div class="pc-faq-contact">
+                <h3>Une autre question ?</h3>
+                <p>Notre équipe vous répond rapidement et avec le sourire.</p>
+                <a href="{{ route('site.contact') }}" class="pc-btn pc-btn--primary">
+                    <i class="bi bi-chat-dots"></i> Nous contacter
+                </a>
+            </div>
         </div>
-        <div class="pc-faq" data-reveal>
+
+        <div class="pc-faq" data-reveal data-reveal-delay="1">
             @foreach ([
                 ['Parema Connect, c\'est gratuit ?', 'Télécharger l\'application et publier une demande est gratuit. Vous ne payez que l\'intervention, au prix ferme affiché avant de confirmer.'],
                 ['Comment sont choisis les techniciens ?', 'Chaque technicien fournit une pièce d\'identité et un dossier validés par notre équipe. Vous voyez ensuite sa note, sa distance et son prix avant de choisir.'],

@@ -44,8 +44,25 @@ final class SiteVitrine
             ],
             'statistiques' => $this->statistiques(),
             'metiers' => $this->metiers(),
+            'zones' => $this->zones(),
             'equipe' => $this->equipe(),
         ];
+    }
+
+    /**
+     * Noms des zones de service actives (réelles, depuis la base). Sert la
+     * section « couverture » du site : on n'annonce que ce qui existe.
+     *
+     * @return array<int, string>
+     */
+    public function zones(): array
+    {
+        return DB::table('zones')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->pluck('name')
+            ->map(static fn ($n): string => (string) $n)
+            ->all();
     }
 
     /** @return array{actif: bool, apk_disponible: bool, playstore_disponible: bool, playstore_url: string} */

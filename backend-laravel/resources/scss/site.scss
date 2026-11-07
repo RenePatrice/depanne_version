@@ -408,15 +408,61 @@ img, svg { max-width: 100%; display: block; }
 .pc-member__bio { color: var(--pc-muted); margin-top: 0.8rem; font-size: 0.95rem; }
 .pc-member__link { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 1rem; color: var(--pc-blue-strong); font-weight: 600; font-size: 0.9rem; }
 
-// --- FAQ ---------------------------------------------------------------------
-.pc-faq { max-width: 780px; margin: 0 auto; display: grid; gap: 0.8rem; }
-.pc-faq__item { background: #fff; border: 1px solid var(--pc-line); border-radius: var(--pc-radius-sm); padding: 0 1.3rem; box-shadow: var(--pc-shadow-sm); transition: box-shadow 0.2s ease; }
-.pc-faq__item[open] { box-shadow: var(--pc-shadow); }
-.pc-faq__item summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.2rem 0; font-family: dm.$dm-font-heading; font-weight: 600; font-size: 1.02rem; color: var(--pc-ink); }
+// --- FAQ (deux colonnes : intro collante + accordéon numéroté) ---------------
+.pc-faq-wrap { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: clamp(2rem, 4vw, 3.5rem); align-items: start; }
+.pc-faq-aside { position: sticky; top: 100px; }
+.pc-faq-aside .pc-section__head { text-align: left; margin: 0; max-width: none; }
+.pc-faq-contact { margin-top: 1.6rem; border: 1px solid var(--pc-line); border-radius: var(--pc-radius); padding: 1.5rem; background: linear-gradient(160deg, #eef3ff, #fff2ea); box-shadow: var(--pc-shadow-sm); }
+.pc-faq-contact h3 { font-size: 1.1rem; }
+.pc-faq-contact p { margin: 0.5rem 0 1.1rem; color: var(--pc-ink-2); font-size: 0.92rem; }
+
+.pc-faq { display: grid; gap: 0.8rem; counter-reset: faq; }
+.pc-faq__item { counter-increment: faq; background: #fff; border: 1px solid var(--pc-line); border-radius: var(--pc-radius-sm); padding: 0 1.3rem; box-shadow: var(--pc-shadow-sm); transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease; }
+.pc-faq__item:hover { border-color: #d7deea; }
+.pc-faq__item[open] { box-shadow: var(--pc-shadow); border-color: transparent; }
+.pc-faq__item summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 0.9rem; padding: 1.15rem 0; font-family: dm.$dm-font-heading; font-weight: 600; font-size: 1.02rem; color: var(--pc-ink); }
 .pc-faq__item summary::-webkit-details-marker { display: none; }
-.pc-faq__item summary::after { content: '+'; color: var(--pc-blue); transition: transform 0.25s ease; font-size: 1.5rem; font-weight: 400; line-height: 1; }
-.pc-faq__item[open] summary::after { transform: rotate(45deg); }
-.pc-faq__item p { padding: 0 0 1.3rem; color: var(--pc-muted); }
+.pc-faq__item summary::before { content: counter(faq, decimal-leading-zero); flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px; background: var(--pc-bg-soft); color: var(--pc-blue); font-size: 0.82rem; font-weight: 800; display: grid; place-items: center; transition: background 0.3s ease, color 0.3s ease, transform 0.3s ease; }
+.pc-faq__item[open] summary::before { background: var(--pc-grad); color: #fff; transform: scale(1.05); }
+.pc-faq__item summary::after { content: '+'; margin-left: auto; color: var(--pc-blue); transition: transform 0.3s ease; font-size: 1.5rem; font-weight: 400; line-height: 1; }
+.pc-faq__item[open] summary::after { transform: rotate(135deg); }
+.pc-faq__item p { padding: 0 0 1.3rem 2.6rem; color: var(--pc-muted); }
+
+// --- Deux audiences : clients & techniciens ----------------------------------
+.pc-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+.pc-duo__card { position: relative; overflow: hidden; border: 1px solid var(--pc-line); border-radius: var(--pc-radius-lg); padding: 2.2rem; box-shadow: var(--pc-shadow-sm); transition: transform 0.3s cubic-bezier(.22,1,.36,1), box-shadow 0.3s ease; }
+.pc-duo__card:hover { transform: translateY(-7px); box-shadow: var(--pc-shadow-lg); }
+.pc-duo__card--client { background: linear-gradient(165deg, #eef3ff, #fff 70%); }
+.pc-duo__card--tech { background: linear-gradient(165deg, #fff4ec, #fff 70%); }
+.pc-duo__badge { position: absolute; top: 1.5rem; right: 1.5rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.3rem 0.7rem; border-radius: 999px; }
+.pc-duo__card--client .pc-duo__badge { background: #e3edff; color: var(--pc-blue-strong); }
+.pc-duo__card--tech .pc-duo__badge { background: #ffe6d6; color: #b45a28; }
+.pc-duo__head { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 1.3rem; }
+.pc-duo__icon { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; color: #fff; flex-shrink: 0; transition: transform 0.4s cubic-bezier(.34,1.56,.64,1); svg { width: 28px; height: 28px; } i { font-size: 1.7rem; } }
+.pc-duo__card--client .pc-duo__icon { background: var(--pc-grad); box-shadow: 0 12px 24px -12px rgba(79, 102, 241, 0.6); }
+.pc-duo__card--tech .pc-duo__icon { background: var(--pc-grad-warm); box-shadow: 0 12px 24px -12px rgba(242, 133, 76, 0.55); }
+.pc-duo__card:hover .pc-duo__icon { transform: rotate(-8deg) scale(1.08); }
+.pc-duo__head h3 { font-size: 1.3rem; }
+.pc-duo__head p { font-size: 0.86rem; color: var(--pc-muted); margin-top: 0.15rem; }
+.pc-duo__list { list-style: none; padding: 0; margin: 0 0 1.7rem; display: grid; gap: 0.8rem; }
+.pc-duo__list li { display: flex; gap: 0.6rem; align-items: flex-start; color: var(--pc-ink-2); }
+.pc-duo__list svg { flex-shrink: 0; margin-top: 3px; }
+.pc-duo__card--client .pc-duo__list svg { color: var(--pc-blue); }
+.pc-duo__card--tech .pc-duo__list svg { color: var(--pc-accent); }
+.pc-btn--warm { background: var(--pc-grad-warm); color: #fff; box-shadow: 0 12px 26px -12px rgba(242, 133, 76, 0.6); }
+.pc-btn--warm:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -12px rgba(242, 133, 76, 0.7); }
+
+// --- Couverture Conakry ------------------------------------------------------
+.pc-zones { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+.pc-zones__chips { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.6rem; }
+.pc-zones__chip { display: inline-flex; align-items: center; gap: 0.4rem; background: #fff; border: 1px solid var(--pc-line); padding: 0.5rem 0.9rem; border-radius: 999px; font-weight: 600; font-size: 0.88rem; box-shadow: var(--pc-shadow-sm); transition: transform 0.2s ease; svg { color: var(--pc-green); } }
+.pc-zones__chip:hover { transform: translateY(-2px); }
+.pc-zones__chip--soon { color: var(--pc-muted); background: var(--pc-bg-soft); box-shadow: none; svg { color: var(--pc-muted); } }
+.pc-zones__visual { position: relative; display: grid; place-items: center; }
+.pc-zones__map { width: 100%; max-width: 420px; height: auto; filter: drop-shadow(0 20px 40px rgba(20, 31, 56, 0.12)); }
+.pc-zones__pin { animation: pc-float 4s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+.pc-zones__pin--2 { animation-delay: 0.8s; }
+.pc-zones__pin--3 { animation-delay: 1.6s; }
 
 // --- Appel final (CLAIR, panneau chaud) --------------------------------------
 .pc-cta { position: relative; overflow: hidden; padding: clamp(3rem, 6vw, 5rem) 0; }
@@ -541,6 +587,8 @@ section[id] { scroll-margin-top: 88px; }
 // --- Responsive --------------------------------------------------------------
 @media (max-width: 920px) {
   .pc-hero__inner, .pc-split, .pc-download__card { grid-template-columns: 1fr; }
+  .pc-duo, .pc-zones, .pc-faq-wrap { grid-template-columns: 1fr; }
+  .pc-faq-aside { position: static; }
   .pc-hero__visual { order: -1; }
   .pc-steps, .pc-team, .pc-bento { grid-template-columns: 1fr; }
   .pc-metiers { grid-template-columns: repeat(2, 1fr); }
