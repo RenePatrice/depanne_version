@@ -499,33 +499,68 @@
         </div>
 
         <div class="pc-zones__visual" data-reveal data-reveal-delay="1">
-            <svg class="pc-zones__map" viewBox="0 0 400 320" fill="none" aria-hidden="true">
-                <defs><linearGradient id="pcMap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eaf1fe"/><stop offset="1" stop-color="#fff2ea"/></linearGradient></defs>
-                <rect x="8" y="8" width="384" height="304" rx="26" fill="url(#pcMap)" stroke="#e7ecf5"/>
-                <g stroke="#d3deef" stroke-width="7" stroke-linecap="round">
-                    <path d="M40 120 L360 90"/>
-                    <path d="M70 40 L110 300"/>
-                    <path d="M60 220 L350 240"/>
-                    <path d="M250 30 L280 290"/>
+            <svg class="pc-zones__map" viewBox="0 0 400 330" fill="none" aria-hidden="true">
+                <defs>
+                    <linearGradient id="pcMap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef3fe"/><stop offset="1" stop-color="#fff4ec"/></linearGradient>
+                    <clipPath id="pcMapClip"><rect x="8" y="8" width="384" height="314" rx="26"/></clipPath>
+                </defs>
+                <rect x="8" y="8" width="384" height="314" rx="26" fill="url(#pcMap)" stroke="#e7ecf5"/>
+                <g clip-path="url(#pcMapClip)">
+                    {{-- Côte (Conakry est une presqu'île) --}}
+                    <path d="M8 258 Q120 228 225 266 T392 256 L392 322 L8 322 Z" fill="#d7e6fb" opacity="0.85"/>
+                    <path d="M8 268 Q120 238 225 276 T392 266" stroke="#c0d6f5" stroke-width="2.5" fill="none"/>
+                    {{-- Parc --}}
+                    <rect x="250" y="66" width="74" height="52" rx="13" fill="#d8f0e0"/>
+                    {{-- Îlots urbains --}}
+                    <g fill="#ffffff" opacity="0.72">
+                        <rect x="38" y="56" width="72" height="46" rx="10"/>
+                        <rect x="128" y="128" width="62" height="52" rx="10"/>
+                        <rect x="56" y="150" width="52" height="64" rx="10"/>
+                        <rect x="300" y="150" width="60" height="56" rx="10"/>
+                    </g>
+                    {{-- Grandes avenues --}}
+                    <g stroke="#cdd9ee" stroke-width="8" stroke-linecap="round">
+                        <path d="M28 118 L372 92"/>
+                        <path d="M92 28 L124 244"/>
+                        <path d="M38 204 L362 214"/>
+                        <path d="M242 26 L272 250"/>
+                    </g>
+                    {{-- Rues secondaires --}}
+                    <g stroke="#e3eaf6" stroke-width="4" stroke-linecap="round">
+                        <path d="M30 168 L362 156"/>
+                        <path d="M172 28 L196 246"/>
+                        <path d="M60 70 L330 60"/>
+                    </g>
                 </g>
-                <g fill="#ffffff" opacity="0.65">
-                    <rect x="120" y="60" width="70" height="46" rx="10"/>
-                    <rect x="300" y="150" width="56" height="60" rx="10"/>
-                    <rect x="120" y="250" width="80" height="40" rx="10"/>
+
+                {{-- Épingles : groupe EXTERNE = position, groupe INTERNE = flottement --}}
+                <g transform="translate(120 98)">
+                    <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
+                    <g class="pc-zones__pin">
+                        <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#2f6bed"/>
+                        <circle cy="19" r="7.5" fill="#fff"/>
+                    </g>
                 </g>
-                <g class="pc-zones__pin" transform="translate(120 96)">
-                    <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#2f6bed"/>
-                    <circle cy="19" r="7.5" fill="#fff"/>
+                <g transform="translate(305 146)">
+                    <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
+                    <g class="pc-zones__pin pc-zones__pin--2">
+                        <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#16a34a"/>
+                        <circle cy="19" r="7.5" fill="#fff"/>
+                    </g>
                 </g>
-                <g class="pc-zones__pin pc-zones__pin--2" transform="translate(285 170)">
-                    <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#16a34a"/>
-                    <circle cy="19" r="7.5" fill="#fff"/>
-                </g>
-                <g class="pc-zones__pin pc-zones__pin--3" transform="translate(170 250)">
-                    <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#f2854c"/>
-                    <circle cy="19" r="7.5" fill="#fff"/>
+                <g transform="translate(196 196)">
+                    <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
+                    <g class="pc-zones__pin pc-zones__pin--3">
+                        <path d="M0 0c-11 0-19 8-19 19 0 14 19 30 19 30s19-16 19-30C19 8 11 0 0 0z" fill="#f2854c"/>
+                        <circle cy="19" r="7.5" fill="#fff"/>
+                    </g>
                 </g>
             </svg>
+
+            <div class="pc-zones__badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.3 7-11a7 7 0 1 0-14 0c0 5.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+                <span><strong>{{ count($zones) }}</strong> zone{{ count($zones) > 1 ? 's' : '' }} active{{ count($zones) > 1 ? 's' : '' }}</span>
+            </div>
         </div>
     </div>
 </section>

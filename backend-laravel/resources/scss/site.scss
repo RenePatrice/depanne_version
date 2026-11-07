@@ -459,10 +459,14 @@ img, svg { max-width: 100%; display: block; }
 .pc-zones__chip:hover { transform: translateY(-2px); }
 .pc-zones__chip--soon { color: var(--pc-muted); background: var(--pc-bg-soft); box-shadow: none; svg { color: var(--pc-muted); } }
 .pc-zones__visual { position: relative; display: grid; place-items: center; }
-.pc-zones__map { width: 100%; max-width: 420px; height: auto; filter: drop-shadow(0 20px 40px rgba(20, 31, 56, 0.12)); }
-.pc-zones__pin { animation: pc-float 4s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+.pc-zones__visual::before { content: ''; position: absolute; width: 320px; height: 320px; border-radius: 50%; filter: blur(55px); z-index: 0; background: radial-gradient(circle, rgba(47, 107, 237, 0.16), rgba(242, 133, 76, 0.1) 60%, transparent 75%); }
+.pc-zones__map { position: relative; z-index: 1; width: 100%; max-width: 440px; height: auto; filter: drop-shadow(0 24px 44px rgba(20, 31, 56, 0.14)); }
+// Flottement porté par le groupe INTERNE (le groupe externe garde la position) :
+// animer le transform d'un groupe déjà positionné le renverrait à l'origine.
+.pc-zones__pin { animation: pc-float 4s ease-in-out infinite; }
 .pc-zones__pin--2 { animation-delay: 0.8s; }
 .pc-zones__pin--3 { animation-delay: 1.6s; }
+.pc-zones__badge { position: absolute; z-index: 2; top: 11%; right: 2%; background: #fff; border: 1px solid var(--pc-line); border-radius: 12px; padding: 0.5rem 0.8rem; box-shadow: var(--pc-shadow); font-weight: 600; font-size: 0.82rem; display: flex; align-items: center; gap: 0.45rem; animation: pc-float 5.5s ease-in-out infinite; svg { color: var(--pc-green); } strong { color: var(--pc-ink); } }
 
 // --- Appel final (CLAIR, panneau chaud) --------------------------------------
 .pc-cta { position: relative; overflow: hidden; padding: clamp(3rem, 6vw, 5rem) 0; }
