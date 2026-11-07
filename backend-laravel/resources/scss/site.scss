@@ -244,18 +244,40 @@ img, svg { max-width: 100%; display: block; }
   &.pc-bar--soft em { color: var(--pc-ink-2); } }
 .pc-glasscard__foot { margin-top: 1.1rem; color: var(--pc-muted); font-size: 0.88rem; i { color: var(--pc-accent); } }
 
-// --- Bento sécurité (CLAIR) --------------------------------------------------
-.pc-bento { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
-.pc-bento__item { position: relative; background: #fff; border: 1px solid var(--pc-line); border-radius: var(--pc-radius); padding: 1.8rem 1.55rem; box-shadow: var(--pc-shadow-sm); transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; overflow: hidden;
-  h3 { font-size: 1.12rem; margin-top: 1rem; color: var(--pc-ink); } p { margin-top: 0.55rem; color: var(--pc-muted); font-size: 0.95rem; } }
-.pc-bento__item:hover { transform: translateY(-5px); box-shadow: var(--pc-shadow); border-color: transparent; }
-.pc-bento__item--wide { grid-column: span 2; }
-.pc-bento__icon { width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center; color: #fff; background: var(--pc-grad);
-  svg { width: 26px; height: 26px; } }
-.pc-bento__item:nth-child(3n+2) .pc-bento__icon { background: var(--pc-grad-warm); }
-.pc-bento__item:nth-child(3n) .pc-bento__icon { background: linear-gradient(135deg, #22c55e, #16a34a); }
-.pc-bento__glow { position: absolute; width: 150px; height: 150px; border-radius: 50%; filter: blur(50px); background: rgba(99, 102, 241, 0.12); right: -40px; top: -40px; z-index: 0; }
+// --- Grille sécurité (CLAIR, animée) -----------------------------------------
+.pc-bento { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.3rem; }
+.pc-bento__item {
+  position: relative; isolation: isolate; background: #fff; border: 1px solid var(--pc-line);
+  border-radius: var(--pc-radius); padding: 2rem 1.7rem 1.9rem; box-shadow: var(--pc-shadow-sm); overflow: hidden;
+  transition: transform 0.35s cubic-bezier(.22,1,.36,1), box-shadow 0.35s ease, border-color 0.35s ease;
+  h3 { font-size: 1.14rem; margin-top: 1.1rem; color: var(--pc-ink); }
+  p { margin-top: 0.55rem; color: var(--pc-muted); font-size: 0.95rem; }
+}
+// Halo coloré qui apparaît au survol
+.pc-bento__item::before { content: ''; position: absolute; width: 240px; height: 240px; border-radius: 50%; top: -100px; right: -80px; z-index: 0;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.16), transparent 70%); opacity: 0; transition: opacity 0.4s ease; }
+// Filet dégradé qui se révèle en haut
+.pc-bento__item::after { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; z-index: 3; background: var(--pc-grad); transform: scaleX(0); transform-origin: left; transition: transform 0.4s cubic-bezier(.22,1,.36,1); }
+.pc-bento__item:hover { transform: translateY(-9px); box-shadow: var(--pc-shadow-lg); border-color: transparent; }
+.pc-bento__item:hover::before { opacity: 1; }
+.pc-bento__item:hover::after { transform: scaleX(1); }
 .pc-bento__item > * { position: relative; z-index: 1; }
+.pc-bento__icon { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; color: #fff; background: var(--pc-grad); box-shadow: 0 12px 24px -12px rgba(79, 102, 241, 0.6);
+  transition: transform 0.4s cubic-bezier(.34,1.56,.64,1), box-shadow 0.35s ease;
+  svg { width: 27px; height: 27px; } }
+.pc-bento__item:hover .pc-bento__icon { transform: rotate(-8deg) scale(1.1); box-shadow: 0 18px 30px -12px rgba(79, 102, 241, 0.7); }
+.pc-bento__item:nth-child(3n+2) .pc-bento__icon { background: var(--pc-grad-warm); box-shadow: 0 12px 24px -12px rgba(242, 133, 76, 0.55); }
+.pc-bento__item:nth-child(3n+2):hover .pc-bento__icon { box-shadow: 0 18px 30px -12px rgba(242, 133, 76, 0.65); }
+.pc-bento__item:nth-child(3n) .pc-bento__icon { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 12px 24px -12px rgba(22, 163, 74, 0.5); }
+// Motif SVG décoratif dans le coin, qui pivote au survol
+.pc-bento__corner { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; z-index: 0; color: #eef2fb;
+  transition: transform 0.55s cubic-bezier(.22,1,.36,1), color 0.35s ease; }
+.pc-bento__item:hover .pc-bento__corner { transform: rotate(45deg) scale(1.12); color: #e0e7f6; }
+// Petit lien « en savoir plus » révélé au survol
+.pc-bento__more { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1rem; font-weight: 600; font-size: 0.85rem; color: var(--pc-blue); opacity: 0; transform: translateY(6px); transition: opacity 0.35s ease, transform 0.35s ease; }
+.pc-bento__item:hover .pc-bento__more { opacity: 1; transform: none; }
+.pc-bento__item:nth-child(3n+2) .pc-bento__more { color: var(--pc-accent); }
+.pc-bento__item:nth-child(3n) .pc-bento__more { color: var(--pc-green); }
 
 // --- Téléchargement (CLAIR) --------------------------------------------------
 .pc-download__card { position: relative; overflow: hidden; border-radius: var(--pc-radius-lg); padding: clamp(2.2rem, 5vw, 4rem); display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 2rem; align-items: center; box-shadow: var(--pc-shadow-lg); border: 1px solid var(--pc-line);

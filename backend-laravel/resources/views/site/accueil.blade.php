@@ -209,20 +209,28 @@
         @endphp
         <div class="pc-bento">
             @foreach ([
-                ['Techniciens vérifiés', 'Pièce d\'identité et dossier validés par notre équipe avant toute intervention.', true],
-                ['Paiement sécurisé', 'Séquestre Mobile Money ou espèces confirmées : l\'argent n\'est libéré qu\'une fois le travail fait.', false],
-                ['Garantie incluse', 'Une panne qui revient ? Le même technicien repasse gratuitement dans le délai de garantie.', false],
-                ['Échanges protégés', 'Messagerie intégrée, coordonnées masquées : tout reste dans un cadre sûr et traçable.', true],
-                ['Suivi en temps réel', 'Vous voyez le technicien arriver sur la carte, comme pour une course.', false],
-                ['Données respectées', 'GPS collecté seulement pendant une intervention, documents chiffrés et à accès limité.', false],
-            ] as $i => [$titre, $texte, $wide])
-                <div class="pc-bento__item {{ $wide ? 'pc-bento__item--wide' : '' }}" data-reveal data-reveal-delay="{{ $i % 3 }}">
-                    <span class="pc-bento__glow" aria-hidden="true"></span>
+                ['Techniciens vérifiés', 'Pièce d\'identité et dossier validés par notre équipe avant toute intervention.'],
+                ['Paiement sécurisé', 'Séquestre Mobile Money ou espèces confirmées : l\'argent n\'est libéré qu\'une fois le travail fait.'],
+                ['Garantie incluse', 'Une panne qui revient ? Le même technicien repasse gratuitement dans le délai de garantie.'],
+                ['Échanges protégés', 'Messagerie intégrée, coordonnées masquées : tout reste dans un cadre sûr et traçable.'],
+                ['Suivi en temps réel', 'Vous voyez le technicien arriver sur la carte, comme pour une course.'],
+                ['Données respectées', 'GPS collecté seulement pendant une intervention, documents chiffrés et à accès limité.'],
+            ] as $i => [$titre, $texte])
+                <div class="pc-bento__item" data-reveal data-reveal-delay="{{ $i % 3 }}">
+                    <svg class="pc-bento__corner" viewBox="0 0 44 44" fill="currentColor" aria-hidden="true">
+                        <circle cx="6" cy="6" r="2.4"/><circle cx="22" cy="6" r="2.4"/><circle cx="38" cy="6" r="2.4"/>
+                        <circle cx="6" cy="22" r="2.4"/><circle cx="22" cy="22" r="2.4"/><circle cx="38" cy="22" r="2.4"/>
+                        <circle cx="6" cy="38" r="2.4"/><circle cx="22" cy="38" r="2.4"/><circle cx="38" cy="38" r="2.4"/>
+                    </svg>
                     <span class="pc-bento__icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $svgSecu[$i] !!}</svg>
                     </span>
                     <h3>{{ $titre }}</h3>
                     <p>{{ $texte }}</p>
+                    <span class="pc-bento__more">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                        Inclus
+                    </span>
                 </div>
             @endforeach
         </div>
