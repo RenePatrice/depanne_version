@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0B4CB8">
 
-    <title>@yield('titre', 'Parema Connect — Le dépannage de confiance à Conakry')</title>
+    <title>@yield('titre', 'Parema Connect — Dépannage & travaux de confiance à Conakry')</title>
     <meta name="description"
           content="@yield('description', 'Parema Connect met en relation clients et techniciens vérifiés à Conakry : plomberie, électricité, maçonnerie et plus. Comparez, choisissez, payez en toute sécurité.')">
     <link rel="canonical" href="{{ url()->current() }}">
@@ -13,9 +13,9 @@
     {{-- Partage social --}}
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Parema Connect">
-    <meta property="og:title" content="@yield('titre', 'Parema Connect — Le dépannage de confiance à Conakry')">
+    <meta property="og:title" content="@yield('titre', 'Parema Connect — Dépannage & travaux de confiance à Conakry')">
     <meta property="og:description"
-          content="@yield('description', 'Techniciens vérifiés, prix transparents, paiement sécurisé. L\'application qui change le dépannage à Conakry.')">
+          content="@yield('description', 'Techniciens vérifiés, prix transparents, paiement sécurisé. L\'application qui change le dépannage et les travaux à Conakry.')">
     <meta property="og:image" content="{{ asset('images/logo.png') }}">
     <meta name="twitter:card" content="summary_large_image">
 
@@ -75,7 +75,7 @@
                 <img src="{{ asset('images/logo-mark.png') }}" alt="" width="36" height="36">
                 <span>Parema<strong>Connect</strong></span>
             </a>
-            <p>Le dépannage de confiance à Conakry. Des techniciens vérifiés, des prix clairs, un paiement sécurisé.</p>
+            <p>Dépannage, installation et travaux de confiance à Conakry. Des techniciens vérifiés, des prix clairs, un paiement sécurisé.</p>
             <p class="pc-footer__made">Fièrement conçu en Guinée 🇬🇳</p>
         </div>
 

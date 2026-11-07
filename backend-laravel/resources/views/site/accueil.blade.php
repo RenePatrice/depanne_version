@@ -46,7 +46,7 @@
             </div>
             <p class="pc-hero__trustline">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.3 7-11a7 7 0 1 0-14 0c0 5.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-                Une équipe guinéenne, une mission : le dépannage simple, sûr et transparent.
+                Une équipe guinéenne, une mission : le dépannage et les travaux à domicile, simples, sûrs et transparents.
             </p>
         </div>
 
@@ -101,7 +101,7 @@
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Simple comme bonjour</span>
-            <h2>Un dépannage en trois gestes</h2>
+            <h2>Votre intervention en trois gestes</h2>
             <p>Pas de marchandage interminable, pas de mauvaise surprise. Vous gardez la main du début à la fin.</p>
         </div>
 
@@ -462,7 +462,7 @@
                     <div class="pc-dlscreen__logo"><img src="{{ asset('images/logo-mark.png') }}" alt=""></div>
                     <strong>Parema Connect</strong>
                     <span class="pc-dlscreen__stars">★★★★★</span>
-                    <span class="pc-dlscreen__meta">Dépannage de confiance · Conakry</span>
+                    <span class="pc-dlscreen__meta">Dépannage &amp; travaux · Conakry</span>
                     <div class="pc-dlscreen__btn">Installer</div>
                 </div>
             </div>
@@ -483,7 +483,7 @@
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Deux expériences, une seule app</span>
-            <h2>Que vous cherchiez ou que vous dépanniez</h2>
+            <h2>Que vous cherchiez un pro, ou que vous en soyez un</h2>
             <p>Parema Connect réunit clients et techniciens dans un même espace, pensé pour chacun.</p>
         </div>
 
@@ -756,8 +756,8 @@
         <svg class="pc-cta__spark pc-cta__spark--1" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
         <svg class="pc-cta__spark pc-cta__spark--2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
         <svg class="pc-cta__spark pc-cta__spark--3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
-        <h2>Prêt à dépanner autrement ?</h2>
-        <p>Rejoignez les Guinéens qui font confiance à Parema Connect pour leurs dépannages du quotidien.</p>
+        <h2>Prêt à trouver le bon pro ?</h2>
+        <p>Rejoignez les Guinéens qui font confiance à Parema Connect pour leurs dépannages, installations et travaux du quotidien.</p>
         <div class="pc-hero__cta pc-hero__cta--center">
             <a href="{{ route('site.telecharger') }}" class="pc-btn pc-btn--primary pc-btn--lg">
                 <i class="bi bi-download"></i> Télécharger l'application

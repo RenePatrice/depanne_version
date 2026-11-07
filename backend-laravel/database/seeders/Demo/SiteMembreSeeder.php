@@ -30,8 +30,8 @@ final class SiteMembreSeeder extends Seeder
             [
                 'nom' => 'René Patrice MILLIMOUNO',
                 'role' => 'Fondateur & CEO',
-                'bio' => 'Porte la vision de Parema Connect : rendre le dépannage à Conakry '
-                    .'simple, sûr et transparent pour tous.',
+                'bio' => 'Porte la vision de Parema Connect : rendre le dépannage et les travaux '
+                    .'à Conakry simples, sûrs et transparents pour tous.',
                 'ordre' => 1,
                 'actif' => true,
             ],
