@@ -84,13 +84,12 @@ export default function EditeurZones({ zones, urlCreer, urlModifier, urlBasculer
 
         const instance = L.map(conteneur.current, { center: CENTRE_RATOMA, zoom: 13 });
 
-        // Tuiles Carto (données OpenStreetMap, sans clé) : le CDN d'OSM.org
-        // bloque les usages applicatifs, celui de Carto non.
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        // Tuiles OpenStreetMap France (données OSM, sans clé) : infrastructure
+        // indépendante d'osm.org, qui renvoie de vraies tuiles.
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
             maxZoom: 20,
-            subdomains: 'abcd',
-            detectRetina: true,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abc',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> France',
         }).addTo(instance);
 
         couches.current.existantes = L.layerGroup().addTo(instance);
