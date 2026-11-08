@@ -244,7 +244,7 @@ final class TechnicienController extends Controller
         return URL::temporarySignedRoute(
             'documents.piece',
             now()->addMinutes(self::MINUTES_URL_SIGNEE),
-            ['profil' => $profil->user_id, 'piece' => $piece],
+            ['profil' => $profil, 'piece' => $piece],
         );
     }
 }

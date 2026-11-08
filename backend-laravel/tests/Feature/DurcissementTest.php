@@ -72,7 +72,7 @@ it('refuse une pièce justificative sans URL signée', function (): void {
     $profil = profilAvecPieces();
 
     $this->actingAs(adminAvecRole('ADMIN'), 'admin')
-        ->get('/documents/'.$profil->user_id.'/recto')
+        ->get('/documents/'.$profil->getRouteKey().'/recto')
         ->assertStatus(403);   // signature absente
 });
 
@@ -80,7 +80,7 @@ it('refuse une pièce justificative à un visiteur non connecté', function (): 
     $profil = profilAvecPieces();
 
     $this->get(URL::temporarySignedRoute('documents.piece', now()->addMinutes(5), [
-        'profil' => $profil->user_id,
+        'profil' => $profil,
         'piece' => 'recto',
     ]))->assertRedirect();   // renvoyé vers l'écran de connexion
 });
@@ -92,7 +92,7 @@ it('sert la pièce à un administrateur muni d’un lien signé', function (): v
 
     $this->actingAs(adminAvecRole('ADMIN'), 'admin')
         ->get(URL::temporarySignedRoute('documents.piece', now()->addMinutes(5), [
-            'profil' => $profil->user_id,
+            'profil' => $profil,
             'piece' => 'recto',
         ]))
         ->assertOk()
@@ -105,7 +105,7 @@ it('refuse une pièce dont le lien a expiré', function (): void {
     $profil = profilAvecPieces();
 
     $lien = URL::temporarySignedRoute('documents.piece', now()->addMinutes(5), [
-        'profil' => $profil->user_id,
+        'profil' => $profil,
         'piece' => 'recto',
     ]);
 
@@ -121,7 +121,7 @@ it('n’expose aucune pièce en dehors des trois prévues', function (): void {
 
     $this->actingAs(adminAvecRole('ADMIN'), 'admin')
         ->get(URL::temporarySignedRoute('documents.piece', now()->addMinutes(5), [
-            'profil' => $profil->user_id,
+            'profil' => $profil,
             'piece' => 'service_area',
         ]))
         ->assertNotFound();

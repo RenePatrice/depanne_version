@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 final class TechnicianProfile extends Model
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
+
     protected $primaryKey = 'user_id';
 
     public $incrementing = false;
