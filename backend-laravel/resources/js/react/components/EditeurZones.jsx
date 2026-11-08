@@ -84,9 +84,9 @@ export default function EditeurZones({ zones, urlCreer, urlModifier, urlBasculer
 
         const instance = L.map(conteneur.current, { center: CENTRE_RATOMA, zoom: 13 });
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '© OpenStreetMap',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         }).addTo(instance);
 
         couches.current.existantes = L.layerGroup().addTo(instance);
