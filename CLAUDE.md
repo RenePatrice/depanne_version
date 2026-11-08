@@ -131,50 +131,57 @@ Koloma ») par **une zone = un quartier**, porteuse de son champ `commune`
   couverture » signifie maintenant **hors de Conakry** (toute la ville est
   couverte) — les tests concernés visent un point à ~50 km.
 
-## 3. Environnement local
+## 3. Environnement
 
-Outils installés en **mode portable** dans `%USERPROFILE%\devtools` (aucun droit
-administrateur nécessaire, aucun service Windows créé) :
+Le **backend tourne sous Docker** (projet `parema`, `docker-compose.yml`).
+L'image applicative se construit depuis `docker/php` ; PostgreSQL utilise l'image
+officielle `postgis/postgis:17-3.5`.
 
-| Outil | Version | Emplacement |
+| Service | Rôle | Accès |
 |---|---|---|
-| PHP (NTS x64) | 8.4.25 | `devtools\php84` |
-| Composer | 2.10.3 | `devtools\composer` |
-| PostgreSQL | 17.11 | `devtools\pgsql` |
-| PostGIS | 3.6.2 | intégré à `devtools\pgsql` |
-| Node / npm | 22.22.2 / 10.9.7 | installation système |
-
-Le cluster PostgreSQL écoute sur le **port 5433** (le 5432 est occupé par une
-autre instance sur cette machine). Données dans `devtools\pgdata`.
+| `db` | PostgreSQL 17 + PostGIS | port **5433** (→ 5432 interne) |
+| `app` | app web (serveur PHP intégré, pas `artisan serve`) | http://localhost:8000 |
+| `queue` | file d'attente | — |
+| `scheduler` | planificateur | — |
+| `reverb` | WebSockets | ws://localhost:8080 |
 
 Bases : `depanne_moi` (développement) et `depanne_moi_test` (Pest), toutes deux
-avec l'extension PostGIS. Rôle applicatif `depanne`.
+avec PostGIS. Rôle applicatif `depanne`. Les données vivent dans le volume Docker
+`parema_db-data` ; `vendor` et `node_modules` sont des volumes nommés (binaires
+Linux séparés de l'hôte Windows). Node/npm s'utilisent sur l'**hôte** pour les
+assets front.
 
-Détails et réinstallation : [docs/environnement-local.md](docs/environnement-local.md).
+> **Mobile en natif.** Seuls **Flutter** et le **SDK Android** restent installés
+> en portable dans `%USERPROFILE%\devtools` (build mobile, non dockerisé). Les
+> outils backend natifs (PHP, PostgreSQL + PostGIS, Composer) ont été retirés au
+> profit de Docker (8 novembre 2026). Détails : [docs/docker.md](docs/docker.md),
+> réinstallation native éventuelle : [docs/environnement-local.md](docs/environnement-local.md).
 
 ## 4. Commandes
 
-```cmd
-scripts\dev.cmd            :: tout démarrer (PG + web + queue + scheduler + Reverb + Vite)
-scripts\pg-start.cmd       :: démarrer PostgreSQL seul
-scripts\pg-stop.cmd        :: arrêter PostgreSQL
-scripts\pg-psql.cmd        :: session psql sur depanne_moi
-```
-
-Depuis `backend-laravel/` :
+Les scripts `.cmd` pilotent désormais Docker :
 
 ```cmd
-composer setup             :: installation initiale complète
-composer dev               :: les cinq processus de développement
-composer test              :: suite Pest
-composer analyse           :: PHPStan / Larastan (niveau 6)
-composer format            :: Laravel Pint
-
-php artisan migrate --database=pgsql_migrations
-php artisan db:seed
-php artisan reverb:start
-npm run build
+scripts\dev.cmd            :: tout démarrer (db + app + queue + scheduler + reverb) — Ctrl+C arrête
+scripts\pg-start.cmd       :: démarrer la base seule (conteneur db)
+scripts\pg-stop.cmd        :: arrêter la base (les données restent)
+scripts\pg-psql.cmd        :: session psql sur depanne_moi (dans le conteneur db)
 ```
+
+Les commandes backend passent par le conteneur `app` :
+
+```cmd
+docker compose up -d --build                      :: construire et tout démarrer (1er run : long)
+docker compose exec app php artisan test          :: suite Pest
+docker compose exec app composer analyse          :: PHPStan / Larastan (niveau 6)
+docker compose exec app composer format           :: Laravel Pint
+docker compose exec app php artisan migrate --database=pgsql_migrations
+docker compose exec app php artisan db:seed
+docker compose down                               :: arrêter (les données restent)
+```
+
+Les assets front se construisent sur l'**hôte**, hors Docker, depuis
+`backend-laravel\` : `npm run build` (ou `npm run dev` pour le HMR Vite).
 
 > Les migrations passent **toujours** par la connexion `pgsql_migrations`
 > (cf. ADR-0006) : sur Supabase, le pooler en mode transaction ne sait pas

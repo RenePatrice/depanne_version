@@ -1,11 +1,7 @@
 @echo off
-REM Demarre le cluster PostgreSQL 17 + PostGIS local de Parema Connect (port 5433).
-set PGROOT=%USERPROFILE%\devtools\pgsql
-set PGDATA=%USERPROFILE%\devtools\pgdata
-"%PGROOT%\bin\pg_ctl.exe" -D "%PGDATA%" -l "%PGDATA%\server.log" status >nul 2>&1
-if %ERRORLEVEL%==0 (
-    echo PostgreSQL tourne deja sur le port 5433.
-) else (
-    start "" /B "%PGROOT%\bin\pg_ctl.exe" -D "%PGDATA%" -l "%PGDATA%\server.log" start
-    echo PostgreSQL demarre sur le port 5433.
-)
+REM Demarre uniquement la base PostgreSQL 17 + PostGIS (Docker, port 5433).
+REM Les donnees vivent dans le volume Docker `parema_db-data`.
+cd /d "%~dp0.."
+docker version >nul 2>&1 || (echo Docker Desktop ne repond pas : demarre-le d'abord. & exit /b 1)
+docker compose up -d db
+echo PostgreSQL disponible sur le port 5433 (base depanne_moi).
