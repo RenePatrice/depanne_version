@@ -50,8 +50,10 @@ final class SiteVitrine
     }
 
     /**
-     * Noms des zones de service actives (réelles, depuis la base). Sert la
-     * section « couverture » du site : on n'annonce que ce qui existe.
+     * Communes de Conakry réellement couvertes (au moins un quartier actif).
+     * Sert la section « couverture » du site : on travaille par quartier, mais
+     * on annonce au public les communes où l'on est présent. Le nombre de
+     * quartiers, lui, est donné par la carte des statistiques.
      *
      * @return array<int, string>
      */
@@ -59,9 +61,11 @@ final class SiteVitrine
     {
         return DB::table('zones')
             ->where('is_active', true)
-            ->orderBy('name')
-            ->pluck('name')
-            ->map(static fn ($n): string => (string) $n)
+            ->whereNotNull('commune')
+            ->distinct()
+            ->orderBy('commune')
+            ->pluck('commune')
+            ->map(static fn ($c): string => (string) $c)
             ->all();
     }
 
@@ -99,7 +103,7 @@ final class SiteVitrine
      * Chiffres réels de la plateforme — ce que le site « relié au dashboard »
      * donne à voir au public. Jamais inventés : comptés en base.
      *
-     * @return array<int, array{cle: string, valeur: int|float, suffixe: string, libelle: string, icone: string}>
+     * @return array<int, array{cle: string, valeur: int|float, suffixe: string, libelle: string, icone: string, texte: string|null}>
      */
     public function statistiques(): array
     {
@@ -113,7 +117,10 @@ final class SiteVitrine
 
         $quartiers = (int) DB::table('zones')->where('is_active', true)->count();
 
-        $note = (float) DB::table('reviews')->avg('rating');
+        // La satisfaction n'est affichée que si de vrais avis existent. Sans
+        // avis, on l'annonce comme telle — jamais un 5,0 inventé.
+        $nombreAvis = (int) DB::table('reviews')->count();
+        $note = $nombreAvis > 0 ? round((float) DB::table('reviews')->avg('rating'), 1) : 0.0;
 
         return [
             [
@@ -122,6 +129,7 @@ final class SiteVitrine
                 'suffixe' => '',
                 'libelle' => 'Techniciens vérifiés',
                 'icone' => 'bi-patch-check',
+                'texte' => null,
             ],
             [
                 'cle' => 'interventions',
@@ -129,6 +137,7 @@ final class SiteVitrine
                 'suffixe' => '',
                 'libelle' => 'Interventions réalisées',
                 'icone' => 'bi-tools',
+                'texte' => null,
             ],
             [
                 'cle' => 'quartiers',
@@ -136,13 +145,15 @@ final class SiteVitrine
                 'suffixe' => '',
                 'libelle' => 'Quartiers couverts',
                 'icone' => 'bi-geo-alt',
+                'texte' => null,
             ],
             [
                 'cle' => 'note',
-                'valeur' => $note > 0 ? round($note, 1) : 5.0,
-                'suffixe' => '/5',
-                'libelle' => 'Satisfaction client',
+                'valeur' => $note,
+                'suffixe' => $nombreAvis > 0 ? '/5' : '',
+                'libelle' => $nombreAvis > 0 ? 'Satisfaction client' : 'En attente d’avis',
                 'icone' => 'bi-star-fill',
+                'texte' => $nombreAvis > 0 ? null : '—',
             ],
         ];
     }

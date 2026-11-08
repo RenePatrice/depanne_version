@@ -84,10 +84,14 @@
         @foreach ($statistiques as $stat)
             <div class="pc-stat" data-reveal data-reveal-delay="{{ $loop->index % 4 }}">
                 <div class="pc-stat__icon"><i class="bi {{ $stat['icone'] }}" aria-hidden="true"></i></div>
-                <div class="pc-stat__num"
-                     data-counter="{{ $stat['valeur'] }}"
-                     data-suffix="{{ $stat['suffixe'] }}"
-                     data-decimals="{{ $stat['cle'] === 'note' ? 1 : 0 }}">0</div>
+                @if (($stat['texte'] ?? null) !== null)
+                    <div class="pc-stat__num">{{ $stat['texte'] }}</div>
+                @else
+                    <div class="pc-stat__num"
+                         data-counter="{{ $stat['valeur'] }}"
+                         data-suffix="{{ $stat['suffixe'] }}"
+                         data-decimals="{{ $stat['cle'] === 'note' ? 1 : 0 }}">0</div>
+                @endif
                 <div class="pc-stat__label">{{ $stat['libelle'] }}</div>
             </div>
         @endforeach
@@ -434,7 +438,7 @@
                 </div>
                 <div class="pc-download__meta">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                    Android 7.0+ · ~55 Mo · sans publicité
+                    Android 7.0+ · sans publicité
                 </div>
             @else
                 <div class="pc-dlsoon">
@@ -541,6 +545,53 @@
     </div>
 </section>
 
+{{-- ======================= DEVENIR TECHNICIEN ======================= --}}
+<section class="pc-section pc-section--soft" id="devenir-technicien">
+    <div class="pc-container">
+        <div class="pc-section__head" data-reveal>
+            <span class="pc-eyebrow">Rejoignez le réseau</span>
+            <h2>Devenir technicien partenaire</h2>
+            <p>Plombier, électricien, maçon, peintre, menuisier ou carreleur ? Recevez des demandes près de chez vous et développez votre activité. L'inscription se fait dans l'application, en quelques minutes.</p>
+        </div>
+
+        <div class="pc-steps">
+            @php
+                $svgTech = [
+                    '<path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/>',
+                    '<rect x="4" y="3" width="16" height="18" rx="2.2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+                    '<path d="M12 3l7 3v5c0 4.6-3.1 7.8-7 9-3.9-1.2-7-4.4-7-9V6z"/><path d="M8.5 12l2.4 2.4L15.5 10"/>',
+                ];
+            @endphp
+            @foreach ([
+                ['Téléchargez et inscrivez-vous', 'Installez l\'app, créez votre compte technicien et choisissez vos métiers. Vous fixez vous-même vos tarifs par prestation.'],
+                ['Déposez votre dossier', 'Pièce d\'identité et justificatifs : notre équipe vérifie chaque profil avant la mise en ligne.'],
+                ['Recevez des demandes', 'Une fois validé, les clients de votre zone vous trouvent. Paiement sécurisé, portefeuille et retraits clairs.'],
+            ] as $i => [$titre, $texte])
+                <div class="pc-step" data-reveal data-reveal-delay="{{ $i % 3 }}">
+                    <svg class="pc-step__corner" viewBox="0 0 40 40" fill="currentColor" aria-hidden="true">
+                        <circle cx="5" cy="5" r="2.2"/><circle cx="20" cy="5" r="2.2"/><circle cx="35" cy="5" r="2.2"/>
+                        <circle cx="5" cy="20" r="2.2"/><circle cx="20" cy="20" r="2.2"/><circle cx="35" cy="20" r="2.2"/>
+                        <circle cx="5" cy="35" r="2.2"/><circle cx="20" cy="35" r="2.2"/><circle cx="35" cy="35" r="2.2"/>
+                    </svg>
+                    <span class="pc-step__num">{{ sprintf('%02d', $i + 1) }}</span>
+                    <span class="pc-step__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $svgTech[$i] !!}</svg>
+                    </span>
+                    <h3>{{ $titre }}</h3>
+                    <p>{{ $texte }}</p>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="pc-devenir__cta" data-reveal>
+            @include('site.partials.btn-telecharger', ['size' => 'pc-btn--lg', 'libelle' => 'Télécharger et m\'inscrire', 'libelleBientot' => 'Bientôt disponible'])
+            <a href="{{ route('site.contact') }}" class="pc-btn pc-btn--ghost pc-btn--lg">
+                <i class="bi bi-whatsapp" aria-hidden="true"></i> Une question ? Contactez-nous
+            </a>
+        </div>
+    </div>
+</section>
+
 {{-- ======================= ÉQUIPE ======================= --}}
 <section class="pc-section" id="equipe">
     <div class="pc-container">
@@ -598,12 +649,32 @@
         </div>
 
         @php
-            $labels = [];
-            foreach ($zones as $z) {
-                $parts = preg_split('/[—–\-]/u', (string) $z) ?: [];
-                $labels[] = trim($parts[0] ?? (string) $z);
+            // Une épingle par commune réellement couverte : la liste vient du
+            // back-office ($zones = communes actives). Les positions sont fixées
+            // sur la carte stylisée, étalées pour que les étiquettes ne se
+            // chevauchent pas, à l'écart du trait de côte (bas) et du badge.
+            $positions = [
+                'Dixinn' => ['x' => 120, 'y' => 108, 'c' => '#16a34a'],
+                'Ratoma' => ['x' => 250, 'y' => 105, 'c' => '#f2854c'],
+                'Kaloum' => ['x' => 80,  'y' => 200, 'c' => '#2f6bed'],
+                'Matam'  => ['x' => 200, 'y' => 205, 'c' => '#0ea5a3'],
+                'Matoto' => ['x' => 335, 'y' => 165, 'c' => '#7c6cf0'],
+            ];
+            $anims = ['', ' pc-zones__ping--2', ' pc-zones__ping--3'];
+            $pinAnims = ['', ' pc-zones__pin--2', ' pc-zones__pin--3'];
+            $pins = [];
+            $i = 0;
+            foreach ($zones as $commune) {
+                if (! isset($positions[$commune])) {
+                    continue;
+                }
+                $pins[] = $positions[$commune] + [
+                    'lib' => $commune,
+                    'mod' => $anims[$i % 3],
+                    'pmod' => $pinAnims[$i % 3],
+                ];
+                $i++;
             }
-            $labels = array_pad(array_slice($labels, 0, 3), 3, '');
         @endphp
         <div class="pc-zones__visual" data-reveal data-reveal-delay="1">
             <svg class="pc-zones__map" viewBox="0 0 400 330" fill="none" aria-hidden="true">
@@ -640,17 +711,10 @@
                     </g>
                 </g>
 
-                {{-- Itinéraire animé reliant les zones --}}
-                <path class="pc-zones__route" d="M120 147 Q235 150 305 195 Q248 242 196 245"/>
+                {{-- Itinéraire animé traversant la presqu'île --}}
+                <path class="pc-zones__route" d="M80 200 Q150 150 250 120 Q310 130 335 165"/>
 
                 {{-- Épingles : groupe EXTERNE = position, groupe INTERNE = flottement --}}
-                @php
-                    $pins = [
-                        ['x' => 120, 'y' => 98, 'c' => '#2f6bed', 'mod' => '', 'lib' => $labels[0]],
-                        ['x' => 305, 'y' => 146, 'c' => '#16a34a', 'mod' => ' pc-zones__ping--2', 'pmod' => ' pc-zones__pin--2', 'lib' => $labels[1]],
-                        ['x' => 196, 'y' => 196, 'c' => '#f2854c', 'mod' => ' pc-zones__ping--3', 'pmod' => ' pc-zones__pin--3', 'lib' => $labels[2]],
-                    ];
-                @endphp
                 @foreach ($pins as $p)
                     <g class="pc-zones__marker" transform="translate({{ $p['x'] }} {{ $p['y'] }})">
                         <ellipse cx="0" cy="52" rx="11" ry="3.5" fill="#141f38" opacity="0.12"/>
@@ -672,7 +736,7 @@
 
             <div class="pc-zones__badge">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.3 7-11a7 7 0 1 0-14 0c0 5.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-                <span><strong>{{ count($zones) }}</strong> zone{{ count($zones) > 1 ? 's' : '' }} active{{ count($zones) > 1 ? 's' : '' }}</span>
+                <span><strong>{{ count($zones) }}</strong> commune{{ count($zones) > 1 ? 's' : '' }} couverte{{ count($zones) > 1 ? 's' : '' }}</span>
             </div>
         </div>
     </div>

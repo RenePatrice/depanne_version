@@ -65,7 +65,9 @@ final class VitrineController extends Controller
     {
         $this->enregistrer->execute(TypeEvenement::CLIC_DEVENIR_TECHNICIEN, $request);
 
-        return redirect()->route('site.accueil')->withFragment('telecharger');
+        // Le clic est mesuré en back-office, puis l'internaute arrive sur la
+        // section qui explique concrètement comment rejoindre le réseau.
+        return redirect()->route('site.accueil')->withFragment('devenir-technicien');
     }
 
     public function contact(Request $request): RedirectResponse

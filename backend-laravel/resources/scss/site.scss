@@ -234,6 +234,7 @@ img, svg { max-width: 100%; display: block; }
 
 // --- Étapes ------------------------------------------------------------------
 .pc-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
+.pc-devenir__cta { display: flex; flex-wrap: wrap; gap: 0.85rem; justify-content: center; margin-top: clamp(1.8rem, 3vw, 2.6rem); }
 .pc-step { position: relative; background: #fff; border: 1px solid var(--pc-line); border-radius: var(--pc-radius); padding: 2.4rem 1.6rem 1.8rem; box-shadow: var(--pc-shadow-sm); transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; overflow: hidden;
   h3 { font-size: 1.2rem; margin-top: 1rem; } p { margin-top: 0.6rem; color: var(--pc-muted); } }
 .pc-step::after { content: ''; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--pc-grad); transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; }
