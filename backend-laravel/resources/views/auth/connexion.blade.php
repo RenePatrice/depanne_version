@@ -31,8 +31,7 @@
     <div class="dm-auth__card">
 
         <div class="dm-auth__brand">
-            <img src="{{ asset('images/logo-mark.png') }}" alt="Parema Connect">
-            <span class="fw-semibold" style="font-family:Poppins,sans-serif">Parema Connect</span>
+            <span class="dm-auth__logo"><img src="{{ asset('images/logo.png') }}" alt="Parema Connect"></span>
         </div>
 
         <h1 class="h5 text-center mb-4">Connexion</h1>

@@ -93,7 +93,7 @@ final class FinanceService
             'pas' => $parSemaine ? 'semaine' : 'jour',
             'series' => [
                 ['name' => 'Commission plateforme', 'data' => $commissions, 'color' => '#16A34A'],
-                ['name' => 'Part technicien', 'data' => $nets, 'color' => '#1B6FF3'],
+                ['name' => 'Part technicien', 'data' => $nets, 'color' => '#2F6BED'],
             ],
         ];
     }

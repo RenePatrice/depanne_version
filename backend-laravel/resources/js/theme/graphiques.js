@@ -129,7 +129,7 @@ function optionsHeatmap(donnees, couleurs) {
             stops: [
                 [0, couleurs.vide],
                 [0.4, '#93C5FD'],
-                [1, '#1B6FF3'],
+                [1, '#2F6BED'],
             ],
             labels: { style: { color: couleurs.estompe } },
         },

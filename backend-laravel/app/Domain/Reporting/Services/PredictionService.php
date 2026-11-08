@@ -85,7 +85,7 @@ final class PredictionService
         return [
             'categories' => $categories,
             'series' => [
-                ['name' => 'Demandes (réel)', 'data' => $historiqueAligne, 'color' => '#1B6FF3'],
+                ['name' => 'Demandes (réel)', 'data' => $historiqueAligne, 'color' => '#2F6BED'],
                 [
                     'name' => 'Prévision',
                     'data' => $previsionAlignee,

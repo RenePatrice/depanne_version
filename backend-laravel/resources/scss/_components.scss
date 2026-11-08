@@ -44,11 +44,11 @@
   place-items: center;
   font-size: 1.2rem;
 
-  &.is-primary { background: rgba(27, 111, 243, 0.12); color: dm.$dm-primary; }
+  &.is-primary { background: rgba(47, 107, 237, 0.12); color: dm.$dm-primary; }
   &.is-success { background: rgba(22, 163, 74, 0.12); color: dm.$dm-success; }
   &.is-warning { background: rgba(245, 158, 11, 0.14); color: #B45309; }
   &.is-danger { background: rgba(220, 38, 38, 0.12); color: dm.$dm-danger; }
-  &.is-tech { background: rgba(255, 122, 26, 0.12); color: dm.$dm-accent-tech; }
+  &.is-tech { background: rgba(242, 133, 76, 0.12); color: dm.$dm-accent-tech; }
 }
 
 [data-bs-theme='dark'] .dm-stat__icon {
@@ -154,7 +154,7 @@
   place-items: center;
   font-size: 2rem;
   color: dm.$dm-primary;
-  background: rgba(27, 111, 243, 0.1);
+  background: rgba(47, 107, 237, 0.1);
 }
 
 .dm-empty__title {
@@ -204,7 +204,7 @@
   border-radius: dm.$dm-radius-sm;
 
   &:focus {
-    box-shadow: 0 0 0 4px rgba(27, 111, 243, 0.14);
+    box-shadow: 0 0 0 4px rgba(47, 107, 237, 0.14);
     border-color: dm.$dm-primary;
   }
 }
@@ -222,7 +222,7 @@
 }
 
 .btn-primary {
-  box-shadow: 0 6px 16px -8px rgba(27, 111, 243, 0.9);
+  box-shadow: 0 6px 16px -8px rgba(47, 107, 237, 0.9);
 }
 
 // --- Écran de connexion ------------------------------------------------------
@@ -233,8 +233,8 @@
   place-items: center;
   padding: dm.$dm-space-6 dm.$dm-space-4;
   background:
-    radial-gradient(1100px 520px at 15% -10%, rgba(27, 111, 243, 0.16), transparent 60%),
-    radial-gradient(900px 460px at 100% 110%, rgba(255, 122, 26, 0.12), transparent 62%),
+    radial-gradient(1100px 520px at 15% -10%, rgba(47, 107, 237, 0.16), transparent 60%),
+    radial-gradient(900px 460px at 100% 110%, rgba(242, 133, 76, 0.12), transparent 62%),
     var(--dm-shell-bg);
 }
 
@@ -256,13 +256,23 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: dm.$dm-space-2;
   margin-bottom: dm.$dm-space-6;
   text-align: center;
+}
+
+// Le logo a un fond blanc : on le pose sur une pastille blanche pour qu'il
+// reste net quel que soit le thème (clair ou sombre).
+.dm-auth__logo {
+  display: inline-flex;
+  padding: dm.$dm-space-3 dm.$dm-space-4;
+  background: #fff;
+  border-radius: dm.$dm-radius-md;
+  box-shadow: dm.$dm-shadow-1;
 
   img {
-    width: 52px;
-    height: 52px;
+    width: auto;
+    height: 58px;
+    display: block;
   }
 }
 
@@ -270,7 +280,7 @@
 // Aérés : la densité par défaut de Bootstrap rend les DataTables illisibles.
 
 .table {
-  --bs-table-hover-bg: rgba(27, 111, 243, 0.045);
+  --bs-table-hover-bg: rgba(47, 107, 237, 0.045);
 
   > :not(caption) > * > * {
     padding: 0.75rem 0.9rem;
@@ -554,7 +564,7 @@
 
 .dm-chat__bulle--technicien {
   align-self: flex-end;
-  background: rgba(27, 111, 243, 0.1);
+  background: rgba(47, 107, 237, 0.1);
 }
 
 .dm-chat__bulle--signale {

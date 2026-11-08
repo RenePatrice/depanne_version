@@ -21,9 +21,9 @@ import 'leaflet/dist/leaflet.css';
 const CENTRE_RATOMA = [9.595, -13.635];
 
 const COULEURS = {
-    active: { color: '#1B6FF3', fillColor: '#1B6FF3' },
+    active: { color: '#2F6BED', fillColor: '#2F6BED' },
     inactive: { color: '#64748B', fillColor: '#64748B' },
-    edition: { color: '#FF7A1A', fillColor: '#FF7A1A' },
+    edition: { color: '#F2854C', fillColor: '#F2854C' },
 };
 
 function formatGnf(montant) {
@@ -62,7 +62,7 @@ export default function EditeurZones({ zones, urlCreer, urlModifier, urlBasculer
 
         points.forEach((point, index) => {
             const marqueur = L.circleMarker(point, {
-                radius: 6, color: '#FF7A1A', fillColor: '#fff', fillOpacity: 1, weight: 2,
+                radius: 6, color: '#F2854C', fillColor: '#fff', fillOpacity: 1, weight: 2,
             });
 
             marqueur.bindTooltip(`Sommet ${index + 1} — clic droit pour retirer`, { direction: 'top' });

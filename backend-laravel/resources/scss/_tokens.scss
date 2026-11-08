@@ -1,13 +1,20 @@
 // =============================================================================
-// DÉPANNE-MOI — jetons de design (source unique)
-// Ce fichier est la contrepartie web de mobile-flutter/lib/design_system/
-// design_tokens.dart : toute modification doit être répercutée dans les deux.
+// PAREMA CONNECT — jetons de design du back-office
+//
+// Le back-office suit désormais la palette **adoucie du site vitrine** public,
+// pour l'harmonie visuelle entre les deux faces web (bleu #2F6BED, bleu foncé
+// #1E51C9, accent corail #F2854C, ombres neutres).
+//
+// L'application mobile (mobile-flutter/lib/design_system/design_tokens.dart)
+// conserve la palette de marque d'origine (#1B6FF3 / #0B4CB8 / #FF7A1A), qui
+// reste gardée par le test de parité Flutter. Pour aligner aussi le mobile,
+// porter ces valeurs dans design_tokens.dart et le test.
 // =============================================================================
 
-// --- Couleurs de marque ------------------------------------------------------
-$dm-primary:      #1B6FF3;  // bleu confiance — mode Client
-$dm-primary-dark: #0B4CB8;
-$dm-accent-tech:  #FF7A1A;  // orange chantier — mode Technicien
+// --- Couleurs de marque (alignées sur le site public) ------------------------
+$dm-primary:      #2F6BED;  // bleu confiance — mode Client
+$dm-primary-dark: #1E51C9;
+$dm-accent-tech:  #F2854C;  // accent corail — mode Technicien
 
 // --- Couleurs sémantiques ----------------------------------------------------
 $dm-success: #16A34A;
@@ -51,6 +58,6 @@ $dm-space-8: 2rem;
 $dm-space-12: 3rem;
 
 // --- Ombres : trois niveaux diffus, teintés primary, jamais noir pur ---------
-$dm-shadow-1: 0 1px 2px rgba(27, 111, 243, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
-$dm-shadow-2: 0 4px 12px -2px rgba(27, 111, 243, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.05);
-$dm-shadow-3: 0 16px 40px -12px rgba(27, 111, 243, 0.14), 0 4px 12px -4px rgba(15, 23, 42, 0.06);
+$dm-shadow-1: 0 1px 2px rgba(47, 107, 237, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+$dm-shadow-2: 0 4px 12px -2px rgba(47, 107, 237, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.05);
+$dm-shadow-3: 0 16px 40px -12px rgba(47, 107, 237, 0.14), 0 4px 12px -4px rgba(15, 23, 42, 0.06);

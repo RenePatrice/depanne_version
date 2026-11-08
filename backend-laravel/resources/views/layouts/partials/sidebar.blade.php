@@ -5,13 +5,10 @@
 <aside class="dm-sidebar" aria-label="Navigation principale">
 
     <div class="dm-sidebar__brand">
-        <span class="dm-sidebar__logo" aria-hidden="true">
-            <img src="{{ asset('images/logo-mark.png') }}" alt="" width="28" height="28">
+        <span class="dm-sidebar__logo">
+            <img src="{{ asset('images/logo-mark.png') }}" alt="Parema Connect" width="28" height="28">
         </span>
-        <span>
-            <span class="dm-sidebar__name d-block">Parema Connect</span>
-            <span class="dm-sidebar__baseline">Back-office · Conakry</span>
-        </span>
+        <span class="dm-sidebar__baseline">Back-office · Conakry</span>
     </div>
 
     <nav class="dm-sidebar__nav">

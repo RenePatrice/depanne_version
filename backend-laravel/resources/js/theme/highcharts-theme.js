@@ -1,7 +1,7 @@
 import Highcharts from 'highcharts';
 
 // Palette dérivée des jetons de design (resources/scss/_tokens.scss).
-const PALETTE = ['#1B6FF3', '#FF7A1A', '#16A34A', '#F59E0B', '#0EA5E9', '#8B5CF6', '#DC2626', '#64748B'];
+const PALETTE = ['#2F6BED', '#F2854C', '#16A34A', '#F59E0B', '#0EA5E9', '#8B5CF6', '#DC2626', '#64748B'];
 
 /**
  * Thème Highcharts global : police Inter, crédit désactivé, tooltips arrondis,
@@ -38,7 +38,7 @@ export function applyHighchartsTheme() {
         },
         legend: {
             itemStyle: { color: ink, fontWeight: '500', fontSize: '12px' },
-            itemHoverStyle: { color: '#1B6FF3' },
+            itemHoverStyle: { color: '#2F6BED' },
         },
         tooltip: {
             backgroundColor: surface,

@@ -161,7 +161,7 @@ final class SiteVitrine
             ->map(static fn ($c): array => [
                 'nom' => (string) $c->name,
                 'icone' => (string) ($c->icon ?: 'bi-tools'),
-                'couleur' => (string) ($c->color ?: '#1B6FF3'),
+                'couleur' => (string) ($c->color ?: '#2F6BED'),
             ])
             ->all();
     }

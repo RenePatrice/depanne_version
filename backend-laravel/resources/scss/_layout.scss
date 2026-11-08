@@ -174,12 +174,12 @@ body.dm-shell {
   }
 
   &:focus-visible {
-    outline: 2px solid rgba(27, 111, 243, 0.8);
+    outline: 2px solid rgba(47, 107, 237, 0.8);
     outline-offset: 2px;
   }
 
   &.is-active {
-    background: rgba(27, 111, 243, 0.16);
+    background: rgba(47, 107, 237, 0.16);
     color: var(--dm-sidebar-ink-strong);
 
     // Repère d'accent : la barre à gauche indique la page courante sans
@@ -211,7 +211,7 @@ body.dm-shell {
   letter-spacing: 0.04em;
   padding: 0.1rem 0.35rem;
   border-radius: dm.$dm-radius-pill;
-  background: rgba(255, 122, 26, 0.16);
+  background: rgba(242, 133, 76, 0.16);
   color: #FFB27A;
   flex: none;
 }

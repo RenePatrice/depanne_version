@@ -24,7 +24,7 @@ final class UpsertServiceCategory
             'name' => trim((string) $donnees['name']),
             'description' => $donnees['description'] ?? null,
             'icon' => $donnees['icon'] ?? 'bi-tools',
-            'color' => $donnees['color'] ?? '#1B6FF3',
+            'color' => $donnees['color'] ?? '#2F6BED',
             'sort_order' => (int) ($donnees['sort_order'] ?? 0),
             'is_active' => (bool) ($donnees['is_active'] ?? true),
         ];

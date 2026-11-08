@@ -22,7 +22,7 @@ const heure = new Intl.DateTimeFormat('fr-FR', {
 
 const COULEUR_TECHNICIEN = {
     disponible: '#16A34A',
-    intervention: '#FF7A1A',
+    intervention: '#F2854C',
 };
 
 function pastille(couleur, pulsante = false) {

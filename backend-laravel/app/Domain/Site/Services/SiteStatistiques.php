@@ -83,7 +83,7 @@ final class SiteStatistiques
         return [
             'categories' => $categories,
             'series' => [
-                ['name' => 'Visites', 'data' => $data, 'color' => '#1B6FF3'],
+                ['name' => 'Visites', 'data' => $data, 'color' => '#2F6BED'],
             ],
         ];
     }

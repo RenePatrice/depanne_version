@@ -42,7 +42,7 @@ enum Specialty: string
     public function color(): string
     {
         return match ($this) {
-            self::PLOMBERIE => '#1B6FF3',
+            self::PLOMBERIE => '#2F6BED',
             self::ELECTRICITE => '#F59E0B',
             self::MACONNERIE => '#8B5E3C',
             self::PEINTURE => '#7C3AED',

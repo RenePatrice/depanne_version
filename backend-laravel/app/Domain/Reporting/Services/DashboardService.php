@@ -221,7 +221,7 @@ final class DashboardService
         return [
             'categories' => $categories,
             'series' => [
-                ['name' => 'Demandes publiées', 'data' => $total, 'color' => '#1B6FF3'],
+                ['name' => 'Demandes publiées', 'data' => $total, 'color' => '#2F6BED'],
                 ['name' => 'Interventions clôturées', 'data' => $abouties, 'color' => '#16A34A'],
                 ['name' => 'Sans réponse', 'data' => $sansReponse, 'color' => '#DC2626'],
             ],
@@ -294,7 +294,7 @@ final class DashboardService
             'categories' => $categories,
             'pas' => $parSemaine ? 'semaine' : 'jour',
             'series' => [
-                ['name' => 'Part technicien', 'data' => $net, 'color' => '#1B6FF3'],
+                ['name' => 'Part technicien', 'data' => $net, 'color' => '#2F6BED'],
                 ['name' => 'Commission plateforme', 'data' => $commission, 'color' => '#16A34A'],
             ],
         ];
