@@ -14,11 +14,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Catalogue &amp; tarifs</h2>
-            <p class="dm-page-head__lede">
-                Les prix modifiés ici ne s'appliquent qu'aux <strong>demandes à venir</strong> :
-                chaque ticket porte son propre instantané de prix, si bien qu'un changement de
-                grille ne réécrit jamais une intervention déjà publiée.
-            </p>
+            
         </div>
 
         @if ($peutModifier)

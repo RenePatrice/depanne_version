@@ -8,12 +8,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Carte live</h2>
-            <p class="dm-page-head__lede">
-                Techniciens en ligne et interventions en cours, en temps réel.
-                Les positions sont poussées par le serveur WebSocket ; si celui-ci
-                n'est pas joignable, la carte bascule sur un rafraîchissement périodique
-                et le signale.
-            </p>
+           
         </div>
     </div>
 

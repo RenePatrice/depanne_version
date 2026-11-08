@@ -10,11 +10,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Demandes de retrait</h2>
-            <p class="dm-page-head__lede">
-                Workflow : <strong>En attente → Approuvé → Payé</strong>, ou rejeté avec motif.
-                Le solde du technicien ne bouge qu'au versement effectif — approuver, c'est décider ;
-                payer, c'est sortir l'argent.
-            </p>
+            
         </div>
 
         <div class="d-flex gap-3 align-self-center">

@@ -14,11 +14,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Configuration</h2>
-            <p class="dm-page-head__lede">
-                Tout ce qui est réglable ici commande le calcul de prix, le matching ou la
-                répartition financière. Rien de tout cela n'est codé en dur : c'est ce
-                formulaire qui fait autorité.
-            </p>
+           
         </div>
     </div>
 

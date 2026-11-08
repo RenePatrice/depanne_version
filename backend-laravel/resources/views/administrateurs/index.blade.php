@@ -12,11 +12,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Comptes du back-office</h2>
-            <p class="dm-page-head__lede">
-                Ce module n'est visible que des administrateurs. Les comptes ne se
-                suppriment pas — ils se désactivent, pour que le journal d'audit reste
-                lisible. Les mots de passe sont hachés en argon2id.
-            </p>
+            
         </div>
     </div>
 

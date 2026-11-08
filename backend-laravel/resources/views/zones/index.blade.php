@@ -12,11 +12,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Zones de déploiement</h2>
-            <p class="dm-page-head__lede">
-                Chaque zone porte son emprise et sa grille tarifaire de déplacement :
-                tarif de base, prix au kilomètre et kilomètres inclus. Ces trois valeurs
-                sont figées sur le ticket au moment de la publication.
-            </p>
+           
         </div>
     </div>
 

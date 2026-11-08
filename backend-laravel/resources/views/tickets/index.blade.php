@@ -8,10 +8,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Tickets</h2>
-            <p class="dm-page-head__lede">
-                Toutes les demandes d'intervention. Le tri, la recherche et la pagination sont
-                calculés en base : la table ne charge jamais plus que la page affichée.
-            </p>
+           
         </div>
     </div>
 

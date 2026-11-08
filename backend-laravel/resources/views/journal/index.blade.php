@@ -8,12 +8,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Journal d'audit</h2>
-            <p class="dm-page-head__lede">
-                Toutes les actions administrateur, horodatées et attribuées.
-                Ce journal est en <strong>lecture seule</strong> : aucune route ne permet de
-                le modifier ni de l'effacer — une trace que l'on peut réécrire ne vaut rien
-                le jour où elle sert.
-            </p>
+           
         </div>
         <span class="dm-badge dm-badge--secondary align-self-center">
             {{ number_format($total, 0, ',', ' ') }} entrées

@@ -8,10 +8,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Mon profil</h2>
-            <p class="dm-page-head__lede">
-                Change ton mot de passe ici. L'actuel est demandé : une session laissée
-                ouverte sur un poste partagé ne doit pas suffire à le modifier.
-            </p>
+            
         </div>
     </div>
 

@@ -12,10 +12,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Site vitrine</h2>
-            <p class="dm-page-head__lede">
-                La plateforme web publique : sa fréquentation, ses textes, ses liens de
-                téléchargement et l'équipe présentée. <a href="{{ route('site.accueil') }}" target="_blank" rel="noopener">Voir le site →</a>
-            </p>
+            
         </div>
 
         <nav class="dm-periodes" aria-label="Période d'analyse">

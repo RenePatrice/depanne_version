@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0B4CB8">
 
-    <title>@yield('titre', 'Parema Connect — Dépannage & travaux de confiance à Conakry')</title>
+    <title>@yield('titre', 'Parema Connect')</title>
     <meta name="description"
           content="@yield('description', 'Parema Connect met en relation clients et techniciens vérifiés à Conakry : plomberie, électricité, maçonnerie et plus. Comparez, choisissez, payez en toute sécurité.')">
     <link rel="canonical" href="{{ url()->current() }}">

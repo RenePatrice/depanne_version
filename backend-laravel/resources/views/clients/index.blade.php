@@ -8,10 +8,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Clients</h2>
-            <p class="dm-page-head__lede">
-                Comptes clients, historique et dépenses. La recherche porte sur le nom
-                comme sur le numéro de téléphone.
-            </p>
+           
         </div>
     </div>
 

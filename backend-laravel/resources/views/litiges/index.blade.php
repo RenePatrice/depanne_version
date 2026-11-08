@@ -10,10 +10,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Litiges &amp; réclamations</h2>
-            <p class="dm-page-head__lede">
-                La file est triée par <strong>échéance de traitement</strong>, pas par ordre
-                d'arrivée : ce qui est en retard remonte, puis ce qui va expirer.
-            </p>
+            
         </div>
 
         <div class="d-flex gap-3 align-self-center">

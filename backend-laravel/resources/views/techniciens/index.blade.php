@@ -8,10 +8,7 @@
     <div class="dm-page-head">
         <div class="flex-grow-1">
             <h2 class="dm-page-head__title">Techniciens</h2>
-            <p class="dm-page-head__lede">
-                Les quatre statistiques qui pèsent dans le score de matching sont visibles ici :
-                note, interventions, taux d'acceptation et taux d'annulation.
-            </p>
+            
         </div>
 
         <a href="{{ route('techniciens.validation') }}" class="btn btn-primary align-self-center">
