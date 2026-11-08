@@ -289,7 +289,7 @@ export default function EditeurZones({ zones, urlCreer, urlModifier, urlBasculer
                     )}
 
                     {zones.map((zone) => (
-                        <div key={zone.id} className="d-flex align-items-center gap-2 py-2 border-bottom">
+                        <div key={zone.id} className="d-flex align-items-start gap-2 py-2 border-bottom">
                             <div className="flex-grow-1 min-w-0">
                                 <div className="fw-medium text-truncate">{zone.nom}</div>
                                 <div className="small text-body-secondary">
@@ -298,7 +298,7 @@ export default function EditeurZones({ zones, urlCreer, urlModifier, urlBasculer
                                 </div>
                             </div>
 
-                            <span className={`dm-badge ${zone.active ? 'dm-badge--success' : 'dm-badge--secondary'}`}>
+                            <span className={`dm-badge flex-shrink-0 ${zone.active ? 'dm-badge--success' : 'dm-badge--secondary'}`}>
                                 {zone.active ? 'Active' : 'Inactive'}
                             </span>
 

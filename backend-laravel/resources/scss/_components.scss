@@ -4,6 +4,17 @@
 // =============================================================================
 @use 'tokens' as dm;
 
+// --- Utilitaires manquants de Bootstrap 5.3 ----------------------------------
+// `.min-w-0` n'existe pas en standard : sans elle, un enfant flex garde sa
+// largeur minimale de contenu, `text-truncate` ne tronque pas et le texte
+// déborde des cartes. On la définit (c'est la clé de la responsivité des
+// cartes KPI, équipe, zones, flux…).
+.min-w-0 { min-width: 0 !important; }
+
+// Coupe les très longues chaînes insécables (e-mails, références, URLs) au lieu
+// de les laisser déborder.
+.text-break-anywhere { overflow-wrap: anywhere; word-break: break-word; }
+
 // --- Cartes ------------------------------------------------------------------
 // Les bordures et les ombres sont dépensées par rôle : une carte de contenu est
 // posée, une carte de repère est légèrement soulevée. Tout arrondir et tout

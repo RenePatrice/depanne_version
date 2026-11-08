@@ -174,7 +174,7 @@
             @foreach ($equipe as $membre)
                 <div class="col-md-6 col-xl-4">
                     <div class="dm-card p-3 h-100 border">
-                        <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="d-flex align-items-start gap-3 mb-3">
                             <div class="rounded-circle overflow-hidden flex-shrink-0 d-grid"
                                  style="width:56px;height:56px;background:#1B6FF3;place-items:center;color:#fff;font-weight:700">
                                 @if ($membre->photoUrl())
@@ -187,7 +187,7 @@
                                 <strong class="d-block text-truncate">{{ $membre->nom }}</strong>
                                 <span class="small text-body-secondary">{{ $membre->role }}</span>
                             </div>
-                            <span class="dm-badge dm-badge--{{ $membre->actif ? 'success' : 'neutral' }} ms-auto">
+                            <span class="dm-badge dm-badge--{{ $membre->actif ? 'success' : 'neutral' }} ms-auto flex-shrink-0 text-nowrap">
                                 {{ $membre->actif ? 'Affiché' : 'Masqué' }}
                             </span>
                         </div>
