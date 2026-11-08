@@ -13,6 +13,7 @@ use Spatie\Activitylog\Support\LogOptions;
 
 final class ServiceCategory extends Model
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
     use LogsActivity;
 
     protected $fillable = ['code', 'name', 'description', 'icon', 'color', 'sort_order', 'is_active'];

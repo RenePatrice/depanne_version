@@ -14,6 +14,8 @@ use Spatie\Permission\Traits\HasRoles;
  */
 final class AdminUser extends Authenticatable
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
+
     use HasRoles, Notifiable;
 
     /** Nom du guard utilisé par spatie/laravel-permission pour ce modèle. */

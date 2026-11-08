@@ -15,6 +15,7 @@ use Spatie\Activitylog\Support\LogOptions;
  */
 final class SiteMembre extends Model
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
     use LogsActivity;
 
     protected $table = 'site_membres';

@@ -23,7 +23,7 @@
             </div>
             <p class="dm-page-head__lede">
                 Demandé le {{ $retrait->requested_at?->translatedFormat('j F Y à H:i') }}
-                par <a href="{{ route('techniciens.detail', $retrait->technician_id) }}">{{ $retrait->technician?->full_name }}</a>
+                par <a href="{{ route('techniciens.detail', \App\Support\OpaqueId::encode($retrait->technician_id)) }}">{{ $retrait->technician?->full_name }}</a>
             </p>
         </div>
 

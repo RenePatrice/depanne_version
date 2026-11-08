@@ -83,7 +83,7 @@ final class RetraitsTable
             ->addColumn('actions', static fn (Withdrawal $r): string => sprintf(
                 '<a href="%s" class="btn btn-sm btn-outline-secondary" title="Ouvrir %s">'
                 .'<i class="bi bi-arrow-right-short" aria-hidden="true"></i></a>',
-                route('retraits.detail', $r->id),
+                route('retraits.detail', \App\Support\OpaqueId::encode($r->id)),
                 e($r->reference),
             ))
             ->editColumn('reference', static fn (Withdrawal $r): string => '<span class="font-monospace">'.e($r->reference).'</span>')

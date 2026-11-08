@@ -71,7 +71,7 @@ final class ClientsTable
             ->addColumn('actions', static fn (User $u): string => sprintf(
                 '<a href="%s" class="btn btn-sm btn-outline-secondary" title="Ouvrir la fiche de %s">'
                 .'<i class="bi bi-arrow-right-short" aria-hidden="true"></i></a>',
-                route('clients.detail', $u->id),
+                route('clients.detail', \App\Support\OpaqueId::encode($u->id)),
                 e($u->full_name),
             ))
             ->editColumn('phone', static fn (User $u): string => '<span class="font-monospace">'.e($u->phone).'</span>')

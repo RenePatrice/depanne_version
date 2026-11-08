@@ -82,7 +82,7 @@ final class TicketsTable
             ->addColumn('actions', static fn (Ticket $t): string => sprintf(
                 '<a href="%s" class="btn btn-sm btn-outline-secondary" title="Ouvrir le ticket %s">'
                 .'<i class="bi bi-arrow-right-short" aria-hidden="true"></i></a>',
-                route('tickets.detail', $t->id),
+                route('tickets.detail', \App\Support\OpaqueId::encode($t->id)),
                 e($t->reference),
             ))
             ->editColumn('reference', static fn (Ticket $t): string => '<span class="font-monospace">'.e($t->reference).'</span>')

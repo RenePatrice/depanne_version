@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 final class Withdrawal extends Model
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
+
     protected $fillable = [
         'reference', 'technician_id', 'amount_gnf', 'mobile_money_number',
         'provider', 'status', 'note', 'processed_by',

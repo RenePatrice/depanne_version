@@ -20,6 +20,7 @@ use Spatie\Activitylog\Support\LogOptions;
  */
 final class Service extends Model
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
     use LogsActivity;
 
     protected $fillable = [

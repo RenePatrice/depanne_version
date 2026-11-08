@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class Dispute extends Model
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
+
     protected $fillable = [
         'reference', 'ticket_id', 'opened_by', 'reason', 'description', 'evidence',
         'status', 'priority', 'sla_due_at', 'resolution', 'resolution_note',

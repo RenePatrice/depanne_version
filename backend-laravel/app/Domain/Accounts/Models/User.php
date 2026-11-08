@@ -29,6 +29,8 @@ use Laravel\Sanctum\HasApiTokens;
  */
 final class User extends Authenticatable
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 

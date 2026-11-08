@@ -163,7 +163,7 @@ it('approuve un technicien depuis le back-office', function (): void {
         ->firstOrFail();
 
     $this->actingAs($this->admin, 'admin')
-        ->post(route('techniciens.approuver', $profil->user_id))
+        ->post(route('techniciens.approuver', \App\Support\OpaqueId::encode($profil->user_id)))
         ->assertRedirect();
 
     expect($profil->fresh()->verification_status)->toBe(VerificationStatus::VALIDE);
@@ -177,7 +177,7 @@ it('interdit à FINANCE d\'approuver un dossier ou d\'agir sur un ticket', funct
         ->firstOrFail();
 
     $this->actingAs($finance, 'admin')
-        ->post(route('techniciens.approuver', $profil->user_id))
+        ->post(route('techniciens.approuver', \App\Support\OpaqueId::encode($profil->user_id)))
         ->assertForbidden();
 
     $ticket = Ticket::query()->firstOrFail();

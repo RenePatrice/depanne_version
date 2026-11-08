@@ -19,6 +19,7 @@ use Spatie\Activitylog\Support\LogOptions;
  */
 final class Zone extends Model
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
     use LogsActivity;
 
     protected $fillable = [

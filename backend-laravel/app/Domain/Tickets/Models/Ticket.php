@@ -50,6 +50,7 @@ use Spatie\ModelStates\HasStates;
  */
 final class Ticket extends Model
 {
+    use \App\Support\Concerns\RouteParIdOpaque;
     use HasStates;
 
     protected $fillable = [

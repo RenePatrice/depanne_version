@@ -138,7 +138,7 @@
                                 <td class="text-end">{{ $du['mouvements'] }}</td>
                                 <td class="text-end"><span class="dm-amount">{{ Money::format($du['solde']) }}</span></td>
                                 <td class="text-end">
-                                    <a href="{{ route('techniciens.detail', $du['id']) }}"
+                                    <a href="{{ route('techniciens.detail', \App\Support\OpaqueId::encode($du['id'])) }}"
                                        class="btn btn-sm btn-outline-secondary" title="Ouvrir la fiche">
                                         <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
                                     </a>
