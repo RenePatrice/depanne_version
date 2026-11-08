@@ -14,7 +14,6 @@
     <nav class="dm-sidebar__nav">
         @foreach ($navigation as $groupe)
             <div>
-                <div class="dm-sidebar__group-title">{{ $groupe['groupe'] }}</div>
                 <div class="dm-sidebar__group">
                     @foreach ($groupe['items'] as $item)
                         @php $actif = request()->routeIs($item['cle']); @endphp
