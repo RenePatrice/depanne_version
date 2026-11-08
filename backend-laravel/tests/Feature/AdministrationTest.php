@@ -246,7 +246,7 @@ it('sert le journal d\'audit en lecture seule', function (): void {
     $this->actingAs($this->admin, 'admin')
         ->get(route('journal-audit'))
         ->assertOk()
-        ->assertSee('lecture seule', escape: false);
+        ->assertSee('Lecture seule', escape: false);
 
     $reponse = $this->actingAs($this->admin, 'admin')
         ->getJson(route('journal-audit.donnees', [

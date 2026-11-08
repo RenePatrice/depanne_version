@@ -43,8 +43,11 @@ it('détaille la sonde de santé pour un administrateur connecté', function ():
         ->getJson('/health')
         ->assertOk();
 
+    // La sonde expose la version de PostGIS. On vérifie qu'elle est renseignée
+    // et de la bonne génération (3.x) sans figer le correctif : l'image Docker
+    // fournit 3.5, l'install native fournissait 3.6 — les deux conviennent.
     expect($reponse->json('verifications.database.ok'))->toBeTrue()
-        ->and($reponse->json('verifications.postgis.detail'))->toContain('3.6');
+        ->and($reponse->json('verifications.postgis.detail'))->toMatch('/\b3\.\d/');
 });
 
 it('dispose de PostGIS et sait mesurer une distance géodésique', function (): void {

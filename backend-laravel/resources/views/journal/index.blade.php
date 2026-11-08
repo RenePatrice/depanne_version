@@ -10,6 +10,9 @@
             <h2 class="dm-page-head__title">Journal d'audit</h2>
            
         </div>
+        <span class="dm-badge dm-badge--secondary align-self-center" title="Aucune route n'écrit dans ce journal">
+            <i class="bi bi-lock" aria-hidden="true"></i> Lecture seule
+        </span>
         <span class="dm-badge dm-badge--secondary align-self-center">
             {{ number_format($total, 0, ',', ' ') }} entrées
         </span>
