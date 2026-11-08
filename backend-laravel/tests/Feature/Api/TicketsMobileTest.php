@@ -42,7 +42,7 @@ beforeEach(function (): void {
     Queue::fake();
 });
 
-/** Client authentifié avec une adresse dans la zone RAT-CENTRE. */
+/** Client authentifié avec une adresse dans le quartier de Kipé (commune de Ratoma). */
 function clientAvecAdresse(float $lat = 9.595, float $lng = -13.640): array
 {
     $client = User::factory()->create();
@@ -83,7 +83,7 @@ it('n\'expose que les prestations actives', function (): void {
 it('annonce les zones desservies sans livrer leur contour', function (): void {
     $reponse = $this->getJson('/api/v1/zones');
 
-    $reponse->assertOk()->assertJsonCount(3, 'zones');
+    $reponse->assertOk()->assertJsonCount(count(ZoneSeeder::definitions()), 'zones');
 
     expect($reponse->json('zones.0'))->not->toHaveKey('boundary');
 });
@@ -128,8 +128,8 @@ it('prévient qu\'une adresse est hors zone sans refuser de l\'enregistrer', fun
     $this->postJson('/api/v1/adresses', [
         'label' => 'Bureau',
         'formatted_address' => 'Kaloum, Conakry',
-        'latitude' => 9.510,
-        'longitude' => -13.710,
+        'latitude' => 9.950,
+        'longitude' => -13.200,
     ])->assertCreated()->assertJsonPath('adresse.couverte', false);
 });
 
@@ -181,7 +181,7 @@ it('ne crée aucun ticket en produisant un devis', function (): void {
 });
 
 it('refuse un devis pour une adresse hors zone', function (): void {
-    [, $adresse] = clientAvecAdresse(9.510, -13.710);
+    [, $adresse] = clientAvecAdresse(9.950, -13.200);
 
     $this->postJson('/api/v1/devis', [
         'service_id' => Service::query()->value('id'),
@@ -277,7 +277,7 @@ it('refuse une seconde demande tant que la première est ouverte', function (): 
 });
 
 it('refuse de publier depuis une adresse hors zone', function (): void {
-    [, $adresse] = clientAvecAdresse(9.510, -13.710);
+    [, $adresse] = clientAvecAdresse(9.950, -13.200);
 
     $this->postJson('/api/v1/tickets', [
         'service_id' => Service::query()->value('id'),

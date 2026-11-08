@@ -107,6 +107,30 @@ Ordre retenu : **fondations d'abord** (rebrand ✅, écrans, OSM, sécurité
 back-office), puis paiement + marketplace, puis garantie / anti-off / BTP / IA /
 durcissement.
 
+## 2 ter. Découpage géographique par commune (8 novembre 2026)
+
+Le client veut **travailler par quartier**, chaque quartier rattaché à sa
+**commune**. On a donc remplacé les zones groupées (« Hamdallaye — Cosa —
+Koloma ») par **une zone = un quartier**, porteuse de son champ `commune`
+(ADR-0046). Aucune migration : la colonne `zones.commune` existait déjà.
+
+- **Seeder** : les **cinq communes de Conakry** (Kaloum, Dixinn, Matam, Ratoma,
+  Matoto) avec leurs quartiers — 38 au total. Ratoma reste la commune pilote :
+  ses quartiers reprennent exactement les coordonnées des adresses de démo, si
+  bien que chaque client tombe dans son propre quartier. Les quatre autres
+  communes sont ouvertes à la couverture, sans client de démo pour l'instant.
+- **Back-office** (`/zones`) : la liste et l'éditeur React regroupent désormais
+  les **quartiers par commune** ; la commune est un **select** des cinq. Le
+  matching (`ST_Covers`) et la tarification raisonnent toujours par zone, sans
+  code dédié.
+- **Vitrine publique** : la section « couverture » annonce les **communes**
+  desservies (au lieu d'une pastille par quartier) ; le compteur « quartiers
+  couverts » du bloc stats reste au niveau quartier.
+- **Rattachement** : `TicketSeeder::resolveZone()` lit toujours
+  `ZoneSeeder::definitions()` (forme plate inchangée, + `commune`). « Hors
+  couverture » signifie maintenant **hors de Conakry** (toute la ville est
+  couverte) — les tests concernés visent un point à ~50 km.
+
 ## 3. Environnement local
 
 Outils installés en **mode portable** dans `%USERPROFILE%\devtools` (aucun droit
@@ -1214,6 +1238,7 @@ direct), **sans casser le parcours existant** :
 | 0043 | **Le prix ferme est le tarif propre du technicien choisi** — le catalogue n'est qu'un défaut ; remplace l'ADR-0029 |
 | 0044 | **Garantie liée à la plateforme** — un retour sous garantie est un ticket gratuit rattaché à l'origine, fenêtre figée à la clôture ; c'est aussi le premier rempart anti-contournement |
 | 0045 | **Le contournement se trace, il ne se bloque pas** — signalement « hors plateforme » au journal `securite`, dans la lignée de l'ADR-0030 |
+| 0046 | **Conakry par commune puis par quartier** — une zone = un quartier porteur de son champ `commune` ; le back-office regroupe par commune, le seeder couvre les cinq communes (aucune migration, la colonne existait) |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 
 Chaque ADR est détaillé dans [docs/adr/](docs/adr/).

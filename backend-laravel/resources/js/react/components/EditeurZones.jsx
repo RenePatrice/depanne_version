@@ -20,6 +20,10 @@ import 'leaflet/dist/leaflet.css';
 
 const CENTRE_RATOMA = [9.595, -13.635];
 
+// Les cinq communes de Conakry. On travaille par quartier, chacun rattaché à
+// sa commune — le même ordre sert le formulaire et le regroupement de la liste.
+const COMMUNES = ['Kaloum', 'Dixinn', 'Matam', 'Ratoma', 'Matoto'];
+
 const COULEURS = {
     active: { color: '#2F6BED', fillColor: '#2F6BED' },
     inactive: { color: '#64748B', fillColor: '#64748B' },
@@ -128,7 +132,7 @@ export default function EditeurZones({ zones, urlCreer, urlModifier, urlBasculer
 
             L.polygon(points, { ...style, weight: 2, fillOpacity: zone.active ? 0.12 : 0.06 })
                 .bindTooltip(
-                    `<strong>${zone.nom}</strong><br>${formatGnf(zone.tarifBase)} + ${formatGnf(zone.prixKm)}/km` +
+                    `<strong>${zone.nom}</strong><br><span style="opacity:.7">${zone.commune}</span><br>${formatGnf(zone.tarifBase)} + ${formatGnf(zone.prixKm)}/km` +
                     `<br>${zone.tickets} ticket${zone.tickets > 1 ? 's' : ''}`,
                     { direction: 'top' },
                 )
@@ -190,6 +194,46 @@ export default function EditeurZones({ zones, urlCreer, urlModifier, urlBasculer
     const action = selection ? urlModifier.replace('__ID__', String(selection.id)) : urlCreer;
     const tracéValide = sommets.length >= 3;
 
+    // Les quartiers sont regroupés par commune : les communes connues d'abord,
+    // dans l'ordre géographique, puis toute commune ajoutée depuis le back-office.
+    const communesPresentes = [
+        ...COMMUNES.filter((c) => zones.some((z) => z.commune === c)),
+        ...[...new Set(zones.map((z) => z.commune).filter((c) => c && !COMMUNES.includes(c)))],
+    ];
+
+    const rangeeZone = (zone) => (
+        <div key={zone.id} className="d-flex align-items-start gap-2 py-2 border-bottom">
+            <div className="flex-grow-1 min-w-0">
+                <div className="fw-medium text-truncate">{zone.nom}</div>
+                <div className="small text-body-secondary">
+                    {formatGnf(zone.tarifBase)} + {formatGnf(zone.prixKm)}/km ·
+                    {' '}{zone.kmInclus} km inclus · {zone.tickets} ticket{zone.tickets > 1 ? 's' : ''}
+                </div>
+            </div>
+
+            <span className={`dm-badge flex-shrink-0 ${zone.active ? 'dm-badge--success' : 'dm-badge--secondary'}`}>
+                {zone.active ? 'Active' : 'Inactive'}
+            </span>
+
+            {peutModifier && (
+                <>
+                    <button type="button" className="btn btn-sm btn-outline-secondary"
+                            onClick={() => editer(zone)} title="Modifier">
+                        <i className="bi bi-pencil" aria-hidden="true"></i>
+                    </button>
+                    <form method="POST" action={urlBasculer.replace('__ID__', String(zone.id))}>
+                        <input type="hidden" name="_token" value={jeton} />
+                        <button type="submit" className="btn btn-sm btn-outline-secondary"
+                                title={zone.active ? 'Désactiver' : 'Réactiver'}>
+                            <i className={`bi ${zone.active ? 'bi-slash-circle' : 'bi-arrow-counterclockwise'}`}
+                               aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </>
+            )}
+        </div>
+    );
+
     return (
         <div className="row g-3">
             <div className="col-12 col-xl-8">
@@ -226,14 +270,16 @@ export default function EditeurZones({ zones, urlCreer, urlModifier, urlBasculer
                         ))}
 
                         <div className="mb-2">
-                            <label className="form-label" htmlFor="zone-nom">Nom</label>
-                            <input id="zone-nom" name="name" className="form-control" required maxLength={100}
-                                   placeholder="Kipé — Nongo — Taouyah" {...champ('name')} />
+                            <label className="form-label" htmlFor="zone-commune">Commune</label>
+                            <select id="zone-commune" name="commune" className="form-select" {...champ('commune')}>
+                                {COMMUNES.map((c) => <option key={c} value={c}>{c}</option>)}
+                            </select>
                         </div>
 
                         <div className="mb-2">
-                            <label className="form-label" htmlFor="zone-commune">Commune</label>
-                            <input id="zone-commune" name="commune" className="form-control" maxLength={80} {...champ('commune')} />
+                            <label className="form-label" htmlFor="zone-nom">Quartier</label>
+                            <input id="zone-nom" name="name" className="form-control" required maxLength={100}
+                                   placeholder="Hamdallaye" {...champ('name')} />
                         </div>
 
                         <div className="row g-2">
@@ -281,45 +327,29 @@ export default function EditeurZones({ zones, urlCreer, urlModifier, urlBasculer
 
                 <div className="dm-card p-4">
                     <h3 className="h6 text-uppercase text-body-secondary mb-3" style={{ letterSpacing: '.08em' }}>
-                        Zones existantes
+                        Quartiers par commune
                     </h3>
 
                     {zones.length === 0 && (
-                        <p className="text-body-secondary small mb-0">Aucune zone pour l'instant.</p>
+                        <p className="text-body-secondary small mb-0">Aucun quartier pour l'instant.</p>
                     )}
 
-                    {zones.map((zone) => (
-                        <div key={zone.id} className="d-flex align-items-start gap-2 py-2 border-bottom">
-                            <div className="flex-grow-1 min-w-0">
-                                <div className="fw-medium text-truncate">{zone.nom}</div>
-                                <div className="small text-body-secondary">
-                                    {formatGnf(zone.tarifBase)} + {formatGnf(zone.prixKm)}/km ·
-                                    {' '}{zone.kmInclus} km inclus · {zone.tickets} ticket{zone.tickets > 1 ? 's' : ''}
+                    {communesPresentes.map((commune) => {
+                        const quartiers = zones.filter((z) => z.commune === commune);
+
+                        return (
+                            <div key={commune} className="mb-3">
+                                <div className="d-flex align-items-center gap-2 mb-1">
+                                    <i className="bi bi-geo-alt text-primary" aria-hidden="true"></i>
+                                    <span className="fw-semibold">{commune}</span>
+                                    <span className="text-body-secondary small">
+                                        {quartiers.length} quartier{quartiers.length > 1 ? 's' : ''}
+                                    </span>
                                 </div>
+                                {quartiers.map(rangeeZone)}
                             </div>
-
-                            <span className={`dm-badge flex-shrink-0 ${zone.active ? 'dm-badge--success' : 'dm-badge--secondary'}`}>
-                                {zone.active ? 'Active' : 'Inactive'}
-                            </span>
-
-                            {peutModifier && (
-                                <>
-                                    <button type="button" className="btn btn-sm btn-outline-secondary"
-                                            onClick={() => editer(zone)} title="Modifier">
-                                        <i className="bi bi-pencil" aria-hidden="true"></i>
-                                    </button>
-                                    <form method="POST" action={urlBasculer.replace('__ID__', String(zone.id))}>
-                                        <input type="hidden" name="_token" value={jeton} />
-                                        <button type="submit" className="btn btn-sm btn-outline-secondary"
-                                                title={zone.active ? 'Désactiver' : 'Réactiver'}>
-                                            <i className={`bi ${zone.active ? 'bi-slash-circle' : 'bi-arrow-counterclockwise'}`}
-                                               aria-hidden="true"></i>
-                                        </button>
-                                    </form>
-                                </>
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </div>

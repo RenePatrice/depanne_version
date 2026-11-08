@@ -29,7 +29,9 @@ it('produit la population attendue par le cahier des charges', function (): void
         // 20 prestations du pilote (plomberie, électricité) + 18 ouvertes au BTP
         // (#5 : maçonnerie, peinture, menuiserie, carrelage).
         ->and(Service::query()->count())->toBe(38)
-        ->and(Zone::query()->count())->toBe(3)
+        // Conakry découpée par commune puis par quartier (8 novembre 2026) :
+        // une zone par quartier, cinq communes.
+        ->and(Zone::query()->count())->toBe(count(\Database\Seeders\Demo\ZoneSeeder::definitions()))
         ->and(Ticket::query()->count())->toBe(150)
         ->and(DB::table('client_profiles')->count())->toBeGreaterThanOrEqual(20);
 });

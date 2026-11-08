@@ -115,7 +115,7 @@ function ticketPublie(float $lat = 9.595, float $lng = -13.640): Ticket
         'reference' => 'DM-TEST-'.str_pad((string) (Ticket::query()->count() + 1), 6, '0', STR_PAD_LEFT),
         'client_id' => $client->id,
         'service_id' => Service::query()->value('id'),
-        'zone_id' => Zone::query()->where('code', 'RAT-CENTRE')->value('id'),
+        'zone_id' => Zone::query()->where('code', 'RAT-KIPE')->value('id'),
         'state' => TicketState::PUBLIEE->value,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma, Conakry', 'landmark' => 'Près du marché'],
         'location' => Geo::point($lat, $lng),

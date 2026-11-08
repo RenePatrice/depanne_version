@@ -24,7 +24,7 @@ final class ZoneController extends Controller
 {
     public function index(): View
     {
-        $zones = Zone::query()->orderBy('name')->get();
+        $zones = Zone::query()->orderBy('commune')->orderBy('name')->get();
 
         $tickets = DB::table('tickets')
             ->select('zone_id', DB::raw('COUNT(*) AS n'))
