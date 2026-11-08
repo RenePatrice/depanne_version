@@ -30,6 +30,14 @@
 </head>
 <body>
 
+{{-- Écran de chargement : le logo s'anime avant l'affichage, à chaque chargement --}}
+<div class="pc-loader" id="pc-loader" aria-hidden="true">
+    <div class="pc-loader__inner">
+        <img class="pc-loader__logo" src="{{ asset('images/logo.png') }}" alt="Parema Connect">
+        <div class="pc-loader__bar"></div>
+    </div>
+</div>
+
 <div class="pc-progress" aria-hidden="true"></div>
 
 @if (($hero['annonce'] ?? '') !== '')
@@ -44,8 +52,7 @@
 <header class="pc-nav" data-nav>
     <div class="pc-container pc-nav__inner">
         <a href="{{ route('site.accueil') }}" class="pc-nav__brand" aria-label="Parema Connect, accueil">
-            <img src="{{ asset('images/logo-mark.png') }}" alt="" width="36" height="36">
-            <span>Parema<strong>Connect</strong></span>
+            <img class="pc-nav__logo" src="{{ asset('images/logo.png') }}" alt="Parema Connect">
         </a>
 
         <button class="pc-nav__burger" type="button" aria-label="Ouvrir le menu" data-nav-toggle>
@@ -69,9 +76,8 @@
 <footer class="pc-footer">
     <div class="pc-container pc-footer__grid">
         <div class="pc-footer__brand">
-            <a href="{{ route('site.accueil') }}" class="pc-nav__brand pc-nav__brand--light">
-                <img src="{{ asset('images/logo-mark.png') }}" alt="" width="36" height="36">
-                <span>Parema<strong>Connect</strong></span>
+            <a href="{{ route('site.accueil') }}" class="pc-footer__logo" aria-label="Parema Connect, accueil">
+                <img src="{{ asset('images/logo.png') }}" alt="Parema Connect">
             </a>
             <p>Dépannage, installation et travaux de confiance à Conakry. Des techniciens vérifiés, des prix clairs, un paiement sécurisé.</p>
             <p class="pc-footer__made">Fièrement conçu en Guinée 🇬🇳</p>

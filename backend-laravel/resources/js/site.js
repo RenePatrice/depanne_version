@@ -170,7 +170,27 @@ function initTilt() {
     });
 }
 
+/* --- Écran de chargement : logo animé, retiré une fois la page prête -------- */
+function initLoader() {
+    const loader = document.getElementById('pc-loader');
+    if (!loader) return;
+
+    const minVisible = prefersReduced ? 0 : 650; // laisse voir l'animation
+    const debut = performance.now();
+    const masquer = () => {
+        const reste = Math.max(0, minVisible - (performance.now() - debut));
+        window.setTimeout(() => loader.classList.add('is-done'), reste);
+    };
+
+    if (document.readyState === 'complete') masquer();
+    else window.addEventListener('load', masquer, { once: true });
+
+    // Filet de sécurité : ne jamais rester bloqué sur l'écran de chargement.
+    window.setTimeout(() => loader.classList.add('is-done'), 4000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    initLoader();
     initNav();
     initReveal();
     initCompteurs();
