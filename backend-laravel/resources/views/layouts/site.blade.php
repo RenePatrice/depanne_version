@@ -32,9 +32,8 @@
 
 {{-- Écran de chargement : le logo s'anime avant l'affichage, à chaque chargement --}}
 <div class="pc-loader" id="pc-loader" aria-hidden="true">
-    <div class="pc-loader__inner">
-        <img class="pc-loader__logo" src="{{ asset('images/logo.png') }}" alt="Parema Connect">
-        <div class="pc-loader__bar"></div>
+    <div class="pc-loader__badge">
+        <img src="{{ asset('images/logo-mark.png') }}" alt="Parema Connect">
     </div>
 </div>
 
