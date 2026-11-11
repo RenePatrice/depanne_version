@@ -49,7 +49,18 @@ Route::name('site.')->group(function (): void {
     Route::get('/telecharger', [VitrineController::class, 'telecharger'])->name('telecharger');
     Route::get('/playstore', [VitrineController::class, 'playstore'])->name('playstore');
     Route::get('/devenir-technicien', [VitrineController::class, 'devenirTechnicien'])->name('devenir-technicien');
+    Route::get('/metiers/{code}', [VitrineController::class, 'metier'])
+        ->where('code', '[a-z0-9-]{2,30}')->name('metier');
+
     Route::get('/contact', [VitrineController::class, 'contact'])->name('contact');
+    Route::get('/contact/whatsapp', [VitrineController::class, 'whatsapp'])->name('whatsapp');
+
+    // Les deux seuls formulaires publics du site : limités par adresse IP pour
+    // qu'un robot ne remplisse ni la boîte de l'équipe ni la liste d'abonnés.
+    Route::post('/contact', [VitrineController::class, 'envoyerMessage'])
+        ->middleware('throttle:6,10')->name('contact.envoyer');
+    Route::post('/newsletter', [VitrineController::class, 'newsletter'])
+        ->middleware('throttle:6,10')->name('newsletter');
 });
 
 Route::middleware('guest:admin')->group(function (): void {
@@ -242,6 +253,8 @@ Route::middleware('auth:admin')->group(function (): void {
         Route::post('/site/equipe/{membre}', [SiteAdminController::class, 'modifierMembre'])->name('site-admin.equipe.modifier');
         Route::post('/site/equipe/{membre}/basculer', [SiteAdminController::class, 'basculerMembre'])->name('site-admin.equipe.basculer');
         Route::delete('/site/equipe/{membre}', [SiteAdminController::class, 'supprimerMembre'])->name('site-admin.equipe.supprimer');
+        Route::post('/site/messages/{message}/basculer', [SiteAdminController::class, 'basculerMessage'])->name('site-admin.messages.basculer');
+        Route::get('/site/abonnes/export', [SiteAdminController::class, 'exporterAbonnes'])->name('site-admin.abonnes.export');
     });
 
     Route::middleware('permission:administrateurs.gerer')->group(function (): void {

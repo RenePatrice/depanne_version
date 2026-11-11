@@ -18,6 +18,8 @@ enum TypeEvenement: string
     case CLIC_PLAYSTORE = 'clic_playstore';
     case CLIC_DEVENIR_TECHNICIEN = 'clic_devenir_technicien';
     case CLIC_CONTACT = 'clic_contact';
+    case MESSAGE_CONTACT = 'message_contact';
+    case INSCRIPTION_NEWSLETTER = 'inscription_newsletter';
 
     public function libelle(): string
     {
@@ -26,7 +28,9 @@ enum TypeEvenement: string
             self::CLIC_TELECHARGEMENT => 'Clics téléchargement (APK)',
             self::CLIC_PLAYSTORE => 'Clics Play Store',
             self::CLIC_DEVENIR_TECHNICIEN => 'Clics « Devenir technicien »',
-            self::CLIC_CONTACT => 'Clics contact',
+            self::CLIC_CONTACT => 'Clics WhatsApp',
+            self::MESSAGE_CONTACT => 'Messages de contact',
+            self::INSCRIPTION_NEWSLETTER => 'Inscriptions newsletter',
         };
     }
 
@@ -37,7 +41,9 @@ enum TypeEvenement: string
             self::CLIC_TELECHARGEMENT => 'bi-android2',
             self::CLIC_PLAYSTORE => 'bi-google-play',
             self::CLIC_DEVENIR_TECHNICIEN => 'bi-person-badge',
-            self::CLIC_CONTACT => 'bi-chat-dots',
+            self::CLIC_CONTACT => 'bi-whatsapp',
+            self::MESSAGE_CONTACT => 'bi-envelope',
+            self::INSCRIPTION_NEWSLETTER => 'bi-newspaper',
         };
     }
 
@@ -53,6 +59,8 @@ enum TypeEvenement: string
             self::CLIC_PLAYSTORE,
             self::CLIC_DEVENIR_TECHNICIEN,
             self::CLIC_CONTACT,
+            self::MESSAGE_CONTACT,
+            self::INSCRIPTION_NEWSLETTER,
         ];
     }
 }

@@ -8,13 +8,17 @@ use App\Domain\Reporting\Data\Periode;
 use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Site\Actions\EnregistrerContenuSite;
 use App\Domain\Site\Actions\EnregistrerMembre;
+use App\Domain\Site\Actions\EnvoyerMessageContact;
+use App\Domain\Site\Models\SiteAbonne;
 use App\Domain\Site\Models\SiteMembre;
+use App\Domain\Site\Models\SiteMessage;
 use App\Domain\Site\Services\SiteStatistiques;
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Pilotage du site vitrine depuis le back-office (#9, permission `site.gerer`,
@@ -33,7 +37,51 @@ final class SiteAdminController extends Controller
             'serie' => $stats->serieParJour($periode),
             'contenu' => $this->contenuActuel(),
             'equipe' => SiteMembre::query()->orderBy('ordre')->orderBy('id')->get(),
+            // Les messages à traiter d'abord, puis les plus récents.
+            'messages' => SiteMessage::query()->orderByRaw('traite_at IS NOT NULL')->latest()->limit(30)->get(),
+            'messagesATraiter' => SiteMessage::query()->whereNull('traite_at')->count(),
+            'abonnes' => SiteAbonne::query()->latest()->limit(8)->get(),
+            'totalAbonnes' => SiteAbonne::query()->count(),
         ]);
+    }
+
+    public function basculerMessage(SiteMessage $message, EnvoyerMessageContact $action): RedirectResponse
+    {
+        $action->basculerTraite($message);
+
+        return redirect()->route('site-admin')->withFragment('messages')
+            ->with('statut', $message->estTraite() ? 'Message marqué comme traité.' : 'Message remis à traiter.');
+    }
+
+    /**
+     * Export CSV des abonnés, calculé côté serveur (ADR-0016) : la liste
+     * complète, pas seulement les derniers affichés à l'écran.
+     */
+    public function exporterAbonnes(): StreamedResponse
+    {
+        return response()->streamDownload(function (): void {
+            $sortie = fopen('php://output', 'wb');
+
+            if ($sortie === false) {
+                return;
+            }
+
+            // BOM : Excel ouvre alors le fichier en UTF-8 sans casser les accents.
+            fwrite($sortie, "\xEF\xBB\xBF");
+            fputcsv($sortie, ['E-mail', 'Source', 'Inscrit le'], ';');
+
+            SiteAbonne::query()->orderBy('id')->chunk(500, function ($lot) use ($sortie): void {
+                foreach ($lot as $abonne) {
+                    fputcsv($sortie, [
+                        $abonne->email,
+                        (string) $abonne->source,
+                        $abonne->created_at?->format('d/m/Y H:i') ?? '',
+                    ], ';');
+                }
+            });
+
+            fclose($sortie);
+        }, 'abonnes-newsletter-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function enregistrerContenu(Request $request, EnregistrerContenuSite $action): RedirectResponse

@@ -49,31 +49,14 @@
         </div>
 
         <div class="pc-hero__visual" data-reveal data-reveal-delay="1">
-            <div class="pc-phone">
-                <div class="pc-phone__notch" aria-hidden="true"></div>
-                <div class="pc-phone__screen">
-                    <div class="pc-appcard pc-appcard--head">
-                        <img src="{{ asset('images/logo-mark.png') }}" alt="" width="34" height="34">
-                        <div>
-                            <strong>Choisissez votre technicien</strong>
-                            <span>Plomberie · Ratoma</span>
-                        </div>
-                    </div>
-                    @foreach ([['Mamadou D.', '4.9', '1,2 km', '85 000', true], ['Ibrahima S.', '4.7', '2,0 km', '90 000', false], ['Alpha B.', '4.8', '2,6 km', '92 000', false]] as [$nom, $note, $dist, $prix, $top])
-                        <div class="pc-appcard pc-tech {{ $top ? 'is-top' : '' }}">
-                            <div class="pc-tech__avatar">{{ mb_substr($nom, 0, 1) }}</div>
-                            <div class="pc-tech__info">
-                                <strong>{{ $nom }}</strong>
-                                <span><i class="bi bi-star-fill"></i> {{ $note }} · {{ $dist }}</span>
-                            </div>
-                            <div class="pc-tech__prix">{{ $prix }}<small>GNF</small></div>
-                        </div>
-                    @endforeach
-                    <div class="pc-appcard pc-appcard--cta">Comparez et choisissez — prix ferme</div>
-                </div>
+            <span class="pc-hero__halo" aria-hidden="true"></span>
+            <span class="pc-hero__orbit" aria-hidden="true"><i></i><i></i></span>
+            <div class="pc-phone" aria-hidden="true">
+                <div class="pc-phone__notch"></div>
+                <div class="pc-phone__screen">@include('site.partials.ecran-comparaison')</div>
             </div>
-            <div class="pc-phone__badge pc-phone__badge--1" aria-hidden="true"><i class="bi bi-shield-check"></i> Paiement sécurisé</div>
-            <div class="pc-phone__badge pc-phone__badge--2" aria-hidden="true"><i class="bi bi-lightning-charge-fill"></i> En quelques minutes</div>
+            <div class="pc-phone__badge pc-phone__badge--1" aria-hidden="true"><i class="bi bi-shield-check"></i><span><strong>Paiement sécurisé</strong>Espèces ou Mobile Money</span></div>
+            <div class="pc-phone__badge pc-phone__badge--2" aria-hidden="true"><i class="bi bi-lightning-charge-fill"></i><span><strong>En quelques minutes</strong>Un pro près de chez vous</span></div>
         </div>
     </div>
 </section>
@@ -98,12 +81,29 @@
     </div>
 </section>
 
+{{-- ======================= RUBAN DÉCORATIF ======================= --}}
+@php
+    $rubans = ['Plomberie', 'Électricité', 'Maçonnerie', 'Peinture', 'Menuiserie', 'Carrelage', 'Prix ferme', 'Techniciens vérifiés', 'Paiement sécurisé', 'Garantie incluse', 'Suivi en direct'];
+@endphp
+<div class="pc-marquee" aria-hidden="true">
+    <div class="pc-marquee__track">
+        @for ($passe = 0; $passe < 2; $passe++)
+            @foreach ($rubans as $mot)
+                <span class="pc-marquee__item">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
+                    {{ $mot }}
+                </span>
+            @endforeach
+        @endfor
+    </div>
+</div>
+
 {{-- ======================= FONCTIONNEMENT ======================= --}}
 <section class="pc-section" id="fonctionnement">
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Simple comme bonjour</span>
-            <h2>Votre intervention en trois gestes</h2>
+            <h2>Votre intervention en <em>trois gestes</em></h2>
             <p>Pas de marchandage interminable, pas de mauvaise surprise. Vous gardez la main du début à la fin.</p>
         </div>
 
@@ -143,25 +143,16 @@
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">L'app en un coup d'œil</span>
-            <h2>Du besoin à la réparation, en trois écrans</h2>
+            <h2>Du besoin à la réparation, en <em>trois écrans</em></h2>
             <p>Choisissez le service, comparez les techniciens, puis suivez votre technicien en direct jusqu'à votre porte.</p>
         </div>
 
         <div class="pc-shots">
             {{-- 1. Catalogue --}}
             <div class="pc-shot" data-reveal>
-                <div class="pc-phone pc-phone--showcase">
-                    <div class="pc-phone__notch" aria-hidden="true"></div>
-                    <div class="pc-phone__screen pc-scr">
-                        <div class="pc-scr__head">Que faut-il réparer ?</div>
-                        @foreach (array_slice($metiers, 0, 5) as $m)
-                            <div class="pc-scr__row">
-                                <span class="pc-scr__ico" style="--c:{{ $m['couleur'] }}"><i class="bi {{ $m['icone'] }}" aria-hidden="true"></i></span>
-                                <div class="pc-scr__txt"><strong>{{ $m['nom'] }}</strong><span>Dépannage &amp; installation</span></div>
-                                <i class="bi bi-chevron-right pc-scr__chev" aria-hidden="true"></i>
-                            </div>
-                        @endforeach
-                    </div>
+                <div class="pc-phone pc-phone--showcase" aria-hidden="true">
+                    <div class="pc-phone__notch"></div>
+                    <div class="pc-phone__screen">@include('site.partials.ecran-catalogue')</div>
                 </div>
                 <div class="pc-shot__cap">
                     <span class="pc-shot__step">1</span>
@@ -172,22 +163,9 @@
 
             {{-- 2. Comparaison --}}
             <div class="pc-shot" data-reveal data-reveal-delay="1">
-                <div class="pc-phone pc-phone--showcase">
-                    <div class="pc-phone__notch" aria-hidden="true"></div>
-                    <div class="pc-phone__screen">
-                        <div class="pc-appcard pc-appcard--head">
-                            <img src="{{ asset('images/logo-mark.png') }}" alt="" width="32" height="32">
-                            <div><strong>Techniciens disponibles</strong><span>Plomberie · Ratoma</span></div>
-                        </div>
-                        @foreach ([['M', 'Mamadou D.', '4,9', '1,2 km', '85 000', true], ['I', 'Ibrahima S.', '4,7', '2,0 km', '90 000', false], ['A', 'Alpha B.', '4,8', '2,6 km', '92 000', false]] as [$ini, $nom, $note, $dist, $prix, $top])
-                            <div class="pc-appcard pc-tech {{ $top ? 'is-top' : '' }}">
-                                <div class="pc-tech__avatar">{{ $ini }}</div>
-                                <div class="pc-tech__info"><strong>{{ $nom }}</strong><span><i class="bi bi-star-fill"></i> {{ $note }} · {{ $dist }}</span></div>
-                                <div class="pc-tech__prix">{{ $prix }}<small>GNF</small></div>
-                            </div>
-                        @endforeach
-                        <div class="pc-appcard pc-appcard--cta">Prix ferme — vous choisissez</div>
-                    </div>
+                <div class="pc-phone pc-phone--showcase" aria-hidden="true">
+                    <div class="pc-phone__notch"></div>
+                    <div class="pc-phone__screen">@include('site.partials.ecran-comparaison')</div>
                 </div>
                 <div class="pc-shot__cap">
                     <span class="pc-shot__step">2</span>
@@ -198,38 +176,9 @@
 
             {{-- 3. Suivi sur la carte --}}
             <div class="pc-shot" data-reveal data-reveal-delay="2">
-                <div class="pc-phone pc-phone--showcase">
-                    <div class="pc-phone__notch" aria-hidden="true"></div>
-                    <div class="pc-phone__screen pc-scr--map">
-                        <svg class="pc-scr__mapsvg" viewBox="0 0 244 440" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
-                            <rect width="244" height="440" fill="#eef3fb"/>
-                            <path d="M-20 300 Q120 268 264 312 L264 440 L-20 440 Z" fill="#d7e6fb"/>
-                            <g stroke="#dce5f3" stroke-width="11" stroke-linecap="round">
-                                <path d="M-10 120 L254 150"/>
-                                <path d="M64 -10 L96 360"/>
-                                <path d="M-10 250 L254 236"/>
-                            </g>
-                            <g fill="#ffffff" opacity="0.7">
-                                <rect x="120" y="60" width="60" height="44" rx="9"/>
-                                <rect x="150" y="180" width="60" height="54" rx="9"/>
-                            </g>
-                            {{-- itinéraire technicien -> client --}}
-                            <path d="M74 96 C 130 150, 96 230, 158 300" stroke="#2f6bed" stroke-width="5" stroke-dasharray="2 9" stroke-linecap="round" opacity="0.7"/>
-                            {{-- destination (client) --}}
-                            <g transform="translate(158 300)"><circle r="10" fill="#fff" stroke="#f2854c" stroke-width="3"/><circle r="4" fill="#f2854c"/></g>
-                            {{-- technicien (en mouvement) --}}
-                            <g transform="translate(74 96)">
-                                <circle class="pc-scr__movdot" r="13" fill="#2f6bed" opacity="0.2"/>
-                                <circle r="8.5" fill="#2f6bed"/><circle r="3.2" fill="#fff"/>
-                            </g>
-                        </svg>
-                        <div class="pc-scr__track">
-                            <div class="pc-scr__av">M</div>
-                            <div class="pc-scr__who"><strong>Mamadou arrive</strong><span>à 4 min · 1,2 km</span></div>
-                            <div class="pc-scr__act pc-scr__act--call"><i class="bi bi-telephone-fill" aria-hidden="true"></i></div>
-                            <div class="pc-scr__act pc-scr__act--chat"><i class="bi bi-chat-fill" aria-hidden="true"></i></div>
-                        </div>
-                    </div>
+                <div class="pc-phone pc-phone--showcase" aria-hidden="true">
+                    <div class="pc-phone__notch"></div>
+                    <div class="pc-phone__screen">@include('site.partials.ecran-suivi')</div>
                 </div>
                 <div class="pc-shot__cap">
                     <span class="pc-shot__step">3</span>
@@ -241,21 +190,66 @@
     </div>
 </section>
 
+{{-- ======================= TARIFICATION TRANSPARENTE ======================= --}}
+<section class="pc-section" id="tarifs">
+    <div class="pc-container pc-split">
+        <div class="pc-split__text" data-reveal>
+            <span class="pc-eyebrow">Prix transparent</span>
+            <h2>Un prix clair, <span class="pc-grad-text">décidé avant</span> l'intervention</h2>
+            <p class="pc-lead">Vous voyez le prix ferme avant de confirmer : il additionne la prestation et, s'il y a lieu, le déplacement du technicien. Aucun frais caché, aucune négociation sur le pas de la porte.</p>
+            <ul class="pc-list">
+                @foreach ([
+                    ['Prix ferme à l\'acceptation', 'le montant affiché est celui que vous payez.'],
+                    ['Déplacement calculé, pas improvisé', 'selon la distance réelle, offert en deçà de 3 km.'],
+                    ['Supplément seulement si vous l\'acceptez', 'après un diagnostic écrit, jamais imposé.'],
+                    ['Tout est tracé', 'chaque intervention laisse une trace claire dans l\'app.'],
+                ] as [$fort, $suite])
+                    <li>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#e6f6ec"/><path d="M7.5 12.3l3 3 6-6.5" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span><strong>{{ $fort }}</strong> {{ $suite }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+        <div class="pc-split__visual" data-reveal data-reveal-delay="1">
+            <svg class="pc-market__blob" viewBox="0 0 200 200" aria-hidden="true">
+                <defs><linearGradient id="pcBlobF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bfe0c9"/><stop offset="1" stop-color="#bcd3ff"/></linearGradient></defs>
+                <g transform="translate(100 100)"><path fill="url(#pcBlobF)" d="M38.6,-57.8C51.5,-50.9,64.2,-42.1,70.3,-29.8C76.4,-17.5,75.9,-1.7,71.3,12.2C66.7,26.1,58,38.1,46.7,47.9C35.4,57.7,21.5,65.3,5.9,69.2C-9.7,73.1,-27,73.3,-40.9,66.1C-54.8,58.9,-65.3,44.3,-70.6,28.4C-75.9,12.5,-76,-4.7,-71.2,-20.3C-66.4,-35.9,-56.7,-49.9,-43.9,-57.3C-31.1,-64.7,-15.5,-65.5,-0.6,-64.6C14.4,-63.7,28.7,-61.1,38.6,-57.8Z"/></g>
+            </svg>
+            <div class="pc-glasscard pc-facture">
+                <span class="pc-facture__stamp" aria-hidden="true">0 surprise</span>
+                <div class="pc-facture__head">
+                    <span class="pc-facture__title">Votre devis</span>
+                    <span class="pc-facture__tag">Prix ferme</span>
+                </div>
+                <div class="pc-facture__row"><span>Prestation — Plomberie</span><span>85 000 GNF</span></div>
+                <div class="pc-facture__row"><span>Déplacement (2,4 km)</span><span>Offert</span></div>
+                <div class="pc-facture__row"><span>Frais cachés</span><span>0 GNF</span></div>
+                <div class="pc-facture__total"><span>Total à payer</span><strong>85 000 GNF</strong></div>
+                <p class="pc-market__note">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3.1 7.8-7 9-3.9-1.2-7-4.4-7-9V6z"/><path d="M8.5 12l2.4 2.4L15.5 10"/></svg>
+                    Affiché avant de confirmer — exemple illustratif
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ======================= MÉTIERS ======================= --}}
 <section class="pc-section pc-section--soft" id="metiers">
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Tous vos besoins</span>
-            <h2>Des métiers, un seul réflexe</h2>
+            <h2>Des métiers, <em>un seul réflexe</em></h2>
             <p>De la fuite d'eau au chantier du bâtiment, trouvez le bon professionnel près de chez vous.</p>
         </div>
         <div class="pc-metiers">
             @forelse ($metiers as $i => $metier)
-                <a href="#telecharger" class="pc-metier" data-reveal data-reveal-delay="{{ $i % 3 }}" style="--pc-m:{{ $metier['couleur'] }}">
+                <a href="{{ route('site.metier', ['code' => $metier['code']]) }}" class="pc-metier" data-reveal data-reveal-delay="{{ $i % 3 }}" style="--pc-m:{{ $metier['couleur'] }}">
                     <span class="pc-metier__icon"><i class="bi {{ $metier['icone'] }}" aria-hidden="true"></i></span>
                     <span class="pc-metier__body">
                         <strong>{{ $metier['nom'] }}</strong>
-                        <span class="pc-metier__desc">Dépannage &amp; installation</span>
+                        <span class="pc-metier__desc">Voir les prestations</span>
                     </span>
                     <svg class="pc-metier__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
@@ -271,7 +265,7 @@
     <div class="pc-container pc-split">
         <div class="pc-split__text" data-reveal>
             <span class="pc-eyebrow">La place de marché</span>
-            <h2>Vous choisissez. Toujours.</h2>
+            <h2>Vous choisissez. <em>Toujours.</em></h2>
             <p class="pc-lead">Fini le technicien imposé. Parema Connect vous montre plusieurs professionnels disponibles — prix, note, distance — et vous laisse décider.</p>
             <ul class="pc-list">
                 @foreach ([
@@ -353,7 +347,7 @@
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Votre tranquillité d'abord</span>
-            <h2>Pensé pour la confiance, protégé par la sécurité</h2>
+            <h2>Pensé pour la confiance, <em>protégé</em> par la sécurité</h2>
             <p>La plateforme la plus exigeante de Guinée en matière de sécurité — pour les clients comme pour les techniciens.</p>
         </div>
 
@@ -485,7 +479,7 @@
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Deux expériences, une seule app</span>
-            <h2>Que vous cherchiez un pro, ou que vous en soyez un</h2>
+            <h2>Que vous cherchiez un pro, <em>ou que vous en soyez un</em></h2>
             <p>Parema Connect réunit clients et techniciens dans un même espace, pensé pour chacun.</p>
         </div>
 
@@ -545,12 +539,61 @@
     </div>
 </section>
 
+{{-- ======================= AVANT / AVEC PAREMA ======================= --}}
+<section class="pc-section" id="difference">
+    <div class="pc-container">
+        <div class="pc-section__head" data-reveal>
+            <span class="pc-eyebrow">La différence</span>
+            <h2>Le dépannage, <em>mais en mieux</em></h2>
+            <p>Ce qui change quand vous passez par Parema Connect plutôt que par le bouche-à-oreille.</p>
+        </div>
+        <div class="pc-compare">
+            <div class="pc-compare__card pc-compare__card--before" data-reveal>
+                <span class="pc-compare__tag pc-compare__tag--before"><i class="bi bi-x-circle-fill" aria-hidden="true"></i> Sans Parema</span>
+                <h3>Le dépannage à l'ancienne</h3>
+                <ul class="pc-compare__list">
+                    @foreach ([
+                        'Prix négocié sur place, souvent gonflé',
+                        'Technicien inconnu, sans vérification',
+                        'Aucun recours si le travail est mal fait',
+                        'Paiement non tracé, sans reçu',
+                        'Difficile à joindre quand on en a besoin',
+                    ] as $pt)
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#fdecec"/><path d="M9 9l6 6M15 9l-6 6" stroke="#c0453f" stroke-width="2" stroke-linecap="round"/></svg>
+                            <span>{{ $pt }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+            <div class="pc-compare__card pc-compare__card--after" data-reveal data-reveal-delay="1">
+                <span class="pc-compare__tag pc-compare__tag--after"><i class="bi bi-patch-check-fill" aria-hidden="true"></i> Avec Parema</span>
+                <h3>Simple, sûr, transparent</h3>
+                <ul class="pc-compare__list">
+                    @foreach ([
+                        'Prix ferme affiché avant de confirmer',
+                        'Techniciens vérifiés, notés par de vrais clients',
+                        'Garantie : le même technicien repasse gratuitement',
+                        'Paiement sécurisé et tracé, espèces ou Mobile Money',
+                        'Disponible en quelques minutes, près de chez vous',
+                    ] as $pt)
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#e7efff"/><path d="M7.5 12.3l3 3 6-6.5" stroke="#2f6bed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>{{ $pt }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ======================= DEVENIR TECHNICIEN ======================= --}}
 <section class="pc-section pc-section--soft" id="devenir-technicien">
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Rejoignez le réseau</span>
-            <h2>Devenir technicien partenaire</h2>
+            <h2>Devenir technicien <em>partenaire</em></h2>
             <p>Plombier, électricien, maçon, peintre, menuisier ou carreleur ? Recevez des demandes près de chez vous et développez votre activité. L'inscription se fait dans l'application, en quelques minutes.</p>
         </div>
 
@@ -585,8 +628,8 @@
 
         <div class="pc-devenir__cta" data-reveal>
             @include('site.partials.btn-telecharger', ['size' => 'pc-btn--lg', 'libelle' => 'Télécharger et m\'inscrire', 'libelleBientot' => 'Bientôt disponible'])
-            <a href="{{ route('site.contact') }}" class="pc-btn pc-btn--ghost pc-btn--lg">
-                <i class="bi bi-whatsapp" aria-hidden="true"></i> Une question ? Contactez-nous
+            <a href="{{ route('site.contact', ['sujet' => 'technicien']) }}" class="pc-btn pc-btn--ghost pc-btn--lg">
+                <i class="bi bi-chat-dots" aria-hidden="true"></i> Une question ? Contactez-nous
             </a>
         </div>
     </div>
@@ -597,7 +640,7 @@
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Les visages derrière Parema</span>
-            <h2>Une équipe guinéenne, engagée pour vous</h2>
+            <h2>Une équipe guinéenne, <em>engagée pour vous</em></h2>
             <p>Trois parcours, une même conviction : la technologie doit simplifier la vie des Guinéens.</p>
         </div>
         <div class="pc-team">
@@ -631,7 +674,7 @@
     <div class="pc-container pc-zones">
         <div data-reveal>
             <span class="pc-eyebrow">Conakry, quartier par quartier</span>
-            <h2>Déjà présent près de chez vous</h2>
+            <h2>Déjà présent <em>près de chez vous</em></h2>
             <p class="pc-lead">Nous couvrons un nombre croissant de zones à Conakry et nous nous étendons chaque semaine. Activez votre position dans l'app pour voir les techniciens les plus proches.</p>
             <div class="pc-zones__chips">
                 @forelse ($zones as $zone)
@@ -742,13 +785,46 @@
     </div>
 </section>
 
+{{-- ======================= TÉMOIGNAGES ======================= --}}
+@if (!empty($temoignages))
+<section class="pc-section pc-section--spot" id="temoignages">
+    <div class="pc-container">
+        <div class="pc-section__head" data-reveal>
+            <span class="pc-eyebrow">Ils nous font confiance</span>
+            <h2>Ce que disent <em>nos clients</em></h2>
+            <p>Des avis réels, laissés après intervention par les Guinéens qui utilisent Parema Connect.</p>
+        </div>
+        <div class="pc-avis">
+            @foreach ($temoignages as $i => $t)
+                <figure class="pc-avis__card" data-reveal data-reveal-delay="{{ $i % 3 }}">
+                    <span class="pc-avis__quote" aria-hidden="true">&rdquo;</span>
+                    <div class="pc-avis__stars" aria-label="{{ $t['note'] }} étoiles sur 5">
+                        @for ($s = 0; $s < 5; $s++)
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="{{ $s < $t['note'] ? 'currentColor' : '#e4e8f0' }}" aria-hidden="true"><path d="M12 2l2.9 6.2 6.8.7-5 4.6 1.4 6.7L12 17.8 5.9 20.2l1.4-6.7-5-4.6 6.8-.7z"/></svg>
+                        @endfor
+                    </div>
+                    <blockquote class="pc-avis__text">{{ $t['commentaire'] }}</blockquote>
+                    <figcaption class="pc-avis__who">
+                        <span class="pc-avis__av">{{ mb_strtoupper(mb_substr($t['prenom'], 0, 1)) }}</span>
+                        <span class="pc-avis__meta">
+                            <strong>{{ $t['prenom'] }}</strong>
+                            <span>{{ $t['metier'] !== '' ? $t['metier'] : 'Client vérifié' }}</span>
+                        </span>
+                    </figcaption>
+                </figure>
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
+
 {{-- ======================= FAQ ======================= --}}
 <section class="pc-section" id="faq">
     <div class="pc-container pc-faq-wrap">
         <div class="pc-faq-aside" data-reveal>
             <div class="pc-section__head">
                 <span class="pc-eyebrow">Bon à savoir</span>
-                <h2>Questions fréquentes</h2>
+                <h2>Questions <em>fréquentes</em></h2>
                 <p>Tout ce qu'il faut savoir avant de vous lancer.</p>
             </div>
             <div class="pc-faq-contact">
@@ -789,7 +865,7 @@
     <div class="pc-container">
         <div class="pc-section__head" data-reveal>
             <span class="pc-eyebrow">Nos partenaires</span>
-            <h2>Partenaires de paiement</h2>
+            <h2>Partenaires <em>de paiement</em></h2>
             <p>Réglez en toute sécurité via les opérateurs Mobile Money de confiance — ou en espèces, toujours tracé.</p>
         </div>
 
@@ -816,12 +892,12 @@
         <svg class="pc-cta__spark pc-cta__spark--1" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
         <svg class="pc-cta__spark pc-cta__spark--2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
         <svg class="pc-cta__spark pc-cta__spark--3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c1 6 5 10 12 12-7 2-11 6-12 12-1-6-5-10-12-12 7-2 11-6 12-12z"/></svg>
-        <h2>Prêt à trouver le bon pro ?</h2>
+        <h2>Prêt à trouver <em>le bon pro</em> ?</h2>
         <p>Rejoignez les Guinéens qui font confiance à Parema Connect pour leurs dépannages, installations et travaux du quotidien.</p>
         <div class="pc-hero__cta pc-hero__cta--center">
             @include('site.partials.btn-telecharger', ['size' => 'pc-btn--lg'])
             @if (($contact['whatsapp'] ?? '') !== '')
-                <a href="{{ route('site.contact') }}" class="pc-btn pc-btn--ghost pc-btn--lg">
+                <a href="{{ route('site.whatsapp') }}" class="pc-btn pc-btn--ghost pc-btn--lg">
                     <i class="bi bi-whatsapp"></i> Nous écrire
                 </a>
             @endif

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Site\Services;
 
 use App\Domain\Accounts\Data\VerificationStatus;
+use App\Domain\Catalog\Models\Service;
+use App\Domain\Catalog\Models\ServiceCategory;
+use App\Domain\Reviews\Models\Review;
 use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Site\Models\SiteMembre;
 use App\Domain\Tickets\Data\TicketState;
@@ -20,6 +23,25 @@ final class SiteVitrine
 {
     /** @return array<string, mixed> */
     public function donnees(): array
+    {
+        return [
+            ...$this->cadre(),
+            'statistiques' => $this->statistiques(),
+            'metiers' => $this->metiers(),
+            'zones' => $this->zones(),
+            'equipe' => $this->equipe(),
+            'temoignages' => $this->temoignages(),
+        ];
+    }
+
+    /**
+     * Ce dont le gabarit du site a besoin sur TOUTES les pages (bandeau
+     * d'annonce, bouton de téléchargement, coordonnées du pied de page), sans
+     * les agrégations propres à l'accueil.
+     *
+     * @return array<string, mixed>
+     */
+    public function cadre(): array
     {
         return [
             'hero' => [
@@ -42,11 +64,82 @@ final class SiteVitrine
                     (string) config('depanne.whatsapp.support_number', ''),
                 ),
             ],
-            'statistiques' => $this->statistiques(),
-            'metiers' => $this->metiers(),
-            'zones' => $this->zones(),
-            'equipe' => $this->equipe(),
         ];
+    }
+
+    /**
+     * Fiche d'un métier pour sa page d'explication : tout vient du catalogue
+     * du back-office (description, prestations, ce qui est inclus, durée, prix
+     * indicatif) et du nombre réel de techniciens validés dans la spécialité.
+     * `null` si le métier n'existe pas ou n'est plus actif.
+     *
+     * @return array{code: string, nom: string, description: string, icone: string, couleur: string, techniciens: int, prestations: array<int, array{nom: string, description: string, type: string, prix_gnf: int, duree_min: int, inclus: array<int, string>}>}|null
+     */
+    public function metier(string $code): ?array
+    {
+        $categorie = ServiceCategory::query()
+            ->where('is_active', true)
+            ->where('code', mb_strtoupper($code))
+            ->first();
+
+        if ($categorie === null) {
+            return null;
+        }
+
+        $prestations = Service::query()
+            ->where('category_id', $categorie->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(static fn (Service $service): array => [
+                'nom' => (string) $service->name,
+                'description' => (string) $service->description,
+                'type' => $service->type->label(),
+                'prix_gnf' => (int) $service->base_price_gnf,
+                'duree_min' => (int) $service->estimated_duration_min,
+                'inclus' => array_values(array_map(strval(...), (array) $service->included)),
+            ])
+            ->all();
+
+        return [
+            'code' => mb_strtolower($categorie->code->value),
+            'nom' => (string) $categorie->name,
+            'description' => (string) $categorie->description,
+            'icone' => (string) ($categorie->icon ?: 'bi-tools'),
+            'couleur' => (string) ($categorie->color ?: '#2F6BED'),
+            'techniciens' => (int) DB::table('technician_profiles')
+                ->where('verification_status', VerificationStatus::VALIDE->value)
+                ->whereJsonContains('specialties', $categorie->code->value)
+                ->count(),
+            'prestations' => $prestations,
+        ];
+    }
+
+    /**
+     * Avis clients réels et récents pour la section « témoignages ». Jamais
+     * inventés : lus en base, et seulement ceux qui portent un commentaire et
+     * une bonne note. Seul le prénom du client apparaît (§7). La section
+     * disparaît tant qu'aucun avis public n'existe.
+     *
+     * @return array<int, array{prenom: string, note: int, commentaire: string, metier: string}>
+     */
+    public function temoignages(): array
+    {
+        return Review::query()
+            ->with(['client', 'ticket.service.category'])
+            ->whereNotNull('comment')
+            ->where('comment', '!=', '')
+            ->where('rating', '>=', 4)
+            ->latest()
+            ->limit(6)
+            ->get()
+            ->map(static fn (Review $avis): array => [
+                'prenom' => $avis->client?->firstName() ?? 'Client',
+                'note' => (int) $avis->rating,
+                'commentaire' => (string) $avis->comment,
+                'metier' => (string) ($avis->ticket?->service?->category->name ?? ''),
+            ])
+            ->all();
     }
 
     /**
@@ -168,8 +261,10 @@ final class SiteVitrine
         return DB::table('service_categories')
             ->where('is_active', true)
             ->orderBy('sort_order')
-            ->get(['name', 'icon', 'color'])
+            ->get(['code', 'name', 'description', 'icon', 'color'])
             ->map(static fn ($c): array => [
+                'code' => mb_strtolower((string) $c->code),
+                'description' => (string) $c->description,
                 'nom' => (string) $c->name,
                 'icone' => (string) ($c->icon ?: 'bi-tools'),
                 'couleur' => (string) ($c->color ?: '#2F6BED'),

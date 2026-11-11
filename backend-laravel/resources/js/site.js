@@ -189,7 +189,38 @@ function initLoader() {
     window.setTimeout(() => loader.classList.add('is-done'), 4000);
 }
 
+/* --- Thème clair / sombre --------------------------------------------------- */
+// Le thème initial est posé par un script en ligne dans le <head> (avant le
+// premier rendu). Ici on ne gère que la bascule et sa mémorisation.
+function initTheme() {
+    const bouton = document.querySelector('[data-theme-toggle]');
+    if (!bouton) return;
+
+    const racine = document.documentElement;
+    const meta = document.querySelector('meta[name="theme-color"]');
+
+    const refleter = () => {
+        const sombre = racine.getAttribute('data-theme') === 'dark';
+        bouton.setAttribute('aria-pressed', String(sombre));
+        bouton.setAttribute('aria-label', sombre ? 'Passer en mode clair' : 'Passer en mode sombre');
+        if (meta) meta.setAttribute('content', sombre ? '#0D1220' : '#FBF9F4');
+    };
+    refleter();
+
+    bouton.addEventListener('click', () => {
+        const suivant = racine.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        racine.setAttribute('data-theme', suivant);
+        try {
+            localStorage.setItem('parema.site.theme', suivant);
+        } catch (e) {
+            // Stockage bloqué : le thème vaut pour la page en cours, sans plus.
+        }
+        refleter();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initLoader();
     initNav();
     initReveal();

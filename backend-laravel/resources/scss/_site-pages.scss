@@ -1,0 +1,123 @@
+// =============================================================================
+// PAREMA CONNECT — Site vitrine : pages intérieures (métier, contact) et
+// lettre d'information. Importé à la fin de site.scss : mêmes jetons, mêmes
+// cartes (%pc-card), donc clair et sombre sans règle supplémentaire.
+// =============================================================================
+
+// --- Utilitaires -------------------------------------------------------------
+.pc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+// Pot de miel : hors écran plutôt que display:none, que certains robots détectent.
+.pc-pot { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+// --- En-tête des pages intérieures -------------------------------------------
+.pc-page-hero { position: relative; isolation: isolate; overflow: hidden; padding: clamp(2.2rem, 5vw, 4rem) 0 clamp(3rem, 6vw, 5rem);
+  background:
+    radial-gradient(620px 400px at 90% 0%, color-mix(in srgb, var(--pc-m, var(--pc-blue)) 16%, transparent), transparent 68%),
+    radial-gradient(480px 320px at 0% 60%, rgba(242, 133, 76, 0.1), transparent 66%); }
+.pc-page-hero__inner { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+.pc-page-hero__title { font-size: clamp(2.4rem, 5.4vw, 4.2rem); letter-spacing: -0.03em; line-height: 1.02; margin-top: 1.4rem; }
+.pc-page-hero--simple .pc-hero__lede { max-width: 56ch; }
+
+.pc-fil { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: var(--pc-muted);
+  a { color: var(--pc-ink-2); transition: color 0.15s ease; } a:hover { color: var(--pc-blue); }
+  i { font-size: 0.7rem; } span { color: var(--pc-ink); font-weight: 600; } }
+
+// Le pictogramme du métier, posé sur un halo à sa couleur.
+.pc-page-hero__visual { position: relative; display: grid; place-items: center; min-height: 300px; }
+.pc-page-hero__halo { position: absolute; width: min(320px, 90%); aspect-ratio: 1; background: linear-gradient(150deg, color-mix(in srgb, var(--pc-m) 34%, var(--pc-surface)), color-mix(in srgb, var(--pc-m) 12%, var(--pc-surface))); border-radius: 42% 58% 62% 38% / 45% 40% 60% 55%; animation: pc-morph 14s ease-in-out infinite; }
+.pc-page-hero__icone { position: relative; width: 150px; height: 150px; border-radius: 44px; display: grid; place-items: center; font-size: 4.6rem; color: var(--pc-m); background: var(--pc-surface); box-shadow: var(--pc-shadow-lg); rotate: -6deg; animation: pc-floaty 6s ease-in-out infinite; }
+
+// Bande de faits chiffrés (données réelles du catalogue).
+.pc-faits { display: grid; grid-template-columns: repeat(4, 1fr); margin: clamp(2.2rem, 4vw, 3.4rem) 0 0; padding: 0.4rem clamp(0.6rem, 2vw, 1.4rem); background: var(--pc-surface); border: 1px solid var(--pc-hair); border-radius: var(--pc-radius); box-shadow: var(--pc-shadow);
+  div { position: relative; padding: 1.3rem clamp(0.8rem, 2vw, 1.5rem); }
+  div + div::before { content: ''; position: absolute; left: 0; top: 24%; bottom: 24%; width: 1px; background: var(--pc-line); }
+  dt { font-size: 0.86rem; color: var(--pc-muted); }
+  dd { margin: 0.25rem 0 0; font-family: var(--pc-display); font-weight: 700; font-size: clamp(1.4rem, 2.8vw, 2rem); letter-spacing: -0.03em; line-height: 1.1; } }
+
+// --- Prestations d'un métier -------------------------------------------------
+.pc-prestas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+.pc-presta { @extend %pc-card; position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 1.7rem 1.6rem 1.5rem;
+  h3 { font-size: 1.3rem; margin-top: 1rem; }
+  > p { margin-top: 0.6rem; color: var(--pc-ink-2); font-size: 0.98rem; } }
+.pc-presta::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--pc-m); transform: scaleX(0); transform-origin: left; transition: transform 0.4s var(--pc-ease); }
+.pc-presta:hover { @extend %pc-card-hover; }
+.pc-presta:hover::before { transform: scaleX(1); }
+.pc-presta__head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.pc-presta__type { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; padding: 0.32rem 0.75rem; border-radius: 999px; color: var(--pc-m); background: color-mix(in srgb, var(--pc-m) 13%, var(--pc-surface)); }
+.pc-presta__duree { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.84rem; color: var(--pc-muted); white-space: nowrap; }
+.pc-presta__inclus { list-style: none; padding: 0; margin: 1.1rem 0 0; display: grid; gap: 0.45rem;
+  li { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.92rem; color: var(--pc-ink-2); }
+  svg { flex-shrink: 0; margin-top: 3px; color: var(--pc-green); } }
+.pc-presta__prix { margin-top: auto; padding-top: 1.3rem; display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  span { font-size: 0.84rem; color: var(--pc-muted); }
+  strong { font-family: var(--pc-display); font-size: 1.35rem; letter-spacing: -0.03em; white-space: nowrap; } }
+.pc-presta__inclus + .pc-presta__prix, .pc-presta > p + .pc-presta__prix { border-top: 1px dashed var(--pc-line); margin-top: 1.3rem; padding-top: 1.1rem; }
+.pc-presta__prix { margin-top: auto; }
+
+// --- Page contact ------------------------------------------------------------
+.pc-contact-section { padding-top: clamp(1rem, 3vw, 2rem); }
+.pc-contact-section::before, .pc-contact-section::after { display: none; }
+.pc-contact { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: start; }
+.pc-contact__canaux { display: grid; gap: 0.8rem; position: sticky; top: 100px; }
+.pc-canal { @extend %pc-card; display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.2rem; }
+a.pc-canal:hover { @extend %pc-card-hover; }
+.pc-canal__ico { width: 50px; height: 50px; border-radius: 17px; display: grid; place-items: center; font-size: 1.35rem; background: var(--pc-grad-sky); color: var(--pc-blue); flex-shrink: 0; transition: transform 0.45s var(--pc-ease); }
+a.pc-canal:hover .pc-canal__ico { transform: rotate(-8deg) scale(1.06); }
+.pc-canal--whatsapp .pc-canal__ico { background: var(--pc-grad-mint); color: var(--pc-green); }
+.pc-canal--info .pc-canal__ico { background: var(--pc-grad-peach); color: var(--pc-accent-strong); }
+.pc-canal__txt { flex: 1; min-width: 0; strong { display: block; font-family: var(--pc-display); font-size: 1.08rem; letter-spacing: -0.02em; } span { display: block; font-size: 0.9rem; color: var(--pc-muted); overflow-wrap: anywhere; } }
+.pc-canal__fleche { color: var(--pc-muted); transition: transform 0.3s var(--pc-ease), color 0.2s ease; }
+a.pc-canal:hover .pc-canal__fleche { transform: translate(3px, -3px); color: var(--pc-blue); }
+
+.pc-formcard { background: var(--pc-surface); border: 1px solid var(--pc-hair); border-radius: var(--pc-radius-lg); padding: clamp(1.6rem, 4vw, 2.8rem); box-shadow: var(--pc-shadow-lg); scroll-margin-top: 100px;
+  h2 { font-size: clamp(1.7rem, 3vw, 2.2rem); } }
+.pc-formcard__intro { margin-top: 0.5rem; color: var(--pc-muted); font-size: 0.95rem; }
+.pc-form { display: grid; gap: 1.15rem; margin-top: 1.6rem; }
+.pc-form__duo { display: grid; grid-template-columns: 1fr 1fr; gap: 1.15rem; }
+.pc-champ { display: grid; gap: 0.4rem;
+  label { font-weight: 600; font-size: 0.93rem; span { font-weight: 400; color: var(--pc-muted); } }
+  input, select, textarea { width: 100%; font: inherit; color: var(--pc-ink); background: var(--pc-bg); border: 1.5px solid var(--pc-line); border-radius: 14px; padding: 0.85rem 1rem; transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
+  textarea { resize: vertical; min-height: 140px; }
+  input::placeholder, textarea::placeholder { color: var(--pc-muted); opacity: 0.8; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--pc-blue); background: var(--pc-surface); box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc-blue) 18%, transparent); }
+  [aria-invalid="true"] { border-color: #e0574f; } }
+.pc-champ__erreur { margin: 0; font-size: 0.86rem; font-weight: 500; color: #d2463e; }
+[data-theme="dark"] .pc-champ__erreur { color: #ff9a93; }
+.pc-form .pc-btn { justify-self: start; }
+.pc-form__note { display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; color: var(--pc-muted); i { color: var(--pc-green); } }
+.pc-form__ok { text-align: center; padding: clamp(1rem, 4vw, 2.5rem) 0; display: grid; justify-items: center; gap: 0.9rem;
+  p { color: var(--pc-ink-2); max-width: 40ch; } }
+.pc-form__ok-ico { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; font-size: 2rem; color: #fff; background: linear-gradient(135deg, #3ecf86, #1f9d55); box-shadow: 0 18px 34px -16px rgba(31, 157, 85, 0.7); animation: pc-pop 0.6s var(--pc-ease) both; }
+@keyframes pc-pop { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+// --- Lettre d'information (pied de page) -------------------------------------
+.pc-news { position: relative; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.2rem, 4vw, 3rem); align-items: center; margin-bottom: clamp(2.5rem, 5vw, 4rem); padding: clamp(1.6rem, 4vw, 2.8rem); border-radius: var(--pc-radius-lg); border: 1px solid var(--pc-hair); box-shadow: var(--pc-shadow); scroll-margin-top: 110px;
+  background: radial-gradient(60% 140% at 0% 0%, color-mix(in srgb, var(--pc-blue) 14%, transparent) 0%, transparent 62%), radial-gradient(50% 140% at 100% 100%, rgba(242, 133, 76, 0.16) 0%, transparent 62%), var(--pc-surface);
+  h2 { font-size: clamp(1.7rem, 3.4vw, 2.5rem); }
+  p { margin-top: 0.7rem; color: var(--pc-ink-2); font-size: 0.98rem; max-width: 46ch; } }
+.pc-news > * { position: relative; }
+.pc-news__deco { position: absolute; right: -14px; top: -22px; width: 130px; color: var(--pc-blue); opacity: 0.07; rotate: 12deg; }
+.pc-news__champ { display: flex; align-items: center; gap: 0.5rem; background: var(--pc-bg); border: 1.5px solid var(--pc-line); border-radius: 999px; padding: 0.35rem 0.35rem 0.35rem 1.1rem; transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  i { color: var(--pc-muted); }
+  input { flex: 1; min-width: 0; font: inherit; color: var(--pc-ink); background: transparent; border: 0; padding: 0.6rem 0.3rem; }
+  input:focus { outline: none; }
+  input::placeholder { color: var(--pc-muted); opacity: 0.8; } }
+.pc-news__champ:focus-within { border-color: var(--pc-blue); box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc-blue) 18%, transparent); }
+.pc-news__form .pc-champ__erreur { margin: 0.6rem 0 0 1.1rem; }
+.pc-news__ok { display: flex; align-items: center; gap: 0.8rem; padding: 1rem 1.2rem; border-radius: 20px; background: var(--pc-grad-mint); color: var(--pc-ink);
+  i { font-size: 1.5rem; color: var(--pc-green); } strong { display: block; font-family: var(--pc-display); } span { font-size: 0.95rem; } }
+
+// --- Responsive --------------------------------------------------------------
+@media (max-width: 920px) {
+  .pc-page-hero__inner, .pc-contact, .pc-news { grid-template-columns: 1fr; }
+  .pc-page-hero__visual { display: none; }
+  .pc-faits { grid-template-columns: repeat(2, 1fr); div:nth-child(odd)::before { display: none; } }
+  .pc-prestas { grid-template-columns: repeat(2, 1fr); }
+  .pc-contact__canaux { position: static; }
+}
+
+@media (max-width: 620px) {
+  .pc-prestas, .pc-form__duo { grid-template-columns: 1fr; }
+  .pc-news__champ { flex-wrap: wrap; border-radius: 22px; padding: 0.6rem; i { display: none; } input { flex-basis: 100%; padding: 0.6rem 0.7rem; } .pc-btn { width: 100%; justify-content: center; } }
+  .pc-form .pc-btn { justify-self: stretch; justify-content: center; }
+}

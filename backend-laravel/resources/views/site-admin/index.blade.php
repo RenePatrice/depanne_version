@@ -95,6 +95,75 @@
         </div>
     </div>
 
+    {{-- ---------- Messages de contact & newsletter ---------- --}}
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-8">
+            <div class="dm-card p-4 h-100" id="messages">
+                <div class="d-flex align-items-start gap-2 mb-3">
+                    <h3 class="h6 mb-0 flex-grow-1">Messages reçus par le formulaire de contact</h3>
+                    <span class="dm-badge dm-badge--{{ $messagesATraiter > 0 ? 'warning' : 'success' }} flex-shrink-0 text-nowrap">
+                        {{ $messagesATraiter }} à traiter
+                    </span>
+                </div>
+
+                @forelse ($messages as $message)
+                    <div class="border rounded-3 p-3 mb-2 {{ $message->estTraite() ? 'opacity-75' : '' }}">
+                        <div class="d-flex align-items-start gap-2">
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-medium text-break-anywhere">{{ $message->nom }}</div>
+                                <div class="small text-body-secondary text-break-anywhere">
+                                    <a href="tel:{{ $message->telephone }}">{{ $message->telephone }}</a>
+                                    @if ($message->email)
+                                        · <a href="mailto:{{ $message->email }}">{{ $message->email }}</a>
+                                    @endif
+                                    · {{ $message->created_at?->format('d/m/Y H:i') }}
+                                </div>
+                            </div>
+                            <span class="dm-badge dm-badge--secondary flex-shrink-0">{{ $message->libelleSujet() }}</span>
+                        </div>
+                        <p class="mb-2 mt-2 text-break-anywhere" style="white-space: pre-line">{{ $message->message }}</p>
+                        <form method="POST" action="{{ route('site-admin.messages.basculer', $message) }}">
+                            @csrf
+                            <button type="submit" class="btn btn-sm {{ $message->estTraite() ? 'btn-outline-secondary' : 'btn-primary' }}">
+                                <i class="bi {{ $message->estTraite() ? 'bi-arrow-counterclockwise' : 'bi-check2' }}" aria-hidden="true"></i>
+                                {{ $message->estTraite() ? 'Remettre à traiter' : 'Marquer comme traité' }}
+                            </button>
+                        </form>
+                    </div>
+                @empty
+                    <p class="text-body-secondary small mb-0">Aucun message pour l'instant. Ils arriveront ici dès qu'un visiteur utilisera la page Contact du site.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-4">
+            <div class="dm-card p-4 h-100">
+                <div class="d-flex align-items-start gap-2 mb-3">
+                    <h3 class="h6 mb-0 flex-grow-1">Abonnés à la newsletter</h3>
+                    <strong class="fs-5 flex-shrink-0">{{ number_format($totalAbonnes, 0, ',', ' ') }}</strong>
+                </div>
+
+                @forelse ($abonnes as $abonne)
+                    <div class="d-flex align-items-center gap-2 py-2 border-bottom">
+                        <span class="flex-grow-1 min-w-0 text-truncate">{{ $abonne->email }}</span>
+                        <span class="small text-body-secondary flex-shrink-0">{{ $abonne->created_at?->format('d/m/Y') }}</span>
+                    </div>
+                @empty
+                    <p class="text-body-secondary small mb-0">Aucun abonné pour l'instant.</p>
+                @endforelse
+
+                @if ($totalAbonnes > 0)
+                    <a href="{{ route('site-admin.abonnes.export') }}" class="btn btn-outline-secondary btn-sm w-100 mt-3">
+                        <i class="bi bi-download" aria-hidden="true"></i> Exporter la liste complète (CSV)
+                    </a>
+                    <p class="small text-body-secondary mt-2 mb-0">
+                        Le site collecte les adresses ; l'envoi des e-mails se fait depuis votre outil d'envoi, avec ce fichier.
+                    </p>
+                @endif
+            </div>
+        </div>
+    </div>
+
     {{-- ---------- Contenu éditorial ---------- --}}
     <div class="dm-card p-4 mb-4">
         <h3 class="h6 mb-3">Contenu & téléchargement</h3>

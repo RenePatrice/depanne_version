@@ -3,7 +3,21 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#0B4CB8">
+    <meta name="theme-color" content="#FBF9F4">
+
+    {{-- Thème posé AVANT le premier rendu : sans cela une page sombre clignote
+         en clair au chargement. Choix mémorisé, sinon réglage du système. --}}
+    <script>
+        (function () {
+            // `?theme=light|dark` force un thème pour un lien partagé ou un test.
+            var theme = (location.search.match(/[?&]theme=(light|dark)\b/) || [])[1] || null;
+            try { theme = theme || localStorage.getItem('parema.site.theme'); } catch (e) {}
+            if (theme !== 'dark' && theme !== 'light') {
+                theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
 
     <title>@yield('titre', 'Parema Connect')</title>
     <meta name="description"
@@ -24,7 +38,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:wght@400..700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 
     @vite(['resources/scss/site.scss', 'resources/js/site.js'])
 </head>
@@ -58,11 +72,19 @@
             <span></span><span></span><span></span>
         </button>
 
+        {{-- Sur l'accueil, les liens sont de simples ancres (suivi de section au
+             défilement) ; ailleurs, ils ramènent à l'accueil, à la bonne section. --}}
+        @php $ancre = request()->routeIs('site.accueil') ? '' : route('site.accueil'); @endphp
         <nav class="pc-nav__links" data-nav-links aria-label="Navigation principale">
-            <a href="#fonctionnement">Comment ça marche</a>
-            <a href="#metiers">Métiers</a>
-            <a href="#securite">Sécurité</a>
-            <a href="#equipe">Équipe</a>
+            <a href="{{ $ancre }}#fonctionnement">Comment ça marche</a>
+            <a href="{{ $ancre }}#metiers" @class(['is-current' => request()->routeIs('site.metier')])>Métiers</a>
+            <a href="{{ $ancre }}#securite">Sécurité</a>
+            <a href="{{ $ancre }}#equipe">Équipe</a>
+            <a href="{{ route('site.contact') }}" @class(['is-current' => request()->routeIs('site.contact')])>Contact</a>
+            <button class="pc-theme" type="button" data-theme-toggle aria-label="Passer en mode sombre" aria-pressed="false">
+                <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+                <i class="bi bi-sun-fill" aria-hidden="true"></i>
+            </button>
             @include('site.partials.btn-telecharger', ['size' => 'pc-btn--sm', 'libelle' => "Télécharger l'app", 'libelleBientot' => 'Bientôt'])
         </nav>
     </div>
@@ -73,6 +95,10 @@
 </main>
 
 <footer class="pc-footer">
+    <div class="pc-container">
+        @include('site.partials.newsletter')
+    </div>
+
     <div class="pc-container pc-footer__grid">
         <div class="pc-footer__brand">
             <a href="{{ route('site.accueil') }}" class="pc-footer__logo" aria-label="Parema Connect, accueil">
@@ -84,10 +110,10 @@
 
         <div class="pc-footer__col">
             <h3>Plateforme</h3>
-            <a href="#fonctionnement">Comment ça marche</a>
-            <a href="#metiers">Nos métiers</a>
-            <a href="#securite">Sécurité</a>
-            <a href="#equipe">L'équipe</a>
+            <a href="{{ $ancre }}#fonctionnement">Comment ça marche</a>
+            <a href="{{ $ancre }}#metiers">Nos métiers</a>
+            <a href="{{ $ancre }}#securite">Sécurité</a>
+            <a href="{{ $ancre }}#equipe">L'équipe</a>
         </div>
 
         <div class="pc-footer__col">
@@ -101,11 +127,12 @@
 
         <div class="pc-footer__col">
             <h3>Contact</h3>
+            <a href="{{ route('site.contact') }}">Nous écrire</a>
+            @if (($contact['whatsapp'] ?? '') !== '')
+                <a href="{{ route('site.whatsapp') }}">WhatsApp</a>
+            @endif
             @if (($contact['email'] ?? '') !== '')
                 <a href="mailto:{{ $contact['email'] }}">{{ $contact['email'] }}</a>
-            @endif
-            @if (($contact['whatsapp'] ?? '') !== '')
-                <a href="{{ route('site.contact') }}">WhatsApp</a>
             @endif
             <a href="{{ route('connexion') }}">Espace équipe</a>
         </div>
