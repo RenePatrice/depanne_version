@@ -12,6 +12,8 @@
     },
     "routes": [
         { "src": "/build/(.*)", "headers": { "Cache-Control": "public, max-age=31536000, immutable" }, "continue": true },
+        { "src": "/(index\\.php)?", "dest": "/api/index.php" },
+        { "src": "/(.*)\\.php", "dest": "/api/index.php" },
         { "handle": "filesystem" },
         { "src": "/(.*)", "dest": "/api/index.php" }
     ],
