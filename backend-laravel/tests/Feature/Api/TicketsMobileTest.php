@@ -88,6 +88,20 @@ it('annonce les zones desservies sans livrer leur contour', function (): void {
     expect($reponse->json('zones.0'))->not->toHaveKey('boundary');
 });
 
+it('donne le centre de chaque quartier pour la carte du formulaire d\'adresse', function (): void {
+    $zones = collect($this->getJson('/api/v1/zones')->assertOk()->json('zones'));
+
+    $kipe = $zones->firstWhere('nom', 'Kipé');
+
+    // Le centre tombe dans l'emprise du quartier (centre du seeder ± 0,008°).
+    expect($kipe['commune'])->toBe('Ratoma')
+        ->and($kipe['latitude'])->toEqualWithDelta(9.598, 0.008)
+        ->and($kipe['longitude'])->toEqualWithDelta(-13.643, 0.008);
+
+    // Rangés par commune : l'application les présente dans cet ordre.
+    expect($zones->pluck('commune')->all())->toBe($zones->pluck('commune')->sort()->values()->all());
+});
+
 it('sert les textes légaux depuis les paramètres plutôt que depuis le code', function (): void {
     $this->getJson('/api/v1/reglages')
         ->assertOk()

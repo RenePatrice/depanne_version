@@ -16,21 +16,13 @@ import 'selecteur_carte.dart';
 /// à mesurer une distance au technicien, tous deux à l'échelle du kilomètre.
 /// Le point de repère écrit, lui, est ce qui amène réellement quelqu'un devant
 /// la bonne porte — à Conakry, une adresse postale ne le fait pas.
-class _Quartier {
-  const _Quartier(this.nom, this.commune, this.latitude, this.longitude);
-
-  final String nom;
-  final String commune;
-  final double latitude;
-  final double longitude;
-}
-
 /// Ajouter une adresse au carnet.
 ///
-/// Le choix du quartier remplace, pour l'instant, le sélecteur sur carte : il
-/// demande une clé Google Maps que le pilote n'a pas encore, et l'écran ne peut
-/// pas attendre. Les neuf quartiers couvrent exactement les trois zones
-/// ouvertes ; le jour où la carte arrive, seul cet écran change.
+/// Le client choisit sa commune, puis son quartier : la liste vient du
+/// back-office (`/zones`, une zone = un quartier), si bien qu'un quartier
+/// ouvert là-bas apparaît ici sans nouvelle version de l'application. Le
+/// quartier centre la carte OpenStreetMap, sur laquelle le client affine le
+/// point exact.
 ///
 /// Le serveur reste seul juge de la couverture — il interroge PostGIS. On ne
 /// devine pas ici qu'une adresse est desservie : la liste ci-dessous n'est pas
@@ -43,18 +35,6 @@ class AdresseFormScreen extends ConsumerStatefulWidget {
 }
 
 class _AdresseFormScreenState extends ConsumerState<AdresseFormScreen> {
-  static const List<_Quartier> _quartiers = <_Quartier>[
-    _Quartier('Kipé', 'Ratoma', 9.5960, -13.6420),
-    _Quartier('Nongo', 'Ratoma', 9.6050, -13.6480),
-    _Quartier('Taouyah', 'Ratoma', 9.5800, -13.6540),
-    _Quartier('Kaporo', 'Ratoma', 9.6220, -13.6300),
-    _Quartier('Lambanyi', 'Ratoma', 9.6300, -13.6200),
-    _Quartier('Sonfonia', 'Ratoma', 9.6480, -13.6100),
-    _Quartier('Hamdallaye', 'Ratoma', 9.5620, -13.6380),
-    _Quartier('Cosa', 'Ratoma', 9.5700, -13.6450),
-    _Quartier('Koloma', 'Ratoma', 9.5760, -13.6300),
-  ];
-
   /// Les libellés que tout le monde utilise, proposés d'emblée. Le champ reste
   /// libre : imposer une liste fermée obligerait à appeler « Autre » la maison
   /// de sa mère.
@@ -68,7 +48,10 @@ class _AdresseFormScreenState extends ConsumerState<AdresseFormScreen> {
   final TextEditingController _adresse = TextEditingController();
   final TextEditingController _repere = TextEditingController();
 
-  _Quartier? _quartier;
+  /// Commune sélectionnée : elle filtre les quartiers proposés. Sans elle,
+  /// trente-huit pastilles d'un coup noieraient le client.
+  String? _commune;
+  QuartierCouvert? _quartier;
 
   /// Point affiné sur la carte OSM (#7). Part du centre du quartier choisi,
   /// puis suit chaque toucher sur la carte.
@@ -109,7 +92,7 @@ class _AdresseFormScreenState extends ConsumerState<AdresseFormScreen> {
       _adresse.text.trim().isNotEmpty;
 
   Future<void> _enregistrer() async {
-    final _Quartier? quartier = _quartier;
+    final QuartierCouvert? quartier = _quartier;
 
     if (quartier == null || _enCours || !_estComplet) return;
 
@@ -156,6 +139,98 @@ class _AdresseFormScreenState extends ConsumerState<AdresseFormScreen> {
     }
   }
 
+  /// Commune, puis quartier. La liste vient du serveur ; elle est gardée pour
+  /// le hors-ligne par le dépôt.
+  Widget _choixQuartier(ThemeData theme) {
+    final AsyncValue<List<QuartierCouvert>> quartiers = ref.watch(
+      quartiersProvider,
+    );
+
+    return quartiers.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: DmSpace.x4),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (Object e, StackTrace _) => DmErreur(
+        message: messageErreur(e),
+        onReessayer: () => ref.invalidate(quartiersProvider),
+      ),
+      data: (List<QuartierCouvert> liste) {
+        if (liste.isEmpty) {
+          return Text(
+            'Aucun quartier n\'est encore ouvert. Reviens bientôt !',
+            style: theme.textTheme.bodyMedium,
+          );
+        }
+
+        // Le serveur range déjà par commune : on garde son ordre.
+        final List<String> communes = <String>{
+          for (final QuartierCouvert q in liste)
+            if (q.commune.isNotEmpty) q.commune,
+        }.toList();
+
+        final List<QuartierCouvert> duQuartier = <QuartierCouvert>[
+          for (final QuartierCouvert q in liste)
+            if (q.commune == _commune) q,
+        ];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('Commune', style: theme.textTheme.titleSmall),
+            const SizedBox(height: DmSpace.x2),
+            Wrap(
+              spacing: DmSpace.x2,
+              runSpacing: DmSpace.x2,
+              children: <Widget>[
+                for (final String c in communes)
+                  ChoiceChip(
+                    label: Text(c),
+                    selected: _commune == c,
+                    onSelected: (_) => setState(() {
+                      // Changer de commune efface le quartier : il appartenait
+                      // à l'ancienne.
+                      if (_commune != c) {
+                        _quartier = null;
+                        _point = null;
+                      }
+                      _commune = c;
+                    }),
+                  ),
+              ],
+            ),
+            if (_commune != null) ...<Widget>[
+              const SizedBox(height: DmSpace.x4),
+              Text('Quartier', style: theme.textTheme.titleSmall),
+              const SizedBox(height: DmSpace.x2),
+              Wrap(
+                spacing: DmSpace.x2,
+                runSpacing: DmSpace.x2,
+                children: <Widget>[
+                  for (final QuartierCouvert q in duQuartier)
+                    ChoiceChip(
+                      label: Text(q.nom),
+                      selected: _quartier?.id == q.id,
+                      onSelected: (_) => setState(() {
+                        _quartier = q;
+                        _point = LatLng(q.latitude, q.longitude);
+                      }),
+                    ),
+                ],
+              ),
+            ] else ...<Widget>[
+              const SizedBox(height: DmSpace.x2),
+              Text(
+                'Choisis d\'abord ta commune pour voir ses quartiers.',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -166,28 +241,9 @@ class _AdresseFormScreenState extends ConsumerState<AdresseFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(DmSpace.x6),
           children: <Widget>[
-            Text('Quel quartier ?', style: theme.textTheme.titleLarge),
+            Text('Où habites-tu ?', style: theme.textTheme.titleLarge),
             const SizedBox(height: DmSpace.x3),
-            Wrap(
-              spacing: DmSpace.x2,
-              runSpacing: DmSpace.x2,
-              children: <Widget>[
-                for (final _Quartier q in _quartiers)
-                  ChoiceChip(
-                    label: Text(q.nom),
-                    selected: _quartier?.nom == q.nom,
-                    onSelected: (_) => setState(() {
-                      _quartier = q;
-                      _point = LatLng(q.latitude, q.longitude);
-                    }),
-                  ),
-              ],
-            ),
-            const SizedBox(height: DmSpace.x2),
-            Text(
-              'Nous intervenons aujourd\'hui dans la commune de Ratoma.',
-              style: theme.textTheme.bodySmall,
-            ),
+            _choixQuartier(theme),
 
             // Carte OSM (#7) : affine le point une fois le quartier choisi.
             if (_quartier != null && _point != null) ...<Widget>[

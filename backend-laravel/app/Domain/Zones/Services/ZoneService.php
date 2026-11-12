@@ -49,6 +49,37 @@ final class ZoneService
     }
 
     /**
+     * Centre de chaque zone active, en une seule requête : l'application mobile
+     * s'en sert pour centrer la carte du formulaire d'adresse. Une requête par
+     * zone coûterait trente-huit allers-retours avec la base.
+     *
+     * @return array<int, array{lat: float, lng: float}> indexé par identifiant de zone
+     */
+    public function centresActifs(): array
+    {
+        $lignes = DB::connection()->select(
+            <<<'SQL'
+                SELECT id, ST_Y(centre) AS lat, ST_X(centre) AS lng
+                FROM (
+                    SELECT id, ST_Centroid(boundary::geometry) AS centre
+                    FROM zones WHERE is_active = true
+                ) AS c
+            SQL,
+        );
+
+        $centres = [];
+
+        foreach ($lignes as $ligne) {
+            $centres[(int) $ligne->id] = [
+                'lat' => round((float) $ligne->lat, 6),
+                'lng' => round((float) $ligne->lng, 6),
+            ];
+        }
+
+        return $centres;
+    }
+
+    /**
      * Point depuis lequel les frais de déplacement sont mesurés (ADR-0024).
      *
      * C'est le centroïde de la zone. Le choix n'est pas anodin : au moment du

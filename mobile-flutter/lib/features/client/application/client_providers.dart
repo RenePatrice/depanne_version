@@ -16,6 +16,13 @@ final Provider<ClientRepository> clientRepositoryProvider =
       (Ref ref) => ClientRepository(ref.watch(apiClientProvider)),
     );
 
+/// Quartiers desservis, rangés par commune. Gardés pour la session, comme le
+/// catalogue : ils ne changent pas d'une minute à l'autre.
+final FutureProvider<List<QuartierCouvert>> quartiersProvider =
+    FutureProvider<List<QuartierCouvert>>(
+      (Ref ref) => ref.watch(clientRepositoryProvider).quartiers(),
+    );
+
 /// Catalogue des prestations.
 ///
 /// Gardé en cache pour la session : il ne change pas d'une minute à l'autre, et

@@ -30,6 +30,25 @@ class ClientRepository {
         .toList();
   }
 
+  // ------------------------------------------------------------- quartiers --
+
+  /// Quartiers desservis, déjà rangés par commune par le serveur. Gardés pour
+  /// le hors-ligne : la liste change rarement, et le formulaire d'adresse doit
+  /// rester utilisable sur une connexion qui hoquette.
+  Future<List<QuartierCouvert>> quartiers() async {
+    final Map<String, dynamic> reponse = await _api.get(
+      '/zones',
+      repliHorsLigne: true,
+    );
+
+    return ((reponse['zones'] as List<dynamic>?) ?? const <dynamic>[])
+        .map(
+          (dynamic z) => QuartierCouvert.depuisJson(z as Map<String, dynamic>),
+        )
+        .whereType<QuartierCouvert>()
+        .toList();
+  }
+
   // -------------------------------------------------------------- adresses --
 
   Future<List<Adresse>> adresses() async {

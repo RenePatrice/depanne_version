@@ -10,8 +10,13 @@ REM - La signature vient de android/key.properties (non versionne) ; sans lui,
 REM   le build retombe sur la cle de debug et l'APK n'est pas publiable.
 REM
 REM Usage :
-REM   scripts\build-release.cmd https://api.parema.example/api/v1 wss://rt.parema.example PAREMA_KEY
-REM Les trois arguments sont optionnels (valeurs de pilote par defaut).
+REM   scripts\build-release.cmd https://parema-connect.vercel.app/api/v1
+REM   scripts\build-release.cmd <url-api> <url-reverb> <cle-reverb>
+REM
+REM Sans URL Reverb, le temps reel est absent et l'application interroge le
+REM serveur : c'est le comportement voulu sur un hebergeur sans WebSocket
+REM (Vercel). Ne JAMAIS passer une adresse Reverb fictive : l'application
+REM tenterait de s'y connecter sans fin.
 
 setlocal
 for %%I in ("%USERPROFILE%\devtools\flutter") do set FLUTTER_ROOT=%%~sI
@@ -21,19 +26,18 @@ set PATH=%FLUTTER_ROOT%\bin;%ANDROID_HOME%\platform-tools;%PATH%
 cd /d "%~dp0..\mobile-flutter"
 
 set API_BASE_URL=%~1
-if "%API_BASE_URL%"=="" set API_BASE_URL=https://api.parema.example/api/v1
+if "%API_BASE_URL%"=="" set API_BASE_URL=https://parema-connect.vercel.app/api/v1
 
-set REVERB_URL=%~2
-if "%REVERB_URL%"=="" set REVERB_URL=wss://rt.parema.example
+set TEMPS_REEL=
+if not "%~2"=="" set TEMPS_REEL=--dart-define=REVERB_URL=%~2 --dart-define=REVERB_APP_KEY=%~3
 
-set REVERB_APP_KEY=%~3
-if "%REVERB_APP_KEY%"=="" set REVERB_APP_KEY=parema
+echo API : %API_BASE_URL%
+if "%TEMPS_REEL%"=="" (echo Temps reel : aucun, interrogation periodique) else (echo Temps reel : %~2)
 
 call flutter build apk --release ^
   --obfuscate ^
   --split-debug-info=build/symbols ^
   --dart-define=API_BASE_URL=%API_BASE_URL% ^
-  --dart-define=REVERB_URL=%REVERB_URL% ^
-  --dart-define=REVERB_APP_KEY=%REVERB_APP_KEY%
+  %TEMPS_REEL%
 
 endlocal

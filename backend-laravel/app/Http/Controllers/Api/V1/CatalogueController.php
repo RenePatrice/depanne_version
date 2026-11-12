@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Catalog\Models\ServiceCategory;
 use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Zones\Models\Zone;
+use App\Domain\Zones\Services\ZoneService;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategorieResource;
 use Illuminate\Http\JsonResponse;
@@ -46,17 +47,25 @@ final class CatalogueController extends Controller
      * seulement à annoncer où l'on intervient. C'est aussi quelques dizaines
      * de kilo-octets épargnés sur un réseau mobile guinéen.
      */
-    public function zones(): JsonResponse
+    public function zones(ZoneService $zones): JsonResponse
     {
-        $zones = Zone::query()->active()->orderBy('name')->get();
+        $centres = $zones->centresActifs();
+
+        // Rangées par commune puis par quartier : l'application les présente
+        // ainsi, sans avoir à retrier.
+        $liste = Zone::query()->active()->orderBy('commune')->orderBy('name')->get();
 
         return response()->json([
-            'zones' => $zones->map(static fn (Zone $zone): array => [
+            'zones' => $liste->map(static fn (Zone $zone): array => [
                 'id' => $zone->id,
                 'code' => $zone->code,
                 'nom' => $zone->name,
                 'commune' => $zone->commune,
                 'km_inclus' => $zone->included_km,
+                // Centre du quartier, pour centrer la carte du formulaire
+                // d'adresse. La couverture reste jugée par le serveur (PostGIS).
+                'latitude' => $centres[$zone->id]['lat'] ?? null,
+                'longitude' => $centres[$zone->id]['lng'] ?? null,
             ])->all(),
         ]);
     }

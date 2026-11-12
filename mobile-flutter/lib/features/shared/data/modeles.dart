@@ -81,6 +81,44 @@ class CategoriePrestations {
   );
 }
 
+// ---------------------------------------------------------------- quartiers --
+
+/// Quartier desservi, tel que le back-office le déclare (une zone = un
+/// quartier, rattaché à sa commune). Sert le formulaire d'adresse : le
+/// quartier choisi centre la carte, et le client affine ensuite.
+class QuartierCouvert {
+  const QuartierCouvert({
+    required this.id,
+    required this.nom,
+    required this.commune,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final int id;
+  final String nom;
+  final String commune;
+  final double latitude;
+  final double longitude;
+
+  /// `null` si le serveur n'a pas de centre pour ce quartier (emprise absente) :
+  /// un quartier qu'on ne sait pas situer ne peut pas centrer la carte.
+  static QuartierCouvert? depuisJson(Map<String, dynamic> json) {
+    final num? lat = json['latitude'] as num?;
+    final num? lng = json['longitude'] as num?;
+
+    if (lat == null || lng == null) return null;
+
+    return QuartierCouvert(
+      id: json['id'] as int,
+      nom: json['nom'] as String,
+      commune: (json['commune'] as String?) ?? 'Conakry',
+      latitude: lat.toDouble(),
+      longitude: lng.toDouble(),
+    );
+  }
+}
+
 // ---------------------------------------------------------------- adresses --
 
 class Adresse {
