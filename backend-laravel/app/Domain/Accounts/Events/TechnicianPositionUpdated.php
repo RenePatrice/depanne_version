@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Accounts\Events;
 
+use App\Support\OpaqueId;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -47,6 +48,8 @@ final class TechnicianPositionUpdated implements ShouldBroadcastNow
     {
         return [
             'id' => $this->technicienId,
+            // Même lien que l'instantané de la carte : identifiant opaque.
+            'url' => route('techniciens.detail', ['technicien' => OpaqueId::encode($this->technicienId)], false),
             'nom' => $this->nom,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,

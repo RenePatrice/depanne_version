@@ -9,6 +9,7 @@ use App\Domain\Catalog\Models\ServiceCategory;
 use App\Domain\Tickets\Data\TicketState;
 use App\Http\Controllers\Controller;
 use App\Support\Money;
+use App\Support\OpaqueId;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -88,6 +89,9 @@ final class CarteLiveController extends Controller
             ->get()
             ->map(static fn (object $ligne): array => [
                 'id' => (int) $ligne->id,
+                // Lien vers la fiche : les routes du back-office n'acceptent que
+                // l'identifiant opaque, jamais le numéro de ligne.
+                'url' => route('techniciens.detail', ['technicien' => OpaqueId::encode((int) $ligne->id)], false),
                 'nom' => (string) $ligne->full_name,
                 'telephone' => (string) $ligne->phone,
                 'note' => round((float) $ligne->rating_avg, 2),
@@ -139,6 +143,7 @@ final class CarteLiveController extends Controller
 
                 return [
                     'id' => (int) $ligne->id,
+                    'url' => route('tickets.detail', ['ticket' => OpaqueId::encode((int) $ligne->id)], false),
                     'reference' => (string) $ligne->reference,
                     'etat' => (string) $ligne->state,
                     'etatLibelle' => $etat?->label() ?? (string) $ligne->state,

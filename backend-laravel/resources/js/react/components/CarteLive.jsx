@@ -389,7 +389,7 @@ export default function CarteLive({ urlDonnees, urlCompteurs, categories, etats 
                                         </div>
                                     )}
 
-                                    <a href={`/techniciens/${selection.donnees.id}`}
+                                    <a href={selection.donnees.url}
                                        className="btn btn-outline-secondary btn-sm w-100 mt-3">
                                         Ouvrir la fiche
                                     </a>
@@ -417,7 +417,7 @@ export default function CarteLive({ urlDonnees, urlCompteurs, categories, etats 
                                         <span className="dm-amount">{selection.donnees.montantFormate}</span>
                                     </div>
 
-                                    <a href={`/tickets/${selection.donnees.id}`}
+                                    <a href={selection.donnees.url}
                                        className="btn btn-outline-secondary btn-sm w-100 mt-3">
                                         Ouvrir le ticket
                                     </a>

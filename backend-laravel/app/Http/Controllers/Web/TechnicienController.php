@@ -17,6 +17,7 @@ use App\Domain\Wallet\Models\Transaction;
 use App\Http\Controllers\Controller;
 use App\Http\DataTables\TechniciensTable;
 use App\Support\Exports\ExporteurTable;
+use App\Support\OpaqueId;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -85,7 +86,8 @@ final class TechnicienController extends Controller
             ->orderBy('created_at')
             ->get()
             ->map(fn (TechnicianProfile $profil): array => [
-                'id' => $profil->user_id,
+                // Identifiant opaque : c'est lui que les routes du back-office attendent.
+                'id' => OpaqueId::encode((int) $profil->user_id),
                 'nom' => $profil->user?->full_name,
                 'telephone' => $profil->user?->phone,
                 'email' => $profil->user?->email,

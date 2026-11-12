@@ -184,3 +184,35 @@ it('propose la carte live dans la navigation des rôles habilités', function ()
         ->and($liens(adminAvecRole('SUPPORT')))->toContain('carte-live')
         ->and($liens(adminAvecRole('FINANCE')))->not->toContain('carte-live');
 });
+
+it('fournit des liens qui s\'ouvrent réellement, par identifiant opaque', function (): void {
+    // Régression : la carte fabriquait `/techniciens/26` avec l'identifiant
+    // numérique, que les routes du back-office refusent (404).
+    $donnees = $this->actingAs($this->admin, 'admin')->getJson(route('carte-live.donnees'))->json();
+
+    $technicien = collect($donnees['techniciens'])->first();
+    $ticket = collect($donnees['interventions'])->first();
+
+    expect($technicien)->not->toBeNull()->and($ticket)->not->toBeNull()
+        ->and($technicien['url'])->not->toBe('/techniciens/'.$technicien['id'])
+        ->and($ticket['url'])->not->toBe('/tickets/'.$ticket['id']);
+
+    $this->actingAs($this->admin, 'admin')->get($technicien['url'])->assertOk();
+    $this->actingAs($this->admin, 'admin')->get($ticket['url'])->assertOk();
+
+    // L'événement temps réel porte le même lien que l'instantané.
+    $evenement = new TechnicianPositionUpdated($technicien['id'], 'Test', 9.6, -13.6, false);
+    expect($evenement->broadcastWith()['url'])->toBe($technicien['url']);
+});
+
+it('donne à la file de validation des identifiants que ses routes acceptent', function (): void {
+    $dossier = collect(
+        $this->actingAs($this->admin, 'admin')->getJson(route('techniciens.dossiers'))->json('dossiers')
+    )->first();
+
+    expect($dossier)->not->toBeNull();
+
+    $this->actingAs($this->admin, 'admin')
+        ->get(route('techniciens.detail', ['technicien' => $dossier['id']]))
+        ->assertOk();
+});
