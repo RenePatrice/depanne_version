@@ -44,5 +44,12 @@ call flutter build apk --release ^
   --split-debug-info=build/symbols ^
   --dart-define=API_BASE_URL=%API_BASE_URL% ^
   %TEMPS_REEL%
+if errorlevel 1 exit /b 1
+
+REM Copie sous un nom explicite : le build suivant (emulateur) ecrase
+REM app-release.apk, pas les livrables.
+if not exist build\livrables mkdir build\livrables
+copy /y build\app\outputs\flutter-apk\app-release.apk build\livrables\parema-connect.apk >nul
+echo Livrable : mobile-flutter\build\livrables\parema-connect.apk
 
 endlocal
