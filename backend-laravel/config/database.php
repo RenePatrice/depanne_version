@@ -129,6 +129,12 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Quand seule la connexion poolée (mode transaction) est joignable
+            // — cas de Supabase depuis un réseau sans IPv6 —, les requêtes
+            // préparées natives ne survivent pas d'une transaction à l'autre.
+            'options' => env('DB_DISABLE_NATIVE_PREPARES', false)
+                ? [PDO::ATTR_EMULATE_PREPARES => true]
+                : [],
         ],
 
         /*
