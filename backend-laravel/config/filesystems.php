@@ -18,6 +18,15 @@ return [
     'default' => env('FILESYSTEM_DISK', 'local'),
 
     /*
+    | Disque des fichiers PUBLICS (photos de l'équipe sur le site vitrine).
+    | `public` en local (dossier storage/app/public) ; `s3-public` quand
+    | l'hébergeur n'a pas de disque inscriptible (Vercel + Supabase Storage).
+    | Le disque par défaut ci-dessus reste celui des fichiers PRIVÉS (pièces
+    | d'identité), jamais exposés par une adresse publique.
+    */
+    'media' => env('MEDIA_DISK', 'public'),
+
+    /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
@@ -58,6 +67,22 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => false,
+            'report' => false,
+        ],
+
+        // Même stockage objet, mais un bucket PUBLIC distinct : ses fichiers
+        // sont lisibles par tous via `AWS_PUBLIC_URL`.
+        's3-public' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_PUBLIC_BUCKET'),
+            'url' => env('AWS_PUBLIC_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'public',
             'throw' => false,
             'report' => false,
         ],

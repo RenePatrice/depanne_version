@@ -135,7 +135,7 @@ final class SiteAdminController extends Controller
     public function supprimerMembre(SiteMembre $membre): RedirectResponse
     {
         if ($membre->photo_path !== null && $membre->photo_path !== '') {
-            Storage::disk('public')->delete($membre->photo_path);
+            Storage::disk((string) config('filesystems.media'))->delete($membre->photo_path);
         }
 
         $membre->delete();

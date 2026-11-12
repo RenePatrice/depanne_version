@@ -33,10 +33,10 @@ final class EnregistrerMembre
 
         if ($photo !== null) {
             $ancienne = $membre->photo_path;
-            $membre->photo_path = $photo->store('equipe', 'public');
+            $membre->photo_path = $photo->store('equipe', (string) config('filesystems.media'));
 
             if ($ancienne !== null && $ancienne !== '') {
-                Storage::disk('public')->delete($ancienne);
+                Storage::disk((string) config('filesystems.media'))->delete($ancienne);
             }
         }
 

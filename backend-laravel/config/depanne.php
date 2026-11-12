@@ -90,4 +90,13 @@ return [
         'provider' => env('MASKED_CALL_PROVIDER', 'mock'),
     ],
 
+    // --- Déclencheur externe de la file d'attente ---------------------------
+    // Sur un hébergeur sans processus permanent (Vercel), personne ne fait
+    // tourner `queue:work`. Un planificateur externe (pg_cron de Supabase)
+    // appelle alors /internes/taches avec ce jeton. Vide = adresse désactivée :
+    // elle répond 404, comme si elle n'existait pas.
+    'taches' => [
+        'jeton' => env('TACHES_JETON', ''),
+    ],
+
 ];

@@ -1,0 +1,18 @@
+# Installés ou générés pendant le build Vercel : inutile de les téléverser.
+/vendor
+/node_modules
+/public/build
+/public/hot
+/public/storage
+
+# Sans objet pour la fonction de production.
+/tests
+/storage/logs
+/storage/app
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/views
+/.env
+/.env.*
+/phpunit.xml
+/phpstan.neon

@@ -36,6 +36,11 @@ use Illuminate\Support\Facades\Route;
 // Sonde publique, volontairement avare en détails pour un visiteur anonyme.
 Route::get('/health', HealthController::class)->name('health');
 
+// Déclencheur de la file d'attente pour un hébergeur sans processus permanent.
+// Appelé par un planificateur externe, authentifié par jeton (pas de session,
+// donc pas de jeton CSRF — l'exemption est déclarée dans bootstrap/app.php).
+Route::post('/internes/taches', App\Http\Controllers\Web\TachesController::class)->name('internes.taches');
+
 /*
 |--------------------------------------------------------------------------
 | Site vitrine public (plateforme web)

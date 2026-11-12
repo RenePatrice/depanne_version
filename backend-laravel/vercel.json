@@ -1,0 +1,39 @@
+{
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "version": 2,
+    "framework": null,
+    "buildCommand": "npm run build",
+    "outputDirectory": "public",
+    "functions": {
+        "api/index.php": {
+            "runtime": "vercel-php@0.8.0",
+            "maxDuration": 60
+        }
+    },
+    "routes": [
+        { "src": "/build/(.*)", "headers": { "Cache-Control": "public, max-age=31536000, immutable" }, "continue": true },
+        { "handle": "filesystem" },
+        { "src": "/(.*)", "dest": "/api/index.php" }
+    ],
+    "env": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "false",
+        "LOG_CHANNEL": "stderr",
+        "TRUSTED_PROXIES": "*",
+        "SESSION_DRIVER": "database",
+        "CACHE_STORE": "database",
+        "QUEUE_CONNECTION": "database",
+        "BROADCAST_CONNECTION": "null",
+        "FILESYSTEM_DISK": "s3",
+        "MEDIA_DISK": "s3-public",
+        "DB_CONNECTION": "pgsql",
+        "DB_SSLMODE": "require",
+        "DB_DISABLE_NATIVE_PREPARES": "true",
+        "VIEW_COMPILED_PATH": "/tmp/views",
+        "APP_CONFIG_CACHE": "/tmp/config.php",
+        "APP_EVENTS_CACHE": "/tmp/events.php",
+        "APP_PACKAGES_CACHE": "/tmp/packages.php",
+        "APP_ROUTES_CACHE": "/tmp/routes.php",
+        "APP_SERVICES_CACHE": "/tmp/services.php"
+    }
+}

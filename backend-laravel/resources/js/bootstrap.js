@@ -15,12 +15,20 @@ if (jeton) {
 // back-office (carte live, KPI, file de validation).
 window.Pusher = Pusher;
 
-window.Echo = new Echo({
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-    wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-    enabledTransports: ['ws', 'wss'],
-});
+// Sans clé Reverb (hébergement sans WebSocket, comme Vercel), on ne crée PAS
+// le client : il lèverait une exception au chargement et casserait toute la
+// page. Les îlots testent `window.Echo` et basculent sur l'interrogation
+// périodique, avec le bandeau « Mode dégradé ».
+const cleReverb = import.meta.env.VITE_REVERB_APP_KEY;
+
+window.Echo = cleReverb
+    ? new Echo({
+        broadcaster: 'reverb',
+        key: cleReverb,
+        wsHost: import.meta.env.VITE_REVERB_HOST,
+        wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
+        wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
+        forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+        enabledTransports: ['ws', 'wss'],
+    })
+    : null;

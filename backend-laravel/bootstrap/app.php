@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
-return Application::configure(basePath: dirname(__DIR__))
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
@@ -31,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // vers l'écran de connexion, pas vers une route « login » inexistante.
         $middleware->redirectGuestsTo(fn (): string => route('connexion'));
         $middleware->redirectUsersTo(fn (): string => route('tableau-de-bord'));
+
+        // Le déclencheur de la file d'attente est appelé par une machine,
+        // sans session : il s'authentifie par jeton, pas par CSRF.
+        $middleware->validateCsrfTokens(except: ['internes/taches']);
 
         // En-têtes de sécurité (§10). Le back-office ne doit jamais être
         // affichable dans une iframe tierce.
@@ -76,3 +80,14 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json(['message' => $e->getMessage()], 422);
         });
     })->create();
+
+/*
+ * Sur Vercel, le disque de la fonction est en lecture seule : seul /tmp est
+ * inscriptible. Tout ce que le framework écrit (vues compilées, caches) y est
+ * donc redirigé. Les fichiers métier, eux, vont sur le stockage objet.
+ */
+if (getenv('VERCEL') !== false) {
+    $app->useStoragePath('/tmp/storage');
+}
+
+return $app;

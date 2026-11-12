@@ -41,7 +41,7 @@ final class SiteMembre extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->photo_path);
+        return Storage::disk((string) config('filesystems.media'))->url($this->photo_path);
     }
 
     /** Initiales pour la pastille de repli (deux lettres au plus). */
