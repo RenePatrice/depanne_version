@@ -657,6 +657,7 @@ section[id] { scroll-margin-top: 88px; }
 .pc-footer__col h3 { font-family: var(--pc-body); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pc-muted); margin-bottom: 1rem; }
 .pc-footer__col a { display: block; padding: 0.32rem 0; color: var(--pc-ink); font-size: 0.97rem; transition: color 0.15s ease, transform 0.25s var(--pc-ease); }
 .pc-footer__col a:hover { color: var(--pc-blue); transform: translateX(4px); }
+.pc-footer__bientot { display: block; padding: 0.32rem 0; color: var(--pc-muted); font-size: 0.97rem; }
 .pc-footer__bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 2.8rem; padding-top: 1.4rem; border-top: 1px solid var(--pc-line); font-size: 0.87rem; color: var(--pc-muted); }
 
 // --- Bouton de thème ---------------------------------------------------------

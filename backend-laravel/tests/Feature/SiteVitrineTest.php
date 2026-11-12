@@ -53,6 +53,22 @@ it('renvoie à l\'accueil quand aucun APK n\'est configuré, mais compte le clic
     expect(SiteEvenement::query()->where('type', TypeEvenement::CLIC_TELECHARGEMENT->value)->count())->toBe(1);
 });
 
+it('ferme le téléchargement quand il est désactivé en back-office', function (): void {
+    // Le lien de l'APK reste enregistré : seul l'interrupteur est coupé.
+    AppSetting::put(AppSetting::SITE_APK_URL, 'https://example.test/parema.apk');
+    AppSetting::put(AppSetting::SITE_TELECHARGEMENT_ACTIF, false);
+
+    // L'adresse tapée à la main ne mène plus à l'APK…
+    $this->get(route('site.telecharger'))
+        ->assertRedirect(route('site.accueil').'#telecharger');
+
+    // …et la page n'affiche plus aucun lien actif vers lui, pied de page compris.
+    $this->get(route('site.accueil'))
+        ->assertOk()
+        ->assertDontSee('href="'.route('site.telecharger').'"', escape: false)
+        ->assertSee('Lancement imminent', escape: false);
+});
+
 it('garde la page vitrine hors du guard admin', function (): void {
     // Aucune redirection vers la connexion : le site est public.
     $this->get(route('site.accueil'))->assertOk();

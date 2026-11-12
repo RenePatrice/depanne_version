@@ -120,7 +120,11 @@
 
         <div class="pc-footer__col">
             <h3>Application</h3>
-            <a href="{{ route('site.telecharger') }}">Télécharger (Android)</a>
+            @if (($telechargement['apk_disponible'] ?? false))
+                <a href="{{ route('site.telecharger') }}">Télécharger (Android)</a>
+            @else
+                <span class="pc-footer__bientot">Application Android : bientôt</span>
+            @endif
             @if (($telechargement['playstore_disponible'] ?? false))
                 <a href="{{ route('site.playstore') }}">Google Play Store</a>
             @endif

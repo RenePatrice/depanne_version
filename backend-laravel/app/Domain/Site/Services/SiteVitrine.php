@@ -178,18 +178,24 @@ final class SiteVitrine
     }
 
     /** L'URL de l'APK configurée, ou `null`. Consommée par la route de téléchargement. */
+    /**
+     * L'URL de l'APK, ou `null` si aucune n'est configurée OU si le
+     * téléchargement est désactivé en back-office : l'interrupteur doit aussi
+     * fermer l'adresse /telecharger tapée à la main, pas seulement griser les
+     * boutons.
+     */
     public function urlApk(): ?string
     {
-        $apk = trim((string) AppSetting::get(AppSetting::SITE_APK_URL, ''));
-
-        return $apk === '' ? null : $apk;
+        return $this->telechargement()['apk_disponible']
+            ? trim((string) AppSetting::get(AppSetting::SITE_APK_URL, ''))
+            : null;
     }
 
     public function urlPlaystore(): ?string
     {
-        $url = trim((string) AppSetting::get(AppSetting::SITE_PLAYSTORE_URL, ''));
+        $telechargement = $this->telechargement();
 
-        return $url === '' ? null : $url;
+        return $telechargement['playstore_disponible'] ? $telechargement['playstore_url'] : null;
     }
 
     /**
