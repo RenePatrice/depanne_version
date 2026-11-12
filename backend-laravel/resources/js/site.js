@@ -15,16 +15,36 @@ function initNav() {
 
     const toggle = nav.querySelector('[data-nav-toggle]');
     const links = nav.querySelector('[data-nav-links]');
-    if (toggle && links) {
-        toggle.addEventListener('click', () => {
-            const ouvert = nav.classList.toggle('is-open');
-            toggle.setAttribute('aria-label', ouvert ? 'Fermer le menu' : 'Ouvrir le menu');
-        });
-        // Un clic sur un lien d'ancre referme le menu.
-        links.querySelectorAll('a[href^="#"]').forEach((a) =>
-            a.addEventListener('click', () => nav.classList.remove('is-open')),
-        );
-    }
+    const voile = nav.querySelector('[data-nav-voile]');
+    if (!toggle || !links) return;
+
+    const basculer = (ouvert) => {
+        nav.classList.toggle('is-open', ouvert);
+        document.documentElement.classList.toggle('pc-menu-ouvert', ouvert);
+        toggle.setAttribute('aria-expanded', String(ouvert));
+        toggle.setAttribute('aria-label', ouvert ? 'Fermer le menu' : 'Ouvrir le menu');
+    };
+
+    toggle.addEventListener('click', () => basculer(!nav.classList.contains('is-open')));
+
+    // Tout lien du menu le referme : ancres de l'accueil comme liens vers une
+    // autre page (Contact, ou les sections vues depuis une page intérieure).
+    links.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => basculer(false)));
+
+    // Un toucher sur le voile, ou la touche Échap, referme aussi.
+    voile?.addEventListener('click', () => basculer(false));
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && nav.classList.contains('is-open')) {
+            basculer(false);
+            toggle.focus();
+        }
+    });
+
+    // Repasser en largeur bureau avec le menu ouvert ne doit pas laisser la
+    // page bloquée.
+    window.matchMedia('(min-width: 921px)').addEventListener('change', (e) => {
+        if (e.matches) basculer(false);
+    });
 }
 
 /* --- Révélation au défilement --------------------------------------------- */

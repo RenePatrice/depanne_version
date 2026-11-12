@@ -110,11 +110,16 @@
 .pc-phone { color: var(--pc-ink); }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+// `clip` et pas seulement `hidden` sur le body : sur mobile, un décor animé
+// qui dépasse (l'orbite du héro en rotation) élargissait quand même la zone
+// d'affichage, et le navigateur dézoomait la page de quelques pixels. `clip`
+// coupe le débordement sans créer de conteneur de défilement, si bien que la
+// barre de navigation reste collante.
+html { scroll-behavior: smooth; overflow-x: hidden; overflow-x: clip; }
 
 body {
   margin: 0; font-family: var(--pc-body); font-size: 1.02rem; color: var(--pc-ink); background: var(--pc-bg);
-  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: hidden; line-height: 1.6;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: hidden; overflow-x: clip; line-height: 1.6;
 }
 
 h1, h2, h3 { font-family: var(--pc-display); font-weight: 700; letter-spacing: -0.028em; line-height: 1.05; margin: 0; color: var(--pc-ink); text-wrap: balance; }
@@ -162,7 +167,12 @@ section[id] { scroll-margin-top: 88px; }
 .pc-annonce__point { width: 7px; height: 7px; border-radius: 50%; background: var(--pc-accent); animation: pc-pulse 1.8s infinite; }
 
 // --- Navigation --------------------------------------------------------------
-.pc-nav { position: sticky; top: 0; z-index: 50; background: var(--pc-nav); backdrop-filter: blur(16px) saturate(1.4); border-bottom: 1px solid transparent; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+.pc-nav { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid transparent; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+// Le flou est porté par un pseudo-élément, PAS par la barre elle-même : un
+// élément muni de `backdrop-filter` devient le repère de ses descendants en
+// `position: fixed`. Le menu mobile, au lieu de couvrir l'écran, se retrouvait
+// alors confiné à la hauteur de la barre, liens débordant sur la page.
+.pc-nav::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--pc-nav); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
 .pc-nav.is-scrolled { border-color: var(--pc-hair); box-shadow: 0 10px 30px -22px rgba(20, 27, 45, 0.25); }
 .pc-nav__inner { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; }
 .pc-nav__brand { display: inline-flex; align-items: center; }
@@ -172,6 +182,7 @@ section[id] { scroll-margin-top: 88px; }
 .pc-nav__links > a:not(.pc-btn)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 7px; background: var(--pc-scribble) no-repeat center / 100% 100%; opacity: 0; transform: translateY(3px); transition: opacity 0.25s ease, transform 0.25s var(--pc-ease); }
 .pc-nav__links > a:not(.pc-btn):hover, .pc-nav__links > a.is-current { color: var(--pc-ink); }
 .pc-nav__links > a:not(.pc-btn):hover::after, .pc-nav__links > a.is-current::after { opacity: 1; transform: none; }
+.pc-nav__voile { display: none; }
 .pc-nav__burger { display: none; flex-direction: column; gap: 5px; background: none; border: 0; padding: 8px; cursor: pointer; position: relative; z-index: 45; }
 .pc-nav__burger span { width: 24px; height: 2.5px; background: var(--pc-ink); border-radius: 2px; transition: transform 0.25s ease, opacity 0.2s ease; }
 .pc-nav.is-open .pc-nav__burger span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
@@ -305,7 +316,12 @@ section[id] { scroll-margin-top: 88px; }
 .pc-marquee__item svg { width: 14px; height: 14px; color: var(--pc-accent); flex-shrink: 0; }
 
 // --- Sections ----------------------------------------------------------------
-.pc-section { --pc-sec: var(--pc-bg); position: relative; padding: clamp(4.5rem, 8.5vw, 8rem) 0; background: var(--pc-sec); }
+.pc-section { --pc-sec: var(--pc-bg); position: relative; padding: clamp(4.5rem, 8.5vw, 8rem) 0; background: var(--pc-sec);
+  // Les halos décoratifs pivotent (animation pc-morph) : leurs coins
+  // dépassaient l'écran et élargissaient la page sur mobile. On coupe
+  // l'horizontal seulement — `clip` laisse le vertical visible, donc les
+  // vagues qui remontent sur la section précédente restent affichées.
+  overflow-x: clip; }
 .pc-section--soft { --pc-sec: var(--pc-bg-soft); }
 .pc-section--spot { --pc-sec: var(--pc-spot-a); background: linear-gradient(180deg, var(--pc-spot-a) 0%, var(--pc-spot-b) 100%); }
 
@@ -732,11 +748,30 @@ body, .pc-section, .pc-footer, .pc-nav { transition: background-color 0.35s ease
   .pc-footer__grid { grid-template-columns: 1fr 1fr; }
 
   .pc-nav__burger { display: flex; }
-  .pc-nav__links { position: fixed; inset: 0 0 0 auto; width: min(320px, 84vw); flex-direction: column; align-items: flex-start; gap: 1.3rem; padding: 5.5rem 1.8rem 2rem; background: var(--pc-bg); box-shadow: -30px 0 60px -30px rgba(20, 27, 45, 0.35); transform: translateX(100%); transition: transform 0.4s var(--pc-ease); z-index: 40; }
-  .pc-nav__links > a:not(.pc-btn) { font-family: var(--pc-display); font-size: 1.4rem; font-weight: 600; letter-spacing: -0.03em; color: var(--pc-ink); }
-  .pc-nav.is-open .pc-nav__links { transform: none; }
-  .pc-nav__links .pc-btn { width: 100%; justify-content: center; }
+
+  // Panneau latéral pleine hauteur, opaque, défilable s'il manque de place.
+  .pc-nav__links { position: fixed; top: 0; right: 0; bottom: 0; height: 100dvh; width: min(340px, 86vw); flex-direction: column; align-items: stretch; gap: 0.2rem; padding: 5.2rem 1.5rem 2rem; overflow-y: auto; overscroll-behavior: contain; background: var(--pc-bg); box-shadow: -30px 0 60px -30px rgba(20, 27, 45, 0.35); transform: translateX(105%); visibility: hidden; transition: transform 0.4s var(--pc-ease), visibility 0s linear 0.4s; z-index: 40; }
+  .pc-nav.is-open .pc-nav__links { transform: none; visibility: visible; transition: transform 0.4s var(--pc-ease), visibility 0s; }
+
+  // Chaque lien sur toute la largeur : une cible de toucher confortable.
+  .pc-nav__links > a:not(.pc-btn) { display: block; padding: 0.85rem 0.9rem; border-radius: 14px; font-family: var(--pc-display); font-size: 1.35rem; font-weight: 600; letter-spacing: -0.03em; color: var(--pc-ink); transition: background 0.2s ease; }
+  .pc-nav__links > a:not(.pc-btn)::after { display: none; }
+  .pc-nav__links > a:not(.pc-btn):hover, .pc-nav__links > a.is-current { background: var(--pc-blue-tint); color: var(--pc-blue-strong); }
+
+  // Thème et téléchargement regroupés en pied de panneau, sous un filet.
+  .pc-nav__links .pc-theme { margin-top: auto; align-self: flex-start; }
+  .pc-nav__links .pc-btn { width: 100%; justify-content: center; margin-top: 0.8rem; }
+
+  // Voile sur la page pendant que le menu est ouvert ; un toucher le referme.
+  .pc-nav__voile { display: block; position: fixed; inset: 0; z-index: 35; background: rgba(13, 18, 32, 0.45); opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0s linear 0.3s; }
+  .pc-nav.is-open .pc-nav__voile { opacity: 1; visibility: visible; transition: opacity 0.3s ease, visibility 0s; }
 }
+
+// Page immobile sous le menu ouvert. Posé sur <html>, PAS sur <body> : html
+// portant `overflow-x: clip`, un `overflow: hidden` sur body ferait de celui-ci
+// une zone de défilement à part, et la barre collante s'y recollerait — elle
+// remontait alors hors de l'écran, croix de fermeture comprise.
+html.pc-menu-ouvert { overflow: hidden; }
 
 @media (max-width: 520px) {
   .pc-container { width: min(1200px, 100% - 2rem); }

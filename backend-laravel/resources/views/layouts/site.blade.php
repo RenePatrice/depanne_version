@@ -68,14 +68,16 @@
             <img class="pc-nav__logo" src="{{ asset('images/logo.png') }}" alt="Parema Connect">
         </a>
 
-        <button class="pc-nav__burger" type="button" aria-label="Ouvrir le menu" data-nav-toggle>
+        <div class="pc-nav__voile" data-nav-voile aria-hidden="true"></div>
+
+        <button class="pc-nav__burger" type="button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="pc-menu" data-nav-toggle>
             <span></span><span></span><span></span>
         </button>
 
         {{-- Sur l'accueil, les liens sont de simples ancres (suivi de section au
              défilement) ; ailleurs, ils ramènent à l'accueil, à la bonne section. --}}
         @php $ancre = request()->routeIs('site.accueil') ? '' : route('site.accueil'); @endphp
-        <nav class="pc-nav__links" data-nav-links aria-label="Navigation principale">
+        <nav class="pc-nav__links" id="pc-menu" data-nav-links aria-label="Navigation principale">
             <a href="{{ $ancre }}#fonctionnement">Comment ça marche</a>
             <a href="{{ $ancre }}#metiers" @class(['is-current' => request()->routeIs('site.metier')])>Métiers</a>
             <a href="{{ $ancre }}#securite">Sécurité</a>
