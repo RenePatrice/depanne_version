@@ -34,7 +34,12 @@ if not "%~2"=="" set TEMPS_REEL=--dart-define=REVERB_URL=%~2 --dart-define=REVER
 echo API : %API_BASE_URL%
 if "%TEMPS_REEL%"=="" (echo Temps reel : aucun, interrogation periodique) else (echo Temps reel : %~2)
 
+REM --target-platform : seulement les processeurs des telephones (ARM 32 et
+REM 64 bits). La version x86_64 ne sert qu'aux emulateurs et Chromebooks ; la
+REM retirer fait passer l'APK sous les 50 Mo par fichier du stockage gratuit
+REM de Supabase, d'ou elle est telechargee depuis le site.
 call flutter build apk --release ^
+  --target-platform android-arm,android-arm64 ^
   --obfuscate ^
   --split-debug-info=build/symbols ^
   --dart-define=API_BASE_URL=%API_BASE_URL% ^
