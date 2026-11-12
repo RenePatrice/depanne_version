@@ -22,6 +22,7 @@
         "APP_DEBUG": "false",
         "LOG_CHANNEL": "stderr",
         "TRUSTED_PROXIES": "*",
+        "HASH_DRIVER": "argon2id",
         "SESSION_DRIVER": "database",
         "CACHE_STORE": "database",
         "QUEUE_CONNECTION": "database",
