@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\IdentifiantDeCorrelation;
+use App\Http\Middleware\ProtegerSessionAdmin;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -40,6 +41,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
         // affichable dans une iframe tierce.
         $middleware->web(append: [
             SecurityHeaders::class,
+            // Session du back-office liée à son appareil et limitée dans le temps.
+            ProtegerSessionAdmin::class,
         ]);
 
         /*

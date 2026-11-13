@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Accounts\Actions;
 
 use App\Domain\Accounts\Models\AdminUser;
+use App\Support\EmpreinteSession;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,13 +26,15 @@ final class AuthenticateAdmin
 
     public const DECAY_SECONDS = 900;
 
-    public function execute(Request $request, string $email, string $password, bool $remember = false): AdminUser
+    public function execute(Request $request, string $email, string $password): AdminUser
     {
         $key = self::throttleKey($request, $email);
 
         $this->guardAgainstBruteForce($key);
 
-        if (! Auth::guard('admin')->attempt(['email' => $email, 'password' => $password], $remember)) {
+        // Jamais de « se souvenir de moi » : son cookie durerait des années et
+        // survivrait à l'expiration de la session — un vol de session définitif.
+        if (! Auth::guard('admin')->attempt(['email' => $email, 'password' => $password], false)) {
             RateLimiter::hit($key, self::DECAY_SECONDS);
 
             Event::dispatch(new Failed('admin', null, ['email' => $email]));
@@ -56,6 +59,10 @@ final class AuthenticateAdmin
 
         RateLimiter::clear($key);
         $request->session()->regenerate();
+
+        // Lie la nouvelle session à cet appareil (navigateur + IP) et date son
+        // ouverture : un cookie rejoué ailleurs, ou trop vieux, sera refusé.
+        EmpreinteSession::poser($request);
 
         $admin->forceFill([
             'last_login_at' => now(),

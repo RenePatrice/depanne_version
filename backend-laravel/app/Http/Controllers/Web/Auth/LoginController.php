@@ -30,7 +30,6 @@ final class LoginController extends Controller
             $request,
             (string) $request->string('email'),
             (string) $request->string('password'),
-            $request->boolean('remember'),
         );
 
         return redirect()->intended(route('tableau-de-bord'));

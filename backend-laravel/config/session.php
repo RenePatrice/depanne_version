@@ -36,6 +36,15 @@ return [
 
     'lifetime' => (int) env('SESSION_LIFETIME', 120),
 
+    // Durée MAXIMALE d'une session du back-office, en minutes, même utilisée
+    // sans interruption (ProtegerSessionAdmin). L'inactivité est bornée par
+    // `lifetime` ci-dessus ; ce plafond empêche qu'un cookie volé reste valable
+    // tant qu'on s'en sert.
+    'duree_max' => (int) env('SESSION_DUREE_MAX', 480),
+
+    // Lier la session à l'adresse IP de connexion, en plus du navigateur.
+    'lier_ip' => (bool) env('SESSION_LIER_IP', true),
+
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
     /*

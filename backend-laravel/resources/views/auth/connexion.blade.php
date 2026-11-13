@@ -67,10 +67,12 @@
                 @enderror
             </div>
 
-            <div class="form-check mb-4">
-                <input class="form-check-input" type="checkbox" id="remember" name="remember" value="1">
-                <label class="form-check-label small" for="remember">Rester connecté sur cet appareil</label>
-            </div>
+            {{-- Pas de « rester connecté » : son cookie durerait des années et
+                 survivrait à l'expiration de la session (vol de session durable). --}}
+            <p class="small text-body-secondary mb-4">
+                <i class="bi bi-shield-lock me-1" aria-hidden="true"></i>
+                Par sécurité, la session se ferme après 30 minutes d'inactivité.
+            </p>
 
             <button type="submit" class="btn btn-primary w-100">
                 <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i> Se connecter
