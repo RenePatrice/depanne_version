@@ -71,7 +71,7 @@
                  survivrait à l'expiration de la session (vol de session durable). --}}
             <p class="small text-body-secondary mb-4">
                 <i class="bi bi-shield-lock me-1" aria-hidden="true"></i>
-                Par sécurité, la session se ferme après 30 minutes d'inactivité.
+               
             </p>
 
             <button type="submit" class="btn btn-primary w-100">
