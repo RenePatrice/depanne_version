@@ -9,7 +9,7 @@
 
     {{-- Le thème est posé avant le premier rendu : sans cela, une page sombre
          apparaîtrait d'abord en clair le temps que le bundle se charge. --}}
-    <script>
+    <script nonce="{{ \App\Http\Middleware\SecurityHeaders::nonce() }}">
         (function () {
             try {
                 document.documentElement.dataset.bsTheme =

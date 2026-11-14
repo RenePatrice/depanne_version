@@ -53,6 +53,19 @@ it('renvoie à l\'accueil quand aucun APK n\'est configuré, mais compte le clic
     expect(SiteEvenement::query()->where('type', TypeEvenement::CLIC_TELECHARGEMENT->value)->count())->toBe(1);
 });
 
+it('ne sert jamais une clé d\'objet privée en lien brut (PC-03)', function (): void {
+    // L'APK vit dans un bucket PRIVÉ : le réglage porte une clé d'objet, pas
+    // une URL. Sans stockage objet gréé (environnement de test), le lien signé
+    // ne peut être produit : on dégrade vers l'accueil plutôt que d'exposer le
+    // chemin, et jamais on ne redirige vers une URL publique permanente.
+    AppSetting::put(AppSetting::SITE_APK_URL, 'parema-connect.apk');
+
+    $reponse = $this->get(route('site.telecharger'));
+
+    $reponse->assertRedirect(route('site.accueil').'#telecharger');
+    expect($reponse->headers->get('Location'))->not->toContain('parema-connect.apk');
+});
+
 it('ferme le téléchargement quand il est désactivé en back-office', function (): void {
     // Le lien de l'APK reste enregistré : seul l'interrupteur est coupé.
     AppSetting::put(AppSetting::SITE_APK_URL, 'https://example.test/parema.apk');

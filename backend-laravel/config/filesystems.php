@@ -87,6 +87,23 @@ return [
             'report' => false,
         ],
 
+        // Binaires à télécharger (APK) : bucket PRIVÉ. L'APK n'a aucune URL
+        // publique permanente ; la vitrine en sert un lien signé de courte
+        // durée au moment du clic (PC-03). L'interrupteur de téléchargement
+        // gouverne donc vraiment l'accès, et pas seulement l'affichage.
+        'telechargements' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_DOWNLOADS_BUCKET', 'telechargements'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

@@ -306,7 +306,7 @@
                                 </button>
                             </form>
                             <form method="POST" action="{{ route('site-admin.equipe.supprimer', $membre) }}"
-                                  onsubmit="return confirm('Retirer {{ $membre->nom }} de l\'équipe ?');">
+                                  data-confirmer="Retirer {{ $membre->nom }} de l'équipe ?">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>

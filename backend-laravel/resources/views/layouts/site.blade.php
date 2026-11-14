@@ -7,7 +7,7 @@
 
     {{-- Thème posé AVANT le premier rendu : sans cela une page sombre clignote
          en clair au chargement. Choix mémorisé, sinon réglage du système. --}}
-    <script>
+    <script nonce="{{ \App\Http\Middleware\SecurityHeaders::nonce() }}">
         (function () {
             // `?theme=light|dark` force un thème pour un lien partagé ou un test.
             var theme = (location.search.match(/[?&]theme=(light|dark)\b/) || [])[1] || null;

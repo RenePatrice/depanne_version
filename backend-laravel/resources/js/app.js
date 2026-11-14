@@ -45,6 +45,18 @@ async function chargeCompteurs() {
     animeCompteurs();
 }
 
+// Confirmation avant un envoi destructeur, sans gestionnaire `onsubmit` en
+// ligne (interdit par la Content-Security-Policy, PC-01) : le formulaire porte
+// `data-confirmer="message"` et un seul écouteur délégué s'en charge.
+document.addEventListener('submit', (evenement) => {
+    const formulaire = evenement.target;
+    const message = formulaire instanceof HTMLFormElement ? formulaire.dataset.confirmer : null;
+
+    if (message && !window.confirm(message)) {
+        evenement.preventDefault();
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     initApparence();
     void chargeCompteurs();

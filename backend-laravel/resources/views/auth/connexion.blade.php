@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Connexion — Parema Connect</title>
 
-    <script>
+    <script nonce="{{ \App\Http\Middleware\SecurityHeaders::nonce() }}">
         (function () {
             try {
                 document.documentElement.dataset.bsTheme =
@@ -70,7 +70,7 @@
             {{-- Pas de « rester connecté » : son cookie durerait des années et
                  survivrait à l'expiration de la session (vol de session durable). --}}
             <p class="small text-body-secondary mb-4">
-                <i class="bi bi-shield-lock me-1" aria-hidden="true"></i>
+                
                
             </p>
 

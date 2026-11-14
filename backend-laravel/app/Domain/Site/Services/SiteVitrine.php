@@ -13,6 +13,7 @@ use App\Domain\Site\Models\SiteMembre;
 use App\Domain\Tickets\Data\TicketState;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Modèle de vue de la page d'accueil publique : textes (réglés en back-office),
@@ -177,18 +178,38 @@ final class SiteVitrine
         ];
     }
 
-    /** L'URL de l'APK configurée, ou `null`. Consommée par la route de téléchargement. */
     /**
      * L'URL de l'APK, ou `null` si aucune n'est configurée OU si le
      * téléchargement est désactivé en back-office : l'interrupteur doit aussi
      * fermer l'adresse /telecharger tapée à la main, pas seulement griser les
      * boutons.
+     *
+     * Deux formes acceptées dans le réglage `site_apk_url` :
+     *   - une URL absolue (`http(s)://…`) : hébergement externe choisi en
+     *     back-office, servie telle quelle ;
+     *   - une clé d'objet relative : l'APK vit dans le bucket PRIVÉ
+     *     `telechargements` et n'a aucune URL publique permanente — on signe un
+     *     lien de 15 minutes au moment du clic (PC-03). Si la signature échoue
+     *     (stockage indisponible), on renvoie `null` plutôt qu'un lien mort.
      */
     public function urlApk(): ?string
     {
-        return $this->telechargement()['apk_disponible']
-            ? trim((string) AppSetting::get(AppSetting::SITE_APK_URL, ''))
-            : null;
+        if (! $this->telechargement()['apk_disponible']) {
+            return null;
+        }
+
+        $apk = trim((string) AppSetting::get(AppSetting::SITE_APK_URL, ''));
+
+        if (preg_match('#^https?://#i', $apk) === 1) {
+            return $apk;
+        }
+
+        try {
+            return Storage::disk('telechargements')
+                ->temporaryUrl($apk, now()->addMinutes(15));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function urlPlaystore(): ?string
