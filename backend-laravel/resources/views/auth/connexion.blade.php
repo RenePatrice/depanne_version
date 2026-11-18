@@ -71,7 +71,6 @@
                  survivrait à l'expiration de la session (vol de session durable). --}}
             <p class="small text-body-secondary mb-4">
                 
-               
             </p>
 
             <button type="submit" class="btn btn-primary w-100">

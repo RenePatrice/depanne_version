@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api;
 
+use App\Domain\Accounts\Actions\StoreIdentityDocument;
 use App\Domain\Catalog\Data\Specialty;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,13 +30,24 @@ final class DossierTechnicienRequest extends FormRequest
             'latitude' => ['required', 'numeric', 'between:7,13'],
             'longitude' => ['required', 'numeric', 'between:-15.5,-7.5'],
             'service_radius_km' => ['required', 'integer', 'between:1,30'],
-            'id_doc_front_url' => ['required', 'string', 'max:500'],
-            'id_doc_back_url' => ['required', 'string', 'max:500'],
-            'selfie_url' => ['required', 'string', 'max:500'],
+            // Seulement des pièces déposées par ce compte : sans ce préfixe, un
+            // dossier pourrait pointer vers la carte d'identité d'un autre.
+            'id_doc_front_url' => ['required', 'string', 'max:500', ...$this->pieceAMoi()],
+            'id_doc_back_url' => ['required', 'string', 'max:500', ...$this->pieceAMoi()],
+            'selfie_url' => ['required', 'string', 'max:500', ...$this->pieceAMoi()],
         ];
     }
 
     /** @return array<string, string> */
+    /** @return array<int, string> */
+    private function pieceAMoi(): array
+    {
+        return [
+            'starts_with:'.StoreIdentityDocument::dossierDe((int) $this->user()?->getAuthIdentifier()),
+            'not_regex:#\.\.#',
+        ];
+    }
+
     public function messages(): array
     {
         return [

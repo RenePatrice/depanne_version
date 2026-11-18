@@ -25,6 +25,9 @@ enum NotificationType: string
     case PAIEMENT_RECU = 'PAIEMENT_RECU';
     case PAIEMENT_A_CONFIRMER = 'PAIEMENT_A_CONFIRMER';
     case PAIEMENT_CONFIRME_TECH = 'PAIEMENT_CONFIRME_TECH';
+    case PAIEMENT_CONTESTE = 'PAIEMENT_CONTESTE';
+    case PAIEMENT_RELANCE = 'PAIEMENT_RELANCE';
+    case PAIEMENT_ARBITRE = 'PAIEMENT_ARBITRE';
     case DIAGNOSTIC_PROPOSE = 'DIAGNOSTIC_PROPOSE';
     case DIAGNOSTIC_TRANCHE = 'DIAGNOSTIC_TRANCHE';
     case TICKET_ANNULE = 'TICKET_ANNULE';
@@ -40,6 +43,9 @@ enum NotificationType: string
     case GARANTIE_OUVERTE = 'GARANTIE_OUVERTE';
     case GARANTIE_RESOLUE = 'GARANTIE_RESOLUE';
 
+    case DOSSIER_VALIDE = 'DOSSIER_VALIDE';
+    case DOSSIER_REJETE = 'DOSSIER_REJETE';
+
     public function titre(): string
     {
         return match ($this) {
@@ -51,6 +57,9 @@ enum NotificationType: string
             self::PAIEMENT_RECU => 'Paiement reçu',
             self::PAIEMENT_A_CONFIRMER => 'Confirme le paiement',
             self::PAIEMENT_CONFIRME_TECH => 'Paiement confirmé',
+            self::PAIEMENT_CONTESTE => 'Paiement contesté',
+            self::PAIEMENT_RELANCE => 'Paiement à confirmer',
+            self::PAIEMENT_ARBITRE => 'Décision sur un paiement',
             self::DIAGNOSTIC_PROPOSE => 'Supplément proposé',
             self::DIAGNOSTIC_TRANCHE => 'Réponse du client',
             self::TICKET_ANNULE => 'Demande annulée',
@@ -63,6 +72,8 @@ enum NotificationType: string
             self::DEMANDE_RETIREE => 'Demande retirée',
             self::GARANTIE_OUVERTE => 'Retour sous garantie',
             self::GARANTIE_RESOLUE => 'Garantie clôturée',
+            self::DOSSIER_VALIDE => 'Dossier validé',
+            self::DOSSIER_REJETE => 'Dossier à reprendre',
         };
     }
 
@@ -88,8 +99,11 @@ enum NotificationType: string
             self::TECHNICIEN_ARRIVE => '{technicien} est arrivé à l\'adresse indiquée.',
             self::INTERVENTION_TERMINEE => 'L\'intervention {reference} est terminée. Total : {total}.',
             self::PAIEMENT_RECU => 'Paiement de {total} reçu pour {reference}.',
-            self::PAIEMENT_A_CONFIRMER => 'Le technicien a indiqué un paiement de {total} en espèces pour {reference}. Confirme que tu as bien payé.',
+            self::PAIEMENT_A_CONFIRMER => '{auteur} indique un paiement de {total} ({moyen}) pour {reference}. Confirme-le ou conteste-le dans l\'application.',
             self::PAIEMENT_CONFIRME_TECH => 'Le client a confirmé le paiement de {reference}. Commission due : {commission}.',
+            self::PAIEMENT_CONTESTE => '{auteur} conteste le paiement de {reference}. Le support Parema vous contacte pour trancher.',
+            self::PAIEMENT_RELANCE => 'Le paiement de {total} pour {reference} attend toujours ta confirmation.',
+            self::PAIEMENT_ARBITRE => 'Le support Parema a {decision} le paiement de {reference}. Motif : {motif}',
             self::DIAGNOSTIC_PROPOSE => '{technicien} propose un supplément de {supplement} '
                 .'pour {reference}. Nouveau total : {total}. À toi de valider.',
             self::DIAGNOSTIC_TRANCHE => 'Le client a {decision} le supplément pour {reference}.',
@@ -108,6 +122,8 @@ enum NotificationType: string
             self::GARANTIE_OUVERTE => 'Le client signale que la panne de {reference} est revenue. '
                 .'Un retour sous garantie {garantie} est ouvert, sans frais pour lui.',
             self::GARANTIE_RESOLUE => 'Le retour sous garantie {reference} est clôturé. Merci !',
+            self::DOSSIER_VALIDE => 'Ton dossier est validé : tu peux te mettre en ligne et recevoir des demandes.',
+            self::DOSSIER_REJETE => 'Ton dossier n\'a pas été validé. Motif : {motif}. Corrige-le depuis l\'application.',
         };
     }
 

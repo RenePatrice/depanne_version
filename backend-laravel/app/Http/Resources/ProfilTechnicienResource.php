@@ -30,6 +30,11 @@ final class ProfilTechnicienResource extends JsonResource
                 'libelle' => $this->verification_status->label(),
                 'peut_travailler' => $this->verification_status->canWork(),
                 'motif_rejet' => $this->rejection_reason,
+                // Les trois pièces sont déposées : l'application passe du
+                // formulaire à l'écran d'attente.
+                'dossier_depose' => filled($this->id_doc_front_url)
+                    && filled($this->id_doc_back_url)
+                    && filled($this->selfie_url),
                 'validee_le' => $this->verified_at?->toIso8601String(),
             ],
             'zone' => [

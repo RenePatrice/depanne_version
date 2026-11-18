@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Domain\Accounts\Actions\IssueTokenPair;
 use App\Domain\Accounts\Actions\RegisterUser;
+use App\Domain\Accounts\Actions\StoreIdentityDocument;
 use App\Domain\Accounts\Models\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\DossierTechnicienRequest;
@@ -14,6 +15,9 @@ use App\Http\Resources\ProfilTechnicienResource;
 use App\Http\Resources\UtilisateurResource;
 use DomainException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rule;
 
 /**
  * Inscription en trois étapes (§4).
@@ -66,6 +70,34 @@ final class InscriptionController extends Controller
      * pièces justificatives. Le compte reste en attente de validation tant que
      * le back-office n'a pas tranché.
      */
+    /**
+     * Déposer une pièce du dossier (recto, verso, selfie) sur le disque privé.
+     *
+     * Renvoie le chemin à joindre au dossier. SVG refusé : c'est du XML qui
+     * peut porter du script.
+     */
+    public function piece(Request $request, StoreIdentityDocument $action): JsonResponse
+    {
+        /** @var User $utilisateur */
+        $utilisateur = $request->user();
+
+        $donnees = $request->validate([
+            'type' => ['required', Rule::in(StoreIdentityDocument::TYPES)],
+            'photo' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+        ], attributes: ['type' => 'pièce', 'photo' => 'photo']);
+
+        /** @var UploadedFile $photo */
+        $photo = $request->file('photo');
+
+        try {
+            $chemin = $action->execute($utilisateur, (string) $donnees['type'], $photo);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['chemin' => $chemin], 201);
+    }
+
     public function dossierTechnicien(
         DossierTechnicienRequest $request,
         RegisterUser $inscrire,

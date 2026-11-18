@@ -99,4 +99,13 @@ return [
         'jeton' => env('TACHES_JETON', ''),
     ],
 
+    // Version publiée de l'application mobile, lue par la vérification de mise
+    // à jour. Vide = pas d'information, l'application ne propose rien. Une
+    // version minimale supérieure à celle installée rend la mise à jour
+    // obligatoire (changement d'API incompatible).
+    'mobile' => [
+        'derniere_version' => env('MOBILE_LATEST_VERSION', ''),
+        'version_minimale' => env('MOBILE_MIN_VERSION', ''),
+    ],
+
 ];

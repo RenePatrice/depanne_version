@@ -18,7 +18,9 @@ use App\Support\Geo;
 use Database\Seeders\Demo\AppSettingsSeeder;
 use Database\Seeders\Demo\CatalogSeeder;
 use Database\Seeders\Demo\ZoneSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 /*
@@ -124,13 +126,24 @@ it('mène une intervention de l’inscription au retrait, par l’API seule', fu
     $technicien = User::query()->where('phone', '+224622445566')->firstOrFail();
     Sanctum::actingAs($technicien);
 
+    // Les pièces passent par le dépôt de l'application, comme sur le téléphone :
+    // le dossier n'accepte que des chemins rangés sous le compte qui l'envoie.
+    Storage::fake((string) config('filesystems.default'));
+    $pieces = [];
+    foreach (['recto', 'verso', 'selfie'] as $type) {
+        $pieces[$type] = $this->post('/api/v1/technicien/pieces', [
+            'type' => $type,
+            'photo' => UploadedFile::fake()->image($type.'.jpg', 1200, 800),
+        ], ['Accept' => 'application/json'])->assertCreated()->json('chemin');
+    }
+
     $this->postJson('/api/v1/auth/dossier-technicien', [
         // La spécialité doit couvrir la prestation demandée, sinon la
         // présélection l'écarte — et c'est bien ce qu'on veut d'elle.
         'specialties' => [$prestation['specialite']],
-        'id_doc_front_url' => 'documents/cni-recto.jpg',
-        'id_doc_back_url' => 'documents/cni-verso.jpg',
-        'selfie_url' => 'documents/selfie.jpg',
+        'id_doc_front_url' => $pieces['recto'],
+        'id_doc_back_url' => $pieces['verso'],
+        'selfie_url' => $pieces['selfie'],
         'latitude' => 9.597,
         'longitude' => -13.642,
         'service_radius_km' => 10,

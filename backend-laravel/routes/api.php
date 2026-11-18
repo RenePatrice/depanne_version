@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AdresseController;
+use App\Http\Controllers\Api\V1\ApplicationController;
 use App\Http\Controllers\Api\V1\Auth\InscriptionController;
 use App\Http\Controllers\Api\V1\Auth\MotDePasseController;
 use App\Http\Controllers\Api\V1\Auth\SessionController;
@@ -12,8 +13,10 @@ use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\DiagnosticController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaiementController;
+use App\Http\Controllers\Api\V1\PaiementDirectController;
 use App\Http\Controllers\Api\V1\PortefeuilleController;
 use App\Http\Controllers\Api\V1\ProfilController;
+use App\Http\Controllers\Api\V1\SuiviController;
 use App\Http\Controllers\Api\V1\TechnicienController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Http\Request;
@@ -37,6 +40,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function (): void {
 
     // --- Ouvert ------------------------------------------------------------
+
+    Route::get('/application/version', [ApplicationController::class, 'version'])
+        ->middleware('throttle:version-app')
+        ->name('api.application.version');
 
     Route::post('/auth/inscription', [InscriptionController::class, 'store'])
         ->middleware('throttle:inscription')
@@ -93,12 +100,20 @@ Route::prefix('v1')->group(function (): void {
 
         Route::post('/auth/deconnexion', [SessionController::class, 'destroy'])->name('api.deconnexion');
 
+        Route::post('/technicien/pieces', [InscriptionController::class, 'piece'])
+            ->middleware('throttle:pieces')
+            ->name('api.technicien.pieces');
+
         Route::post('/auth/dossier-technicien', [InscriptionController::class, 'dossierTechnicien'])
             ->name('api.dossier-technicien');
 
         Route::get('/moi', [ProfilController::class, 'show'])->name('api.moi');
         Route::patch('/moi', [ProfilController::class, 'update'])->name('api.moi.modifier');
         Route::post('/moi/mot-de-passe', [ProfilController::class, 'motDePasse'])->name('api.moi.mot-de-passe');
+        Route::post('/moi/avatar', [ProfilController::class, 'avatar'])
+            ->middleware('throttle:avatar')
+            ->name('api.moi.avatar');
+        Route::delete('/moi/avatar', [ProfilController::class, 'supprimerAvatar'])->name('api.moi.avatar.supprimer');
         Route::post('/moi/seconde-casquette', [ProfilController::class, 'secondeCasquette'])
             ->name('api.moi.seconde-casquette');
 
@@ -184,6 +199,11 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/tickets/{ticket}/avancer', [TechnicienController::class, 'avancer'])
             ->name('api.tickets.avancer');
 
+        // --- Suivi du trajet du technicien -----------------------------------
+
+        Route::get('/tickets/{ticket}/position-technicien', [SuiviController::class, 'position'])
+            ->name('api.tickets.position');
+
         // --- Chat (§7.3) -----------------------------------------------------
 
         Route::get('/tickets/{ticket}/messages', [ChatController::class, 'index'])
@@ -237,6 +257,20 @@ Route::prefix('v1')->group(function (): void {
             ->name('api.paiements.especes');
         Route::post('/tickets/{ticket}/paiement-especes/confirmer', [PaiementController::class, 'confirmerEspeces'])
             ->name('api.paiements.especes.confirmer');
+
+        // Paiement direct tracé (ADR-0047) : le client choisit espèces ou
+        // Mobile Money, les deux parties confirment, tout est journalisé.
+        Route::get('/tickets/{ticket}/paiement', [PaiementDirectController::class, 'etat'])
+            ->name('api.paiements.etat');
+        Route::post('/tickets/{ticket}/paiement-direct', [PaiementDirectController::class, 'declarer'])
+            ->middleware('throttle:paiement')
+            ->name('api.paiements.direct');
+        Route::post('/tickets/{ticket}/paiement-direct/confirmer', [PaiementDirectController::class, 'confirmer'])
+            ->name('api.paiements.direct.confirmer');
+        Route::post('/tickets/{ticket}/paiement-direct/contester', [PaiementDirectController::class, 'contester'])
+            ->name('api.paiements.direct.contester');
+        Route::post('/tickets/{ticket}/paiement-direct/annuler', [PaiementDirectController::class, 'annuler'])
+            ->name('api.paiements.direct.annuler');
 
         Route::get('/paiements/{reference}', [PaiementController::class, 'show'])
             ->name('api.paiements.suivi');

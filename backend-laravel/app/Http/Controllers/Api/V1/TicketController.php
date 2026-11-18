@@ -123,13 +123,13 @@ final class TicketController extends Controller
             'service',
             'client',
             'technician',
-            // Un paiement espèces déclaré par le technicien et en attente de
-            // confirmation du client (#1) : l'application du client doit lui
-            // proposer de confirmer. Chargé seulement au détail, pas en liste.
-            'payments' => fn ($q) => $q->where(
-                'status',
+            // Un paiement direct en attente ou contesté (ADR-0047) : l'app
+            // propose de confirmer, ou affiche la contestation. Chargé
+            // seulement au détail, pas en liste.
+            'payments' => fn ($q) => $q->whereIn('status', [
                 PaymentStatus::ATTENTE_CONFIRMATION->value,
-            ),
+                PaymentStatus::CONTESTEE->value,
+            ]),
         ]);
 
         return response()->json(['ticket' => new TicketResource($ticket)]);

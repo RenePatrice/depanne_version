@@ -6,9 +6,12 @@ namespace App\Domain\Payments\Actions;
 
 use App\Domain\Accounts\Models\User;
 use App\Domain\Payments\Contracts\PaymentProvider;
+use App\Domain\Payments\Data\PaymentEventType;
 use App\Domain\Payments\Data\PaymentMethod;
 use App\Domain\Payments\Data\PaymentStatus;
 use App\Domain\Payments\Models\Payment;
+use App\Domain\Payments\Services\PaymentJournal;
+use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
 use App\Support\Telephone;
@@ -32,7 +35,10 @@ use Throwable;
  */
 final class InitiatePayment
 {
-    public function __construct(private readonly PaymentProvider $operateur) {}
+    public function __construct(
+        private readonly PaymentProvider $operateur,
+        private readonly PaymentJournal $journal,
+    ) {}
 
     /** @throws DomainException */
     public function execute(Ticket $ticket, User $client, ?string $telephone = null): Payment
@@ -82,17 +88,27 @@ final class InitiatePayment
         }
 
         /** @var Payment $paiement */
-        $paiement = DB::transaction(fn (): Payment => Payment::query()->create([
-            'ticket_id' => $ticket->getKey(),
-            'provider' => $this->operateur->nom(),
-            'provider_ref' => $intention->reference,
-            'method' => PaymentMethod::ORANGE_MONEY->value,
-            'payer_phone' => $payeur,
-            'amount_gnf' => $ticket->total_gnf,
-            'currency' => 'GNF',
-            'status' => PaymentStatus::EN_ATTENTE->value,
-            'webhook_payload' => ['initiation' => $intention->brut],
-        ]));
+        $paiement = DB::transaction(function () use ($ticket, $client, $payeur, $intention): Payment {
+            /** @var Payment $paiement */
+            $paiement = Payment::query()->create([
+                'ticket_id' => $ticket->getKey(),
+                'provider' => $this->operateur->nom(),
+                'provider_ref' => $intention->reference,
+                'method' => PaymentMethod::ORANGE_MONEY->value,
+                'payer_phone' => $payeur,
+                'amount_gnf' => $ticket->total_gnf,
+                'currency' => 'GNF',
+                'status' => PaymentStatus::EN_ATTENTE->value,
+                'webhook_payload' => ['initiation' => $intention->brut],
+                'declared_by' => ActorType::CLIENT->value,
+            ]);
+
+            $this->journal->noter($paiement, PaymentEventType::INITIE, ActorType::CLIENT, (int) $client->getKey(), [
+                'operateur' => $this->operateur->nom(),
+            ]);
+
+            return $paiement;
+        });
 
         $paiement->setAttribute('instruction', $intention->instruction);
         $paiement->setAttribute('url_paiement', $intention->urlPaiement);

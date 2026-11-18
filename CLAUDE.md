@@ -722,6 +722,20 @@ moyens, une seule règle de commission :
 (`SettleCommission`, mouvement `SETTLEMENT`). Le portefeuille expose
 `commission_due_gnf`, `commission_plafond_gnf`, `bloque`.
 
+**Paiement tracé (ADR-0047, 18 novembre 2026).** Le client choisit le moyen —
+espèces, Orange Money ou MTN MoMo payés au technicien. Le paiement n'est réglé
+qu'avec les **deux** confirmations (`DeclareDirectPayment`, `ConfirmDirectPayment`) ;
+l'autre partie peut contester (`ContestDirectPayment`), le déclarant peut retirer
+sa déclaration (`CancelDirectPayment`), le support tranche (`ArbitratePayment`).
+Pas de confirmation automatique : une relance unique à 2 h
+(`RemindPaymentConfirmationJob`), puis le back-office voit le paiement « en
+souffrance » au-delà de 24 h. Toute étape, directe ou via l'application, est
+écrite par `PaymentJournal` dans `payment_events` (ajout seul). Routes :
+`GET /tickets/{t}/paiement`, `POST /tickets/{t}/paiement-direct[/confirmer|/contester|/annuler]`.
+Les routes `paiement-especes` historiques délèguent au nouveau flux.
+Back-office : module **Paiements** (`/paiements`, permissions `paiements.voir` /
+`paiements.arbitrer`) — table filtrable, journal par paiement, arbitrage, commissions dues.
+
 > **Pilote** : le règlement de commission est simulé (succès immédiat). En
 > production il passera par `PaymentProvider` et son webhook (ADR-0032).
 
@@ -1158,6 +1172,40 @@ direct), **sans casser le parcours existant** :
   optionnelle pour l'adresse (#7 — l'app est déjà sans clé Google : liste de
   quartiers + schéma `geo:`), et le durcissement APK (#11).
 
+### Refonte mobile « Pc » (prototype v4 validé, 19 novembre 2026)
+
+Design system `lib/design_system/pc*` (Sora + Plus Jakarta Sans embarquées,
+espace client clair accent bleu, espace technicien sombre accent vert,
+`PcSkin` lu par `context.pc`). Coquille à onglets flottants (`PcTabBar`).
+
+- **Client refondu** : accueil, Explorer (filtre Dépannage / Installation /
+  BTP), catégorie, recherche + assistant **sur l'appareil** (correspondance par
+  synonymes, sans API — décision du client : IA open source, pas d'API Claude),
+  demande (prix et bouton réunis dans la barre basse), **choix du technicien**
+  (tri recommandés / prix / distance / note, « Recommandé » = premier du
+  `MatchScorer`), **suivi** (frise d'étapes + **carte OSM du trajet**),
+  **paiement tracé** (choix espèces / Orange Money / MTN, confirmer / contester /
+  retirer, journal), Commandes, Messages, Profil.
+- **Profil commun** (`shared/profil/profil_commun.dart`) : photo (caméra ou
+  galerie), nom, mot de passe, **vérification de mise à jour**, déconnexion.
+- **Dossier technicien** : métiers, point de départ (position ou quartier +
+  carte), rayon, trois photos déposées une à une ; puis écran « en examen » qui
+  **bascule seul** à la décision (notification `DOSSIER_VALIDE` /
+  `DOSSIER_REJETE` sur `utilisateur.{id}` + relecture toutes les 30 s). Tant
+  que le dossier n'est pas validé, la session reste en `dossierACompleter`.
+- Reste à refondre : tableau de bord, missions, gains, profil et intervention
+  du technicien (écrans D3 logés dans la nouvelle coquille).
+
+Routes ajoutées pour la refonte :
+
+| Route | Rôle |
+|---|---|
+| `GET /tickets/{t}/position-technicien` | position du technicien **pendant le trajet seulement** (ACCEPTEE, EN_ROUTE), fraîche de moins de 15 min ; client du ticket uniquement (404 sinon) |
+| événement `technicien.position` sur `ticket.{id}` | même position poussée en direct (`TechnicienPositionSuivie`) ; seule exception assumée à « le WebSocket ne porte que des signaux » — les écrans qui relisent le ticket l'ignorent (`EvenementTempsReel.estPosition`) |
+| `POST/DELETE /moi/avatar` | photo de profil **ré-encodée par GD** (carré 512 px) : EXIF et position GPS effacées, SVG refusé |
+| `POST /technicien/pieces` | pièce du dossier sur le disque **privé**, ré-encodée, rangée sous `identity-docs/{id}/` ; le dossier **n'accepte que ce préfixe** (plus de pièce d'un autre compte, pas de `..`) |
+| `GET /application/version` | publique ; `MOBILE_LATEST_VERSION` / `MOBILE_MIN_VERSION`, lien via `/telecharger` (clic compté, APK signé) |
+
 ## 8. Conventions de code
 
 ### PHP
@@ -1194,7 +1242,7 @@ direct), **sans casser le parcours existant** :
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **390 tests passent** (1 508 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **505 tests passent** (1 918 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - Ne jamais lancer deux suites en même temps, ni `pest --parallel` : elles
   partagent `depanne_moi_test`, et les bases parallèles n'ont pas PostGIS.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
@@ -1245,6 +1293,7 @@ direct), **sans casser le parcours existant** :
 | 0043 | **Le prix ferme est le tarif propre du technicien choisi** — le catalogue n'est qu'un défaut ; remplace l'ADR-0029 |
 | 0044 | **Garantie liée à la plateforme** — un retour sous garantie est un ticket gratuit rattaché à l'origine, fenêtre figée à la clôture ; c'est aussi le premier rempart anti-contournement |
 | 0045 | **Le contournement se trace, il ne se bloque pas** — signalement « hors plateforme » au journal `securite`, dans la lignée de l'ADR-0030 |
+| 0047 | **Paiement tracé : le client choisit, les deux parties confirment** — espèces ou Mobile Money au choix du client ; un paiement direct n'est réglé qu'avec les deux confirmations ; journal `payment_events` en ajout seul ; arbitrage par le support |
 | 0046 | **Conakry par commune puis par quartier** — une zone = un quartier porteur de son champ `commune` ; le back-office regroupe par commune, le seeder couvre les cinq communes (aucune migration, la colonne existait) |
 | 0013 | **Instantanés sur le ticket** — adresse et prix recopiés à la publication, pour qu'une suppression d'adresse ou un changement de grille ne réécrive pas l'historique |
 

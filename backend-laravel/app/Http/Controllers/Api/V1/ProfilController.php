@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Accounts\Actions\RegisterUser;
+use App\Domain\Accounts\Actions\UpdateAvatar;
 use App\Domain\Accounts\Models\User;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UtilisateurResource;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -45,6 +47,50 @@ final class ProfilController extends Controller
 
         return response()->json([
             'message' => 'Informations mises à jour.',
+            'utilisateur' => new UtilisateurResource($utilisateur),
+        ]);
+    }
+
+    /**
+     * Déposer ma photo de profil (ré-encodée côté serveur, EXIF effacées).
+     *
+     * SVG refusé : c'est du XML qui peut porter du script.
+     */
+    public function avatar(Request $request, UpdateAvatar $action): JsonResponse
+    {
+        /** @var User $utilisateur */
+        $utilisateur = $request->user();
+
+        $request->validate([
+            'photo' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ], attributes: ['photo' => 'photo']);
+
+        /** @var UploadedFile $photo */
+        $photo = $request->file('photo');
+
+        try {
+            $action->execute($utilisateur, $photo);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $utilisateur->load(['clientProfile', 'technicianProfile']);
+
+        return response()->json([
+            'message' => 'Photo mise à jour.',
+            'utilisateur' => new UtilisateurResource($utilisateur),
+        ]);
+    }
+
+    public function supprimerAvatar(Request $request, UpdateAvatar $action): JsonResponse
+    {
+        /** @var User $utilisateur */
+        $utilisateur = $request->user();
+        $action->supprimer($utilisateur);
+        $utilisateur->load(['clientProfile', 'technicianProfile']);
+
+        return response()->json([
+            'message' => 'Photo retirée.',
             'utilisateur' => new UtilisateurResource($utilisateur),
         ]);
     }

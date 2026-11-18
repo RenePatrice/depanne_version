@@ -98,7 +98,9 @@ it('inscrit un technicien en attente de validation', function (): void {
 });
 
 it('enregistre le dossier technicien et le remet en attente de validation', function (): void {
-    $jetons = $this->postJson(route('api.inscription'), inscrire(['is_technician' => true]))->json('jetons');
+    $inscription = $this->postJson(route('api.inscription'), inscrire(['is_technician' => true]));
+    $jetons = $inscription->json('jetons');
+    $dossier = 'identity-docs/'.$inscription->json('utilisateur.id').'/';
 
     $reponse = $this->withToken($jetons['access_token'])
         ->postJson(route('api.dossier-technicien'), [
@@ -106,9 +108,9 @@ it('enregistre le dossier technicien et le remet en attente de validation', func
             'latitude' => 9.598,
             'longitude' => -13.643,
             'service_radius_km' => 7,
-            'id_doc_front_url' => 'identity-docs/recto.jpg',
-            'id_doc_back_url' => 'identity-docs/verso.jpg',
-            'selfie_url' => 'identity-docs/selfie.jpg',
+            'id_doc_front_url' => $dossier.'recto.jpg',
+            'id_doc_back_url' => $dossier.'verso.jpg',
+            'selfie_url' => $dossier.'selfie.jpg',
         ])
         ->assertOk();
 

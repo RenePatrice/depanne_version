@@ -7,8 +7,10 @@ namespace App\Domain\Payments\Actions;
 use App\Domain\Notifications\Actions\SendNotification;
 use App\Domain\Notifications\Data\NotificationType;
 use App\Domain\Payments\Data\NotificationPaiement;
+use App\Domain\Payments\Data\PaymentEventType;
 use App\Domain\Payments\Data\PaymentStatus;
 use App\Domain\Payments\Models\Payment;
+use App\Domain\Payments\Services\PaymentJournal;
 use App\Domain\Tickets\Actions\TransitionTicket;
 use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
@@ -50,6 +52,7 @@ final class HandlePaymentWebhook
         private readonly TransitionTicket $transition,
         private readonly SendNotification $notifier,
         private readonly EscrowService $sequestre,
+        private readonly PaymentJournal $journal,
     ) {}
 
     /** @return array{traite: bool, motif: string} */
@@ -107,6 +110,10 @@ final class HandlePaymentWebhook
             ])->save();
 
             $this->archiver($paiement, $notification, 'echec');
+            $this->journal->noter($paiement, PaymentEventType::ECHEC, ActorType::SYSTEME, null, [
+                'source' => 'operateur',
+                'motif' => $paiement->failure_reason,
+            ]);
 
             return ['traite' => true, 'motif' => 'Échec enregistré.'];
         }
@@ -116,9 +123,13 @@ final class HandlePaymentWebhook
         $paiement->forceFill([
             'status' => PaymentStatus::CAPTUREE,
             'captured_at' => now(),
+            // Le client a validé sur son téléphone avec son code : c'est sa
+            // confirmation, attestée par l'opérateur (ADR-0047).
+            'client_confirmed_at' => now(),
         ])->save();
 
         $this->archiver($paiement, $notification, 'capture');
+        $this->journal->noter($paiement, PaymentEventType::CAPTURE, ActorType::SYSTEME, null, ['source' => 'operateur']);
 
         $this->capturer($paiement);
 

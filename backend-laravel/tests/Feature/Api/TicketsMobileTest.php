@@ -395,6 +395,10 @@ it('n’expose aucune route permettant de modifier le prix d’un ticket', funct
         'POST api/v1/tickets/{ticket}/garantie/confirmer',    // clôturer la garantie — sans paramètre
         'POST api/v1/tickets/{ticket}/messages',              // chat
         'POST api/v1/tickets/{ticket}/paiement',              // encaisser — montant lu sur le ticket
+        'POST api/v1/tickets/{ticket}/paiement-direct',       // déclarer un paiement direct — moyen, sans montant (ADR-0047)
+        'POST api/v1/tickets/{ticket}/paiement-direct/annuler',   // retirer sa déclaration — sans paramètre
+        'POST api/v1/tickets/{ticket}/paiement-direct/confirmer', // seconde confirmation — sans paramètre
+        'POST api/v1/tickets/{ticket}/paiement-direct/contester', // contestation — motif écrit, sans montant
         'POST api/v1/tickets/{ticket}/paiement-especes',      // déclarer un paiement espèces — sans montant
         'POST api/v1/tickets/{ticket}/paiement-especes/confirmer', // confirmation du client — sans montant
         'POST api/v1/tickets/{ticket}/reclamation',           // litige

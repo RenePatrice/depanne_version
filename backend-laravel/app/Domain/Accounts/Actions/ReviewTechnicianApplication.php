@@ -6,6 +6,8 @@ namespace App\Domain\Accounts\Actions;
 
 use App\Domain\Accounts\Data\VerificationStatus;
 use App\Domain\Accounts\Models\TechnicianProfile;
+use App\Domain\Notifications\Actions\SendNotification;
+use App\Domain\Notifications\Data\NotificationType;
 use DomainException;
 
 /**
@@ -18,6 +20,8 @@ use DomainException;
  */
 final class ReviewTechnicianApplication
 {
+    public function __construct(private readonly SendNotification $notifier) {}
+
     public function approuver(TechnicianProfile $profil, int $adminId): TechnicianProfile
     {
         $this->refuseSiDejaTranche($profil);
@@ -33,6 +37,10 @@ final class ReviewTechnicianApplication
             ->performedOn($profil)
             ->withProperties(['admin_id' => $adminId])
             ->log('Dossier technicien approuvé');
+
+        // L'application attend sur l'écran « dossier en cours d'examen » : la
+        // notification poussée la fait basculer sans nouvelle connexion.
+        $this->prevenir($profil, NotificationType::DOSSIER_VALIDE);
 
         return $profil;
     }
@@ -55,7 +63,19 @@ final class ReviewTechnicianApplication
             ->withProperties(['motif' => $motif, 'admin_id' => $adminId])
             ->log('Dossier technicien rejeté');
 
+        $this->prevenir($profil, NotificationType::DOSSIER_REJETE, ['motif' => $motif]);
+
         return $profil;
+    }
+
+    /** @param array<string, string> $variables */
+    private function prevenir(TechnicianProfile $profil, NotificationType $type, array $variables = []): void
+    {
+        $profil->loadMissing('user');
+
+        if ($profil->user !== null) {
+            $this->notifier->execute($profil->user, $type, $variables, ['statut' => $profil->verification_status->value]);
+        }
     }
 
     private function refuseSiDejaTranche(TechnicianProfile $profil): void

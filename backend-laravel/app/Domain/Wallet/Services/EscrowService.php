@@ -6,8 +6,10 @@ namespace App\Domain\Wallet\Services;
 
 use App\Domain\Notifications\Actions\SendNotification;
 use App\Domain\Notifications\Data\NotificationType;
+use App\Domain\Payments\Data\PaymentEventType;
 use App\Domain\Payments\Data\PaymentStatus;
 use App\Domain\Payments\Models\Payment;
+use App\Domain\Payments\Services\PaymentJournal;
 use App\Domain\Pricing\Services\PricingService;
 use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Tickets\Actions\TransitionTicket;
@@ -47,6 +49,7 @@ final class EscrowService
         private readonly TransitionTicket $transition,
         private readonly SendNotification $notifier,
         private readonly PricingService $tarification,
+        private readonly PaymentJournal $journal,
     ) {}
 
     public function delaiLiberationHeures(): int
@@ -110,6 +113,10 @@ final class EscrowService
                 'status' => PaymentStatus::LIBEREE,
                 'released_at' => now(),
             ])->save();
+
+            $this->journal->noter($verrouille, PaymentEventType::LIBERE, $acteur, $acteurId, [
+                'commission_gnf' => $commission,
+            ], $total - $commission);
 
             if ($ticket->state->peutAllerVers(TicketState::CLOTUREE)) {
                 $this->transition->execute($ticket, TicketState::CLOTUREE, $acteur, $acteurId, [
@@ -185,6 +192,11 @@ final class EscrowService
                 'status' => $conserve === 0 ? PaymentStatus::REMBOURSEE : PaymentStatus::LIBEREE,
                 'released_at' => now(),
             ])->save();
+
+            $this->journal->noter($verrouille, PaymentEventType::REMBOURSE, ActorType::ADMIN, null, [
+                'litige' => $referenceLitige,
+                'conserve_gnf' => $conserve,
+            ], $remboursementGnf);
 
             if ($net > 0) {
                 DB::afterCommit(function () use ($ticket, $net): void {

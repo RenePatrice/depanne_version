@@ -73,6 +73,12 @@ return [
                     'permission' => 'finances.voir',
                 ],
                 [
+                    'cle' => 'paiements',
+                    'libelle' => 'Paiements',
+                    'icone' => 'bi-receipt',
+                    'permission' => 'paiements.voir',
+                ],
+                [
                     'cle' => 'retraits',
                     'libelle' => 'Retraits',
                     'icone' => 'bi-cash-stack',

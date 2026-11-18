@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Domain\Payments\Data\PaymentStatus;
+use App\Domain\Payments\Models\Payment;
+use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
 use App\Support\Money;
@@ -73,12 +76,25 @@ final class TicketResource extends JsonResource
             'motif_annulation' => $this->cancellation_reason,
             'diagnostic' => $this->diagnosis,
 
-            // Paiement espèces déclaré, en attente de confirmation du client
-            // (#1). Exposé seulement quand la relation `payments` a été chargée
-            // sous sa contrainte (détail du ticket), jamais en liste.
+            // Paiement direct en cours (ADR-0047). Exposé seulement quand la
+            // relation `payments` a été chargée sous sa contrainte (détail du
+            // ticket), jamais en liste. `especes_a_confirmer` est conservé pour
+            // l'application déjà installée : vrai quand le client doit confirmer.
             'especes_a_confirmer' => $this->when(
                 $this->relationLoaded('payments'),
-                fn (): bool => $this->payments->isNotEmpty(),
+                fn (): bool => $this->payments->contains(
+                    static fn (Payment $p): bool => $p->attenteDe() === ActorType::CLIENT,
+                ),
+            ),
+            'paiement_en_attente_de' => $this->when(
+                $this->relationLoaded('payments'),
+                fn (): ?string => $this->payments->first()?->attenteDe()?->value,
+            ),
+            'paiement_conteste' => $this->when(
+                $this->relationLoaded('payments'),
+                fn (): bool => $this->payments->contains(
+                    static fn (Payment $p): bool => $p->status === PaymentStatus::CONTESTEE,
+                ),
             ),
 
             // Garantie (#4). `est_un_retour` : ce ticket est lui-même un retour

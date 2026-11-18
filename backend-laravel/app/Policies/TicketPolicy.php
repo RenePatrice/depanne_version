@@ -52,6 +52,29 @@ final class TicketPolicy
             : Response::denyAsNotFound();
     }
 
+    /**
+     * Suivre le trajet du technicien sur une carte : réservé au **client**.
+     * La position d'une personne ne se montre qu'à qui l'attend.
+     */
+    public function suivre(User $utilisateur, Ticket $ticket): Response
+    {
+        return $ticket->estLeClient($utilisateur)
+            ? Response::allow()
+            : Response::denyAsNotFound();
+    }
+
+    /**
+     * Suivre et régler un paiement direct (ADR-0047) : ouvert aux deux parties,
+     * puisque chacune doit confirmer. Les règles fines — qui déclare quel
+     * moyen, qui confirme quoi — vivent dans les actions du domaine.
+     */
+    public function regler(User $utilisateur, Ticket $ticket): Response
+    {
+        return $ticket->estPartiePrenante($utilisateur)
+            ? Response::allow()
+            : Response::denyAsNotFound();
+    }
+
     /** Noter l'intervention. */
     public function noter(User $utilisateur, Ticket $ticket): Response
     {

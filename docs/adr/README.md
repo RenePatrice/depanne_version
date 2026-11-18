@@ -899,3 +899,36 @@ le catalogue du jour). L'instantané de prix à la publication n'est plus qu'une
 **estimation** d'affichage ; le prix ferme vient du technicien choisi. Le
 déplacement, lui, continue de dépendre de la position du technicien (ADR-0026,
 conservé).
+
+---
+
+## ADR-0047 — Paiement tracé : le client choisit, les deux parties confirment
+**18 novembre 2026 · acceptée**
+
+Le client paie le technicien directement, en espèces ou par transfert Mobile
+Money sur son numéro (#1). La plateforme ne voit pas cet argent : seule la
+parole des deux parties prouve qu'il a changé de main. Le client veut pouvoir
+choisir son moyen, et tout doit pouvoir se suivre depuis le back-office.
+
+**Décision.**
+- **Le client choisit le moyen** : espèces, Orange Money ou MTN MoMo. Le
+  technicien ne peut déclarer que des espèces reçues.
+- Un paiement direct n'est réglé (commission inscrite en dette, intervention
+  clôturée) qu'avec la confirmation **des deux parties**. Celui qui déclare
+  confirme de son côté ; l'autre confirme ou conteste.
+- **Aucune confirmation automatique** : sans réponse, une relance unique part
+  au bout de 2 h (tâche différée) ; au-delà de 24 h, le back-office voit le
+  paiement « en souffrance ».
+- Une contestation fige le paiement sans rien inscrire. Le support tranche
+  (confirmer ou annuler), toujours avec un motif, signé et tracé.
+- Chaque étape — déclaration, confirmations, contestation, annulation, relance,
+  arbitrage, commission, et côté application : lancement, encaissement ou refus
+  de l'opérateur, versement, remboursement — est écrite dans `payment_events`,
+  table en ajout seul.
+- Le Mobile Money via l'application garde son séquestre ; le webhook de
+  l'opérateur reste la seule autorité (ADR-0032) et vaut confirmation du client.
+
+**Conséquence.** Les routes historiques `paiement-especes` restent en service et
+passent par le nouveau flux. Le back-office gagne un module « Paiements »
+(permissions `paiements.voir` et `paiements.arbitrer`) avec le journal de chaque
+paiement et le suivi des commissions dues.

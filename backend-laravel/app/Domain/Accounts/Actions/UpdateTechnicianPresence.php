@@ -9,7 +9,9 @@ use App\Domain\Accounts\Events\TechnicianPositionUpdated;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
 use App\Domain\Tickets\Data\TicketState;
+use App\Domain\Tickets\Events\TechnicienPositionSuivie;
 use App\Domain\Tickets\Models\Ticket;
+use App\Domain\Tickets\Services\SuiviTechnicien;
 use App\Support\Geo;
 use DomainException;
 
@@ -83,6 +85,11 @@ final class UpdateTechnicianPresence
             $enCours !== null,
             $enCours?->reference,
         );
+
+        // Le client suit le trajet de son technicien, et seulement le trajet.
+        if ($enCours !== null && SuiviTechnicien::suiviActif($enCours)) {
+            TechnicienPositionSuivie::dispatch((int) $enCours->getKey(), $latitude, $longitude);
+        }
 
         return $profil;
     }

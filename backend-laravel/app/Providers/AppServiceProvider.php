@@ -80,6 +80,14 @@ final class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('inscription', fn (Request $request): Limit => Limit::perHour(5)->by($request->ip()));
 
+        RateLimiter::for('avatar', fn (Request $request): Limit => Limit::perHour(10)
+            ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        RateLimiter::for('pieces', fn (Request $request): Limit => Limit::perHour(20)
+            ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        RateLimiter::for('version-app', fn (Request $request): Limit => Limit::perMinute(30)->by($request->ip()));
+
         RateLimiter::for('refresh', fn (Request $request): Limit => Limit::perMinute(20)->by($request->ip()));
 
         RateLimiter::for('mot-de-passe', fn (Request $request): array => [

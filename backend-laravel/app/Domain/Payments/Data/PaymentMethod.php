@@ -20,8 +20,14 @@ enum PaymentMethod: string
         return match ($this) {
             self::ORANGE_MONEY => 'Orange Money',
             self::MTN_MOMO => 'MTN MoMo',
-            self::ESPECES => 'Especes',
+            self::ESPECES => 'Espèces',
         };
+    }
+
+    /** Transfert Mobile Money (par opposition aux espèces). */
+    public function estMobile(): bool
+    {
+        return $this !== self::ESPECES;
     }
 
     /** Un moyen non disponible reste affichable en historique mais non sélectionnable. */

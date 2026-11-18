@@ -15,10 +15,12 @@ use App\Http\Controllers\Web\HealthController;
 use App\Http\Controllers\Web\JournalAuditController;
 use App\Http\Controllers\Web\LitigeController;
 use App\Http\Controllers\Web\MonProfilController;
+use App\Http\Controllers\Web\PaiementsController;
 use App\Http\Controllers\Web\RetraitController;
 use App\Http\Controllers\Web\Site\VitrineController;
 use App\Http\Controllers\Web\SiteAdminController;
 use App\Http\Controllers\Web\SystemeController;
+use App\Http\Controllers\Web\TachesController;
 use App\Http\Controllers\Web\TechnicienController;
 use App\Http\Controllers\Web\TicketController;
 use App\Http\Controllers\Web\ZoneController;
@@ -39,7 +41,7 @@ Route::get('/health', HealthController::class)->name('health');
 // Déclencheur de la file d'attente pour un hébergeur sans processus permanent.
 // Appelé par un planificateur externe, authentifié par jeton (pas de session,
 // donc pas de jeton CSRF — l'exemption est déclarée dans bootstrap/app.php).
-Route::post('/internes/taches', App\Http\Controllers\Web\TachesController::class)->name('internes.taches');
+Route::post('/internes/taches', TachesController::class)->name('internes.taches');
 
 /*
 |--------------------------------------------------------------------------
@@ -210,6 +212,19 @@ Route::middleware('auth:admin')->group(function (): void {
         Route::get('/retraits/{retrait}', [RetraitController::class, 'detail'])->name('retraits.detail');
         Route::post('/retraits/{retrait}/decider', [RetraitController::class, 'decider'])->name('retraits.decider');
     });
+
+    // Paiements (ADR-0047) : tout paiement, direct ou via l'application, avec
+    // son journal. Arbitrer un paiement direct contesté engage de l'argent.
+    Route::middleware('permission:paiements.voir')->group(function (): void {
+        Route::get('/paiements', [PaiementsController::class, 'index'])->name('paiements');
+        Route::get('/paiements/donnees', [PaiementsController::class, 'donnees'])->name('paiements.donnees');
+        Route::get('/paiements/export', [PaiementsController::class, 'export'])->name('paiements.export');
+        Route::get('/paiements/{paiement}', [PaiementsController::class, 'detail'])->name('paiements.detail');
+    });
+
+    Route::post('/paiements/{paiement}/arbitrer', [PaiementsController::class, 'arbitrer'])
+        ->middleware('permission:paiements.arbitrer')
+        ->name('paiements.arbitrer');
 
     Route::middleware('permission:litiges.voir')->group(function (): void {
         Route::get('/litiges', [LitigeController::class, 'index'])->name('litiges');

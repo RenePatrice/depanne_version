@@ -51,6 +51,7 @@ final class RolesPermissionsSeeder extends Seeder
             'catalogue.voir', 'catalogue.modifier',
             'zones.voir', 'zones.modifier',
             'finances.voir', 'finances.exporter', 'retraits.approuver',
+            'paiements.voir', 'paiements.arbitrer',
             'litiges.voir', 'litiges.resoudre',
             'configuration.voir', 'configuration.modifier',
             'journal-audit.voir',
@@ -69,6 +70,7 @@ final class RolesPermissionsSeeder extends Seeder
             'techniciens.voir', 'techniciens.valider', 'techniciens.sanctionner',
             'catalogue.voir', 'zones.voir',
             'litiges.voir', 'litiges.resoudre',
+            'paiements.voir', 'paiements.arbitrer',
         ];
     }
 
@@ -80,6 +82,7 @@ final class RolesPermissionsSeeder extends Seeder
             'tickets.voir',
             'techniciens.voir',
             'finances.voir', 'finances.exporter', 'retraits.approuver',
+            'paiements.voir', 'paiements.arbitrer',
             'journal-audit.voir',
         ];
     }
