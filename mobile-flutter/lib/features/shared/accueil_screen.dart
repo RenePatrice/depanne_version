@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/app_mode.dart';
 import '../../core/providers.dart';
 import '../../core/temps_reel/temps_reel_providers.dart';
 import '../../core/temps_reel/temps_reel_service.dart';
-import '../../design_system/design_tokens.dart';
+import '../../design_system/pc.dart';
 import '../auth/application/session_controller.dart';
-import '../client/presentation/catalogue_screen.dart';
+import '../client/presentation/accueil_client_vue.dart';
+import '../client/presentation/explorer_vue.dart';
 import '../client/presentation/historique_screen.dart';
+import '../client/presentation/messages_vue.dart';
 import '../client/presentation/profil_client_screen.dart';
 import '../notifications/application/notifications_providers.dart';
-import '../notifications/presentation/notifications_screen.dart';
 import '../technicien/presentation/demandes_screen.dart';
 import '../technicien/presentation/mes_interventions_screen.dart';
 import '../technicien/presentation/portefeuille_screen.dart';
 import '../technicien/presentation/profil_technicien_screen.dart';
 import 'mode/selecteur_mode.dart';
 
-/// Coquille d'accueil, commune aux deux modes.
+/// Coquille des deux espaces, avec la barre d'onglets flottante (prototype v4).
 ///
-/// Elle porte la navigation, l'identité visuelle du mode et la bascule ; les
-/// deux jeux d'onglets sont livrés — client en D2, technicien en D3.
-///
-/// Le changement de mode remet l'onglet à zéro et change la couleur d'accent :
-/// c'est ce qui permet de savoir dans quel mode on se trouve sans lire. Un
-/// technicien qui se croit en mode client cherche un bouton qui n'existe pas.
+/// Client : Accueil, Explorer, Commandes, Messages, Profil — en clair, accent
+/// bleu. Technicien : Tableau, Missions, Gains, Profil — en sombre, accent
+/// vert. On sait dans quel espace on se trouve sans lire un mot.
 class AccueilScreen extends ConsumerStatefulWidget {
   const AccueilScreen({super.key});
 
@@ -35,11 +35,18 @@ class AccueilScreen extends ConsumerStatefulWidget {
 
 class _AccueilScreenState extends ConsumerState<AccueilScreen> {
   int _onglet = 0;
+  AppMode? _modePrecedent;
 
   @override
   Widget build(BuildContext context) {
     final AppMode mode = ref.watch(modeProvider);
     final Session session = ref.watch(sessionProvider);
+    final PcSkin pc = context.pc;
+
+    // Changer d'espace remet l'onglet à zéro : le même index ne veut pas dire
+    // la même chose d'un espace à l'autre.
+    if (_modePrecedent != null && _modePrecedent != mode) _onglet = 0;
+    _modePrecedent = mode;
 
     // Toute notification poussée sur le canal personnel rallume la cloche.
     ref.listen(signauxProvider('utilisateur.${session.utilisateur?.id}'), (
@@ -51,113 +58,162 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
       }
     });
 
-    // Le changement de mode remet l'onglet à zéro : garder l'index d'un mode
-    // à l'autre pointerait vers un onglet qui ne veut pas dire la même chose.
-    final List<_Onglet> onglets = mode == AppMode.client
-        ? _ongletsClient
-        : _ongletsTechnicien;
-
+    final bool client = mode == AppMode.client;
+    final List<PcOnglet> onglets = client ? _ongletsClient : _ongletsTechnicien;
     final int index = _onglet.clamp(0, onglets.length - 1);
-    final bool peutBasculer =
-        (session.utilisateur?.modesDisponibles.length ?? 1) > 1;
 
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: DmSpace.x4,
-        // Le symbole Parema Connect sur une pastille blanche : il reste lisible
-        // en mode technicien (fond orange) comme en mode client. Le mot « Mode »
-        // garde le repère, la couleur d'accent fait le reste.
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
+    final List<Widget> vues = client
+        ? <Widget>[
+            AccueilClientVue(onExplorer: () => setState(() => _onglet = 1)),
+            const ExplorerVue(),
+            const HistoriqueScreen(),
+            const MessagesVue(),
+            const ProfilClientScreen(),
+          ]
+        : const <Widget>[
+            _Herite(titre: 'Tableau de bord', enfant: DemandesScreen()),
+            _Herite(titre: 'Missions', enfant: MesInterventionsScreen()),
+            _Herite(titre: 'Gains', enfant: PortefeuilleScreen()),
+            _Herite(titre: 'Profil', enfant: ProfilTechnicienScreen()),
+          ];
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: pc.estSombre
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        extendBody: true,
+        body: Stack(
           children: <Widget>[
-            Container(
-              width: 32,
-              height: 32,
-              padding: const EdgeInsets.all(3),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Image.asset(
-                'assets/images/logo_mark.png',
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            // Les onglets restent vivants d'un passage à l'autre : revenir sur
+            // une liste ne relance pas un chargement déjà payé, et le compte à
+            // rebours d'une sollicitation continue de tourner.
+            Positioned.fill(
+              child: IndexedStack(index: index, children: vues),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: PcTabBar(
+                onglets: onglets,
+                index: index,
+                onChanged: (int i) => setState(() => _onglet = i),
               ),
             ),
-            const SizedBox(width: DmSpace.x3),
-            Text('Mode ${mode.libelle}'),
           ],
         ),
-        actions: <Widget>[
-          const ClocheNotifications(),
-          if (peutBasculer)
-            IconButton(
-              tooltip: 'Changer de mode',
-              icon: const Icon(Icons.swap_horiz),
-              onPressed: () async {
-                final AppMode? choisi = await SelecteurMode.ouvrir(context);
-                if (choisi != null && mounted) setState(() => _onglet = 0);
-              },
-            ),
-          IconButton(
-            tooltip: 'Se déconnecter',
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(sessionProvider.notifier).deconnecter(),
-          ),
-        ],
-      ),
-      // Les onglets sont conservés vivants d'un passage à l'autre : revenir
-      // sur « Mes demandes » ne doit pas relancer un chargement que l'on vient
-      // de payer, ni perdre la position dans la liste. Côté technicien, cela
-      // garde aussi vivants le compte à rebours d'une sollicitation et le
-      // suivi GPS d'une intervention en cours.
-      body: mode == AppMode.client
-          ? IndexedStack(
-              index: index,
-              children: const <Widget>[
-                CatalogueVue(),
-                HistoriqueScreen(),
-                ProfilClientScreen(),
-              ],
-            )
-          : IndexedStack(
-              index: index,
-              children: const <Widget>[
-                DemandesScreen(),
-                MesInterventionsScreen(),
-                PortefeuilleScreen(),
-                ProfilTechnicienScreen(),
-              ],
-            ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (int i) => setState(() => _onglet = i),
-        destinations: <Widget>[
-          for (final _Onglet o in onglets)
-            NavigationDestination(icon: Icon(o.icone), label: o.libelle),
-        ],
       ),
     );
   }
 
-  static const List<_Onglet> _ongletsClient = <_Onglet>[
-    _Onglet(Icons.add_circle_outline, 'Demander'),
-    _Onglet(Icons.receipt_long_outlined, 'Mes demandes'),
-    _Onglet(Icons.person_outline, 'Profil'),
+  static const List<PcOnglet> _ongletsClient = <PcOnglet>[
+    PcOnglet(Icons.home_rounded, 'Accueil'),
+    PcOnglet(Icons.explore_outlined, 'Explorer'),
+    PcOnglet(Icons.receipt_long_outlined, 'Commandes'),
+    PcOnglet(Icons.chat_bubble_outline_rounded, 'Messages'),
+    PcOnglet(Icons.person_outline_rounded, 'Profil'),
   ];
 
-  static const List<_Onglet> _ongletsTechnicien = <_Onglet>[
-    _Onglet(Icons.notifications_active_outlined, 'Demandes'),
-    _Onglet(Icons.build_outlined, 'Intervention'),
-    _Onglet(Icons.account_balance_wallet_outlined, 'Portefeuille'),
-    _Onglet(Icons.person_outline, 'Profil'),
+  static const List<PcOnglet> _ongletsTechnicien = <PcOnglet>[
+    PcOnglet(Icons.space_dashboard_outlined, 'Tableau'),
+    PcOnglet(Icons.work_outline_rounded, 'Missions'),
+    PcOnglet(Icons.account_balance_wallet_outlined, 'Gains'),
+    PcOnglet(Icons.person_outline_rounded, 'Profil'),
   ];
 }
 
-class _Onglet {
-  const _Onglet(this.icone, this.libelle);
+/// Écran pas encore redessiné, logé dans la nouvelle coquille.
+///
+/// Il reçoit un en-tête au nom de la personne — jamais « mode client » ou
+/// « mode technicien » (demande du client, point 5) — avec la cloche, la
+/// bascule d'espace et la déconnexion, et une marge basse pour ne rien cacher
+/// sous la barre flottante.
+class _Herite extends ConsumerWidget {
+  const _Herite({required this.titre, required this.enfant});
 
-  final IconData icone;
-  final String libelle;
+  final String titre;
+  final Widget enfant;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final PcSkin pc = context.pc;
+    final Session session = ref.watch(sessionProvider);
+    final int nonLues = ref.watch(notificationsProvider).value?.nonLues ?? 0;
+    final bool peutBasculer =
+        (session.utilisateur?.modesDisponibles.length ?? 1) > 1;
+    final String nom = session.utilisateur?.nomComplet ?? '';
+
+    return Column(
+      children: <Widget>[
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
+            child: Row(
+              children: <Widget>[
+                PcAvatar(
+                  nom: nom,
+                  taille: 42,
+                  image: session.utilisateur?.avatarUrl,
+                  couleurs: const <Color>[
+                    PcColors.coralLight,
+                    PcColors.coralDeep,
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        nom,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: pc.muted,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                      Text(
+                        titre,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                    ],
+                  ),
+                ),
+                PcIconButton(
+                  icone: Icons.notifications_none_rounded,
+                  pastille: nonLues > 0,
+                  libelle: 'Notifications',
+                  onTap: () => context.push('/notifications'),
+                ),
+                if (peutBasculer) ...<Widget>[
+                  const SizedBox(width: 8),
+                  PcIconButton(
+                    icone: Icons.swap_horiz_rounded,
+                    libelle: 'Changer d’espace',
+                    onTap: () => SelecteurMode.ouvrir(context),
+                  ),
+                ],
+                const SizedBox(width: 8),
+                PcIconButton(
+                  icone: Icons.logout_rounded,
+                  libelle: 'Se déconnecter',
+                  onTap: () => ref.read(sessionProvider.notifier).deconnecter(),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: PcTabBar.espaceReserve - 20),
+            child: enfant,
+          ),
+        ),
+      ],
+    );
+  }
 }

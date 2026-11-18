@@ -19,6 +19,8 @@ class Utilisateur {
     this.avatarUrl,
     this.verificationTechnicien,
     this.peutTravailler = false,
+    this.dossierDepose = false,
+    this.motifRejet,
     this.profilTechnicien,
   });
 
@@ -51,6 +53,13 @@ class Utilisateur {
   /// appartient au domaine, et un état ajouté côté serveur — une suspension
   /// temporaire, par exemple — se propagerait ici sans qu'on y touche.
   final bool peutTravailler;
+
+  /// Les trois pièces du dossier sont déposées : l'écran passe du formulaire
+  /// à l'attente de validation.
+  final bool dossierDepose;
+
+  /// Motif donné par le support quand le dossier est rejeté.
+  final String? motifRejet;
 
   /// Spécialités, zone et statistiques, quand la casquette technicien existe.
   final ProfilTechnicien? profilTechnicien;
@@ -97,6 +106,8 @@ class Utilisateur {
       estTechnicien: casquettes['technicien'] as bool? ?? false,
       verificationTechnicien: verification?['statut'] as String?,
       peutTravailler: verification?['peut_travailler'] as bool? ?? false,
+      dossierDepose: verification?['dossier_depose'] as bool? ?? false,
+      motifRejet: verification?['motif_rejet'] as String?,
       profilTechnicien: profilTechnicien == null
           ? null
           : ProfilTechnicien.depuisJson(profilTechnicien),

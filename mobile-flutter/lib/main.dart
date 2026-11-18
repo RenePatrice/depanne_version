@@ -7,6 +7,7 @@ import 'core/providers.dart';
 import 'core/router/app_router.dart';
 import 'design_system/app_theme.dart';
 import 'features/auth/application/session_controller.dart';
+import 'features/shared/localisation/localisation_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,7 @@ class _ParemaConnectAppState extends ConsumerState<ParemaConnectApp> {
     // est interdit pendant la construction du widget.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(sessionProvider.notifier).restaurer();
+      ref.read(localisationDemandeeProvider.notifier).charger();
     });
   }
 

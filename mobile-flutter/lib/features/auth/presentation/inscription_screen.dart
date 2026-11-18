@@ -1,226 +1,337 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../core/app_mode.dart';
 import '../../../core/providers.dart';
-import '../../../design_system/app_theme.dart';
-import '../../../design_system/components/dm_composants.dart';
-import '../../../design_system/design_tokens.dart';
+import '../../../design_system/pc.dart';
 import '../application/session_controller.dart';
 
-/// Inscription (§4).
+/// Création de compte (prototype v4).
 ///
-/// Le cahier des charges décrit trois étapes ; les deux premières se font ici,
-/// et la troisième — le dossier professionnel — n'est demandée qu'aux
-/// techniciens, après création du compte. C'est le serveur qui l'annonce, via
-/// `etape_suivante` : l'application ne décide pas de la longueur du parcours.
-///
-/// Le choix de la casquette est **la première question**, avant même le nom.
-/// Il change ce qu'on demande ensuite, et il change la couleur de
-/// l'application : le poser en dernier obligerait à revenir en arrière.
+/// Pas de code par SMS ni par WhatsApp à l'inscription (décision du client) :
+/// un numéro = un compte, garanti par le serveur. Le rôle se choisit d'un
+/// toucher ; un technicien est ensuite conduit vers son dossier.
 class InscriptionScreen extends ConsumerStatefulWidget {
-  const InscriptionScreen({super.key});
+  const InscriptionScreen({super.key, this.chiffres});
+
+  /// Le numéro déjà saisi à l'écran d'entrée, s'il y en a un.
+  final String? chiffres;
 
   @override
   ConsumerState<InscriptionScreen> createState() => _InscriptionScreenState();
 }
 
 class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
+  late final TextEditingController _numero = TextEditingController(
+    text: widget.chiffres ?? '',
+  );
   final TextEditingController _nom = TextEditingController();
-  final TextEditingController _telephone = TextEditingController();
   final TextEditingController _motDePasse = TextEditingController();
 
-  AppMode _casquette = AppMode.client;
-  bool _enCours = false;
-  bool _masque = true;
+  bool _technicien = false;
+  bool _visible = false;
+  bool _envoi = false;
+  String? _erreurLocale;
 
   @override
   void dispose() {
+    _numero.dispose();
     _nom.dispose();
-    _telephone.dispose();
     _motDePasse.dispose();
     super.dispose();
   }
 
-  Future<void> _soumettre() async {
-    if (_enCours) return;
+  /// Force du mot de passe, de 0 à 4. Indicative : la règle qui compte est
+  /// celle du serveur.
+  int get _force {
+    final String v = _motDePasse.text;
+    int f = 0;
+    if (v.length >= 8) f++;
+    if (RegExp(r'\d').hasMatch(v)) f++;
+    if (RegExp('[A-Za-z]').hasMatch(v)) f++;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(v) || v.length >= 12) f++;
 
-    setState(() => _enCours = true);
+    return f;
+  }
 
+  Future<void> _creer() async {
+    final String chiffres = _numero.text.replaceAll(RegExp(r'\D'), '');
+
+    if (_nom.text.trim().length < 3) {
+      setState(() => _erreurLocale = 'Indiquez votre prénom et votre nom.');
+      return;
+    }
+    if (chiffres.length != 9) {
+      setState(() => _erreurLocale = 'Le numéro guinéen compte 9 chiffres.');
+      return;
+    }
+    if (_motDePasse.text.length < 8) {
+      setState(
+        () =>
+            _erreurLocale = 'Le mot de passe doit faire au moins 8 caractères.',
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _erreurLocale = null;
+      _envoi = true;
+    });
+
+    // En cas de succès, le routeur conduit à l'accueil — ou au dossier
+    // technicien pour un compte technicien.
     await ref
         .read(sessionProvider.notifier)
         .inscrire(
           nomComplet: _nom.text.trim(),
-          telephone: _telephone.text.trim(),
+          telephone: '+224$chiffres',
           motDePasse: _motDePasse.text,
-          estTechnicien: _casquette == AppMode.technicien,
+          estTechnicien: _technicien,
         );
 
-    if (mounted) setState(() => _enCours = false);
+    if (mounted) setState(() => _envoi = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final PcSkin pc = context.pc;
     final Session session = ref.watch(sessionProvider);
-    final ThemeData theme = Theme.of(context);
+    final int force = _force;
+    const List<Color> couleursForce = <Color>[
+      PcColors.danger,
+      PcColors.amber,
+      PcColors.brand,
+      PcColors.tech,
+    ];
+    const List<String> libellesForce = <String>[
+      'Mélangez lettres et chiffres.',
+      'Faible',
+      'Moyen',
+      'Bon',
+      'Excellent',
+    ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Créer un compte')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(DmSpace.x6),
-          child: AutofillGroup(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Text('Je suis…', style: theme.textTheme.titleLarge),
-                const SizedBox(height: DmSpace.x3),
-
-                for (final AppMode mode in AppMode.values) ...<Widget>[
-                  _CarteCasquette(
-                    mode: mode,
-                    choisie: _casquette == mode,
-                    onChoisir: () => setState(() => _casquette = mode),
-                  ),
-                  const SizedBox(height: DmSpace.x3),
-                ],
-
-                const SizedBox(height: DmSpace.x4),
-
-                if (session.erreur != null) ...<Widget>[
-                  DmErreur(
-                    message: session.erreur!.message,
-                    onReessayer: session.erreur!.reseau ? _soumettre : null,
-                  ),
-                  const SizedBox(height: DmSpace.x4),
-                ],
-
-                DmChamp(
-                  libelle: 'Nom complet',
-                  controleur: _nom,
-                  autoRemplissage: const <String>[AutofillHints.name],
-                  action: TextInputAction.next,
-                  prefixe: const Icon(Icons.person_outline),
-                  erreur: session.erreur?.pourChamp('full_name'),
-                ),
-                const SizedBox(height: DmSpace.x4),
-
-                DmChamp(
-                  libelle: 'Numéro de téléphone',
-                  indication: '620 00 00 00',
-                  controleur: _telephone,
-                  clavier: TextInputType.phone,
-                  autoRemplissage: const <String>[
-                    AutofillHints.telephoneNumber,
-                  ],
-                  action: TextInputAction.next,
-                  prefixe: const Icon(Icons.phone_outlined),
-                  erreur: session.erreur?.pourChamp('phone'),
-                ),
-                const SizedBox(height: DmSpace.x4),
-
-                DmChamp(
-                  libelle: 'Mot de passe',
-                  indication: '8 caractères, une majuscule, un chiffre',
-                  controleur: _motDePasse,
-                  masque: _masque,
-                  autoRemplissage: const <String>[AutofillHints.newPassword],
-                  action: TextInputAction.done,
-                  onSoumis: (_) => _soumettre(),
-                  prefixe: const Icon(Icons.lock_outline),
-                  erreur: session.erreur?.pourChamp('password'),
-                ),
-
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => setState(() => _masque = !_masque),
-                    child: Text(_masque ? 'Afficher' : 'Masquer'),
-                  ),
-                ),
-
-                const SizedBox(height: DmSpace.x2),
-                DmBouton(
-                  libelle: _casquette == AppMode.technicien
-                      ? 'Continuer'
-                      : 'Créer mon compte',
-                  enCours: _enCours,
-                  onPresse: _soumettre,
-                ),
-
-                const SizedBox(height: DmSpace.x4),
-                Text(
-                  'En continuant, tu acceptes les conditions d\'utilisation de '
-                  'Parema Connect.',
-                  style: theme.textTheme.bodySmall,
-                  textAlign: TextAlign.center,
-                ),
-              ],
+        child: Column(
+          children: <Widget>[
+            PcHeader(
+              titre: 'Créer un compte',
+              sousTitre: 'Une minute, c’est tout',
+              onRetour: () {
+                ref.read(sessionProvider.notifier).effacerErreur();
+                context.pop();
+              },
             ),
-          ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
+                children: <Widget>[
+                  if (session.erreur != null ||
+                      _erreurLocale != null) ...<Widget>[
+                    PcErreur(message: _erreurLocale ?? session.erreur!.message),
+                    const SizedBox(height: 16),
+                  ],
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 8),
+                    child: Text(
+                      'Vous êtes…',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: pc.muted,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: _CarteRole(
+                          icone: Icons.search_rounded,
+                          couleur: PcColors.brand,
+                          titre: 'Je cherche un pro',
+                          sousTitre: 'Compte client',
+                          choisi: !_technicien,
+                          onTap: () => setState(() => _technicien = false),
+                        ),
+                      ),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: _CarteRole(
+                          icone: Icons.handyman_rounded,
+                          couleur: PcColors.tech,
+                          titre: 'Je suis un pro',
+                          sousTitre: 'Compte technicien',
+                          choisi: _technicien,
+                          onTap: () => setState(() => _technicien = true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  PcField(
+                    libelle: 'Prénom et nom',
+                    controleur: _nom,
+                    icone: Icons.person_outline_rounded,
+                    indice: 'Aïssatou Diallo',
+                    autofill: const <String>[AutofillHints.name],
+                    actionClavier: TextInputAction.next,
+                    erreur: session.erreur?.pourChamp('full_name'),
+                  ),
+                  const SizedBox(height: 14),
+                  PcField(
+                    libelle: 'Téléphone',
+                    controleur: _numero,
+                    icone: Icons.phone_outlined,
+                    indice: '620 12 34 56',
+                    clavier: TextInputType.phone,
+                    autofill: const <String>[
+                      AutofillHints.telephoneNumberNational,
+                    ],
+                    actionClavier: TextInputAction.next,
+                    erreur: session.erreur?.pourChamp('phone'),
+                  ),
+                  const SizedBox(height: 14),
+                  PcField(
+                    libelle: 'Mot de passe',
+                    controleur: _motDePasse,
+                    icone: Icons.lock_outline_rounded,
+                    indice: '8 caractères minimum',
+                    motDePasse: !_visible,
+                    autofill: const <String>[AutofillHints.newPassword],
+                    actionClavier: TextInputAction.done,
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (_) => _creer(),
+                    erreur: session.erreur?.pourChamp('password'),
+                    suffixe: IconButton(
+                      tooltip: _visible ? 'Masquer' : 'Afficher',
+                      icon: Icon(
+                        _visible
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: pc.muted,
+                      ),
+                      onPressed: () => setState(() => _visible = !_visible),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: <Widget>[
+                      for (int i = 0; i < 4; i++) ...<Widget>[
+                        Expanded(
+                          child: AnimatedContainer(
+                            duration: PcMotion.fast,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: i < force
+                                  ? couleursForce[force - 1]
+                                  : pc.soft,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                        if (i < 3) const SizedBox(width: 6),
+                      ],
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+                    child: Text(
+                      libellesForce[force],
+                      style: TextStyle(
+                        color: pc.muted,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  PcButton(
+                    libelle: 'Créer mon compte',
+                    variante: _technicien ? PcVariante.tech : PcVariante.accent,
+                    chargement: _envoi,
+                    onPressed: _creer,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Un numéro = un compte. Aucun SMS payant.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: pc.muted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Choix de la casquette, sous forme de carte plutôt que de bouton radio.
-///
-/// La carte porte la couleur du mode : on voit le bleu et l'orange avant même
-/// de lire, et le choix devient une décision visuelle plutôt qu'une case à
-/// cocher.
-class _CarteCasquette extends StatelessWidget {
-  const _CarteCasquette({
-    required this.mode,
-    required this.choisie,
-    required this.onChoisir,
+class _CarteRole extends StatelessWidget {
+  const _CarteRole({
+    required this.icone,
+    required this.couleur,
+    required this.titre,
+    required this.sousTitre,
+    required this.choisi,
+    required this.onTap,
   });
 
-  final AppMode mode;
-  final bool choisie;
-  final VoidCallback onChoisir;
+  final IconData icone;
+  final Color couleur;
+  final String titre;
+  final String sousTitre;
+  final bool choisi;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final Color couleur = AppTheme.accent(mode);
+    final PcSkin pc = context.pc;
 
-    return InkWell(
-      onTap: onChoisir,
-      borderRadius: DmRadius.mdAll,
-      child: AnimatedContainer(
-        duration: DmMotion.fast,
-        padding: const EdgeInsets.all(DmSpace.x4),
-        decoration: BoxDecoration(
-          color: choisie ? couleur.withValues(alpha: 0.08) : Colors.transparent,
-          borderRadius: DmRadius.mdAll,
-          border: Border.all(
-            color: choisie ? couleur : theme.dividerColor,
-            width: choisie ? 2 : 1,
+    return Semantics(
+      selected: choisi,
+      button: true,
+      child: PcPressable(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: PcMotion.fast,
+          curve: PcMotion.ease,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: pc.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: choisi ? couleur : pc.line,
+              width: choisi ? 2 : 1.5,
+            ),
+            boxShadow: choisi ? PcShadow.glow(couleur) : null,
           ),
-        ),
-        child: Row(
-          children: <Widget>[
-            Icon(
-              mode == AppMode.client
-                  ? Icons.home_repair_service_outlined
-                  : Icons.handyman_outlined,
-              color: couleur,
-              size: 28,
-            ),
-            const SizedBox(width: DmSpace.x4),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(mode.libelle, style: theme.textTheme.titleMedium),
-                  const SizedBox(height: DmSpace.x1),
-                  Text(mode.description, style: theme.textTheme.bodySmall),
-                ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              PcIco(icone, couleur: couleur, taille: 38),
+              const SizedBox(height: 10),
+              Text(titre, style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                sousTitre,
+                style: TextStyle(
+                  color: pc.muted,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
               ),
-            ),
-            if (choisie) Icon(Icons.check_circle, color: couleur),
-          ],
+            ],
+          ),
         ),
       ),
     );

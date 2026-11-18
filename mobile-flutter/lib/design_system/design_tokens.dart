@@ -16,16 +16,17 @@ import 'package:flutter/widgets.dart';
 abstract final class DmColors {
   // --- Marque ---------------------------------------------------------------
 
-  /// Bleu confiance — mode **Client**.
-  static const Color primary = Color(0xFF1B6FF3);
-  static const Color primaryDark = Color(0xFF0B4CB8);
+  /// Bleu confiance — espace **Client**. Aligné sur le site vitrine et le
+  /// back-office depuis le prototype v4 (18 novembre 2026).
+  static const Color primary = Color(0xFF2F6BED);
+  static const Color primaryDark = Color(0xFF1E51C9);
 
-  /// Orange chantier — mode **Technicien**.
+  /// Vert — espace **Technicien** (thème sombre).
   ///
   /// La bascule d'un mode à l'autre doit se voir immédiatement : c'est la
   /// couleur d'accentuation *et* la navigation qui changent, pas seulement un
   /// libellé.
-  static const Color accentTech = Color(0xFFFF7A1A);
+  static const Color accentTech = Color(0xFF12B76A);
 
   // --- Sémantique -----------------------------------------------------------
 
@@ -64,8 +65,8 @@ abstract final class DmType {
   /// téléchargés au premier lancement : sur le réseau de Conakry, une police
   /// distante ferait démarrer l'application en typographie de repli, ou pas du
   /// tout.
-  static const String heading = 'Poppins';
-  static const String body = 'Inter';
+  static const String heading = 'Sora';
+  static const String body = 'PlusJakartaSans';
 
   /// Échelle : 32 / 24 / 20 / 16 / 14 / 12.
   static const double fs1 = 32;

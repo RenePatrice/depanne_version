@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart' show FormData, MultipartFile;
+
 import '../../../core/network/api_client.dart';
 import '../../shared/data/modeles.dart';
 import 'modeles.dart';
@@ -10,6 +12,48 @@ class TechnicienRepository {
   const TechnicienRepository(this._api);
 
   final ApiClient _api;
+
+  // ----------------------------------------------------------------- dossier --
+
+  /// Déposer une pièce du dossier (`recto`, `verso` ou `selfie`).
+  ///
+  /// Le serveur la range sur son disque **privé**, efface ses métadonnées et
+  /// renvoie le chemin à joindre au dossier. Aucune URL publique n'existe vers
+  /// une pièce d'identité.
+  Future<String> deposerPiece(String type, String cheminLocal) async {
+    final Map<String, dynamic> reponse = await _api.post(
+      '/technicien/pieces',
+      corps: FormData.fromMap(<String, dynamic>{
+        'type': type,
+        'photo': await MultipartFile.fromFile(cheminLocal),
+      }),
+    );
+
+    return reponse['chemin'] as String;
+  }
+
+  /// Envoyer le dossier complet : spécialités, point de départ, rayon, et les
+  /// trois pièces déjà déposées.
+  Future<void> envoyerDossier({
+    required List<String> specialites,
+    required double latitude,
+    required double longitude,
+    required int rayon,
+    required String recto,
+    required String verso,
+    required String selfie,
+  }) => _api.post(
+    '/auth/dossier-technicien',
+    corps: <String, dynamic>{
+      'specialties': specialites,
+      'latitude': latitude,
+      'longitude': longitude,
+      'service_radius_km': rayon,
+      'id_doc_front_url': recto,
+      'id_doc_back_url': verso,
+      'selfie_url': selfie,
+    },
+  );
 
   // ---------------------------------------------------------- disponibilité --
 

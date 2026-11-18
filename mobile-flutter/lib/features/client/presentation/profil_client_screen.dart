@@ -4,13 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/providers.dart';
-import '../../../design_system/components/dm_composants.dart';
-import '../../../design_system/design_tokens.dart';
+import '../../../design_system/pc.dart';
 import '../../auth/application/session_controller.dart';
 import '../../shared/data/modeles.dart';
+import '../../shared/mode/selecteur_mode.dart';
+import '../../shared/profil/profil_commun.dart';
 import '../application/client_providers.dart';
 
-/// Profil client : identité et carnet d'adresses.
+/// Onglet « Profil » du client : identité, carnet d'adresses, compte.
 ///
 /// Le carnet vit ici plutôt que dans le seul tunnel de commande : une adresse
 /// se corrige au calme, pas au moment où l'on a une fuite d'eau.
@@ -19,115 +20,160 @@ class ProfilClientScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final PcSkin pc = context.pc;
     final Session session = ref.watch(sessionProvider);
     final AsyncValue<List<Adresse>> adresses = ref.watch(adressesProvider);
-    final ThemeData theme = Theme.of(context);
+    final AsyncValue<List<Ticket>> tickets = ref.watch(ticketsProvider(false));
+    final bool peutBasculer =
+        (session.utilisateur?.modesDisponibles.length ?? 1) > 1;
+
+    final List<Ticket> liste = tickets.value ?? const <Ticket>[];
+    final int terminees = liste
+        .where((Ticket t) => t.etat == 'CLOTUREE')
+        .length;
+    final int enCours = liste.where((Ticket t) => !t.etatFinal).length;
 
     return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(adressesProvider),
+      color: pc.accent,
+      onRefresh: () async {
+        ref.invalidate(adressesProvider);
+        ref.invalidate(ticketsProvider);
+      },
       child: ListView(
-        padding: const EdgeInsets.all(DmSpace.x4),
+        padding: EdgeInsets.fromLTRB(
+          18,
+          MediaQuery.of(context).padding.top + 18,
+          18,
+          PcTabBar.espaceReserve,
+        ),
         children: <Widget>[
-          DmCarte(
-            enfant: Row(
-              children: <Widget>[
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: theme.colorScheme.primary.withValues(
-                    alpha: 0.12,
-                  ),
-                  child: Icon(
-                    Icons.person_outline,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: DmSpace.x4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        session.utilisateur?.nomComplet ?? 'Mon compte',
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      Text(
-                        session.utilisateur?.telephoneAffichage ?? '',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          const EnteteProfil(),
+          const SizedBox(height: 18),
+
+          // Chiffres réels du compte, comptés depuis ses propres demandes.
+          Row(
+            children: <Widget>[
+              _Chiffre(valeur: '$enCours', libelle: 'En cours'),
+              const SizedBox(width: 10),
+              _Chiffre(valeur: '$terminees', libelle: 'Terminées'),
+              const SizedBox(width: 10),
+              _Chiffre(
+                valeur: '${adresses.value?.length ?? 0}',
+                libelle: 'Adresses',
+              ),
+            ],
           ),
 
-          const SizedBox(height: DmSpace.x3),
-          DmCarte(
-            onTape: () => context.push('/client/reclamations'),
-            enfant: const Row(
-              children: <Widget>[
-                Icon(Icons.report_problem_outlined),
-                SizedBox(width: DmSpace.x4),
-                Expanded(child: Text('Mes réclamations')),
-                Icon(Icons.chevron_right),
-              ],
-            ),
+          PcSection(
+            'Mes adresses',
+            lien: 'Ajouter',
+            onLien: () => context.push('/client/adresse'),
           ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              DmSpace.x2,
-              DmSpace.x6,
-              DmSpace.x2,
-              DmSpace.x3,
-            ),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    'Mes adresses',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () => context.push('/client/adresse'),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Ajouter'),
-                ),
-              ],
-            ),
-          ),
-
           adresses.when(
             loading: () => const Padding(
-              padding: EdgeInsets.all(DmSpace.x8),
+              padding: EdgeInsets.all(24),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (Object e, StackTrace _) => DmErreur(
+            error: (Object e, StackTrace _) => PcErreur(
               message: messageErreur(e),
               onReessayer: () => ref.invalidate(adressesProvider),
             ),
             data: (List<Adresse> liste) => liste.isEmpty
-                ? DmVide(
-                    icone: Icons.location_off_outlined,
-                    titre: 'Carnet vide',
-                    texte:
-                        'Ajoute une adresse maintenant : le jour de la panne, '
-                        'tu n\'auras plus qu\'à choisir.',
-                    action: DmBouton(
-                      libelle: 'Ajouter une adresse',
-                      onPresse: () => context.push('/client/adresse'),
+                ? PcCard(
+                    onTap: () => context.push('/client/adresse'),
+                    child: Row(
+                      children: <Widget>[
+                        PcIco(
+                          Icons.add_location_alt_outlined,
+                          couleur: pc.accent,
+                          taille: 42,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Ajoutez une adresse maintenant : le jour de la '
+                            'panne, vous n’aurez plus qu’à choisir.',
+                            style: TextStyle(
+                              color: pc.ink2,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   )
-                : Column(
-                    children: <Widget>[
+                : GroupeProfil(
+                    lignes: <Widget>[
                       for (final Adresse a in liste) _LigneAdresse(adresse: a),
                     ],
                   ),
           ),
 
-          const SizedBox(height: DmSpace.x8),
+          const PcSection('Activité'),
+          GroupeProfil(
+            lignes: <Widget>[
+              LigneProfil(
+                icone: Icons.report_problem_outlined,
+                libelle: 'Mes réclamations',
+                onTap: () => context.push('/client/reclamations'),
+              ),
+              LigneProfil(
+                icone: Icons.notifications_none_rounded,
+                libelle: 'Notifications',
+                onTap: () => context.push('/notifications'),
+              ),
+              if (peutBasculer)
+                LigneProfil(
+                  icone: Icons.swap_horiz_rounded,
+                  libelle: 'Passer à mon espace technicien',
+                  couleur: PcColors.tech,
+                  onTap: () => SelecteurMode.ouvrir(context),
+                ),
+            ],
+          ),
+
+          const LignesCompte(),
         ],
+      ),
+    );
+  }
+}
+
+class _Chiffre extends StatelessWidget {
+  const _Chiffre({required this.valeur, required this.libelle});
+
+  final String valeur;
+  final String libelle;
+
+  @override
+  Widget build(BuildContext context) {
+    final PcSkin pc = context.pc;
+
+    return Expanded(
+      child: PcCard(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Column(
+          children: <Widget>[
+            Text(
+              valeur,
+              style: TextStyle(
+                fontFamily: PcFonts.display,
+                fontWeight: FontWeight.w700,
+                fontSize: 22,
+                color: pc.ink,
+              ),
+            ),
+            Text(
+              libelle,
+              style: TextStyle(
+                color: pc.muted,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -147,33 +193,39 @@ class _LigneAdresseState extends ConsumerState<_LigneAdresse> {
 
   Future<void> _supprimer() async {
     // Une adresse supprimée ne réécrit pas l'historique — le ticket en garde
-    // un instantané (ADR-0013) — mais elle disparaît pour de bon du carnet,
-    // et un carnet vidé par erreur se reconstitue à la main.
-    final bool confirme =
-        await showDialog<bool>(
-          context: context,
-          builder: (BuildContext context) => AlertDialog(
-            title: const Text('Supprimer cette adresse ?'),
-            content: Text(
-              '« ${widget.adresse.libelle} » ne sera plus proposée lors de tes '
-              'prochaines demandes. Tes interventions passées gardent l\'adresse '
-              'où elles ont eu lieu.',
-            ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Annuler'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Supprimer'),
-              ),
-            ],
+    // un instantané (ADR-0013) — mais elle disparaît pour de bon du carnet.
+    final bool? confirme = await showPcSheet<bool>(
+      context,
+      builder: (BuildContext ctx) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            'Supprimer « ${widget.adresse.libelle} » ?',
+            style: Theme.of(ctx).textTheme.titleLarge,
           ),
-        ) ??
-        false;
+          const SizedBox(height: 6),
+          Text(
+            'Elle ne sera plus proposée pour vos prochaines demandes. Vos '
+            'interventions passées gardent l’adresse où elles ont eu lieu.',
+            style: TextStyle(color: ctx.pc.muted, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 18),
+          PcButton(
+            libelle: 'Supprimer',
+            variante: PcVariante.corail,
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+          const SizedBox(height: 8),
+          PcButton(
+            libelle: 'Garder',
+            variante: PcVariante.doux,
+            onPressed: () => Navigator.of(ctx).pop(false),
+          ),
+        ],
+      ),
+    );
 
-    if (!confirme || _enCours) return;
+    if (confirme != true || _enCours) return;
 
     setState(() => _enCours = true);
 
@@ -181,12 +233,10 @@ class _LigneAdresseState extends ConsumerState<_LigneAdresse> {
       await ref
           .read(clientRepositoryProvider)
           .supprimerAdresse(widget.adresse.id);
-
       ref.invalidate(adressesProvider);
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        showPcToast(context, e.message, icone: Icons.error_outline_rounded);
       }
     } finally {
       if (mounted) setState(() => _enCours = false);
@@ -195,67 +245,26 @@ class _LigneAdresseState extends ConsumerState<_LigneAdresse> {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
     final Adresse a = widget.adresse;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: DmSpace.x3),
-      child: DmCarte(
-        enfant: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Flexible(
-                        child: Text(
-                          a.libelle,
-                          style: theme.textTheme.titleMedium,
-                        ),
-                      ),
-                      if (a.parDefaut) ...<Widget>[
-                        const SizedBox(width: DmSpace.x2),
-                        Text(
-                          'par défaut',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: DmSpace.x1),
-                  Text(a.adresse, style: theme.textTheme.bodySmall),
-                  if (a.repere != null)
-                    Text(a.repere!, style: theme.textTheme.bodySmall),
-                  if (!a.estDesservie) ...<Widget>[
-                    const SizedBox(height: DmSpace.x2),
-                    Text(
-                      'Hors de notre zone de couverture',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: DmColors.warning,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            IconButton(
-              tooltip: 'Supprimer',
-              onPressed: _enCours ? null : _supprimer,
-              icon: _enCours
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.delete_outline),
-            ),
-          ],
-        ),
+    return LigneProfil(
+      icone: a.libelle.toLowerCase().contains('bureau')
+          ? Icons.work_outline_rounded
+          : Icons.home_outlined,
+      libelle: a.parDefaut ? '${a.libelle} · par défaut' : a.libelle,
+      detail: a.estDesservie
+          ? a.adresse
+          : '${a.adresse}\nHors de notre zone de couverture',
+      fin: IconButton(
+        tooltip: 'Supprimer',
+        onPressed: _enCours ? null : _supprimer,
+        icon: _enCours
+            ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(Icons.delete_outline_rounded, color: context.pc.muted),
       ),
     );
   }

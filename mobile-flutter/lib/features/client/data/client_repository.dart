@@ -191,6 +191,21 @@ class ClientRepository {
 
   // ------------------------------------------------------------- garantie (#4) --
 
+  /// Dernière position du technicien en route, pour la carte du suivi.
+  ///
+  /// `null` hors du trajet ou si elle est trop ancienne : le serveur ne dessine
+  /// pas un point qui mentirait sur l'endroit où se trouve quelqu'un.
+  Future<PositionTechnicien?> positionTechnicien(int ticketId) async {
+    final Map<String, dynamic> reponse = await _api.get(
+      '/tickets/$ticketId/position-technicien',
+    );
+    final Object? position = reponse['position'];
+
+    return position is Map<String, dynamic>
+        ? PositionTechnicien.depuisJson(position)
+        : null;
+  }
+
   /// Ouvrir un retour sous garantie : la panne est revenue. Renvoie le
   /// **nouveau** ticket, gratuit et pré-attribué au même technicien.
   Future<Ticket> ouvrirGarantie(int ticketId, String description) async {
@@ -270,6 +285,50 @@ class ClientRepository {
   /// ticket se clôt sans séquestre.
   Future<void> confirmerPaiementEspeces(int ticketId) =>
       _api.post('/tickets/$ticketId/paiement-especes/confirmer');
+
+  // ------------------------------------------- paiement tracé (ADR-0047) --
+
+  /// Le paiement du ticket : moyens proposés, actions permises, journal.
+  ///
+  /// Jamais mis en cache hors ligne : un paiement a peut-être abouti depuis.
+  Future<EtatPaiement> etatPaiement(int ticketId) async =>
+      EtatPaiement.depuisJson(await _api.get('/tickets/$ticketId/paiement'));
+
+  /// Déclarer avoir payé le technicien directement.
+  ///
+  /// Seuls le moyen et, pour un transfert, la référence de l'opérateur
+  /// partent : le montant est celui du ticket, fixé par le serveur.
+  Future<EtatPaiement> declarerPaiement(
+    int ticketId, {
+    required String moyen,
+    String? referenceTransaction,
+  }) async => EtatPaiement.depuisJson(
+    await _api.post(
+      '/tickets/$ticketId/paiement-direct',
+      corps: <String, dynamic>{
+        'moyen': moyen,
+        'reference_transaction': ?referenceTransaction,
+      },
+    ),
+  );
+
+  Future<EtatPaiement> confirmerPaiement(int ticketId) async =>
+      EtatPaiement.depuisJson(
+        await _api.post('/tickets/$ticketId/paiement-direct/confirmer'),
+      );
+
+  Future<EtatPaiement> contesterPaiement(int ticketId, String motif) async =>
+      EtatPaiement.depuisJson(
+        await _api.post(
+          '/tickets/$ticketId/paiement-direct/contester',
+          corps: <String, dynamic>{'motif': motif},
+        ),
+      );
+
+  Future<EtatPaiement> annulerPaiement(int ticketId) async =>
+      EtatPaiement.depuisJson(
+        await _api.post('/tickets/$ticketId/paiement-direct/annuler'),
+      );
 
   /// Valider l'intervention : libère les fonds au technicien.
   Future<bool> validerIntervention(int ticketId) async {

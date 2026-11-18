@@ -6,6 +6,7 @@ import 'package:depanne_moi/design_system/design_tokens.dart';
 import 'package:depanne_moi/features/auth/application/session_controller.dart';
 import 'package:depanne_moi/features/auth/data/utilisateur.dart';
 import 'package:depanne_moi/features/shared/demarrage_screen.dart';
+import 'package:depanne_moi/features/shared/localisation/localisation_controller.dart';
 import 'package:depanne_moi/features/shared/mode/mode_controller.dart';
 import 'package:depanne_moi/main.dart';
 import 'package:flutter/material.dart';
@@ -36,8 +37,8 @@ void main() {
       // côté sans l'autre, le back-office et l'application cessent de se
       // ressembler — et ce test le dit avant que quelqu'un ne le remarque à
       // l'œil.
-      expect(DmColors.primary, const Color(0xFF1B6FF3));
-      expect(DmColors.accentTech, const Color(0xFFFF7A1A));
+      expect(DmColors.primary, const Color(0xFF2F6BED));
+      expect(DmColors.accentTech, const Color(0xFF12B76A));
       expect(DmColors.neutral900, const Color(0xFF0F172A));
     });
 
@@ -71,11 +72,14 @@ void main() {
       );
     });
 
-    test('décline les deux luminosités pour chaque mode', () {
-      for (final AppMode mode in AppMode.values) {
-        expect(AppTheme.clair(mode).brightness, Brightness.light);
-        expect(AppTheme.sombre(mode).brightness, Brightness.dark);
-      }
+    test('garde l’espace technicien sombre, l’espace client clair', () {
+      // Prototype v4 : le client en clair (le réglage du téléphone peut
+      // l'assombrir), le technicien toujours en sombre — on sait dans quel
+      // espace on est sans lire.
+      expect(AppTheme.clair(AppMode.client).brightness, Brightness.light);
+      expect(AppTheme.sombre(AppMode.client).brightness, Brightness.dark);
+      expect(AppTheme.clair(AppMode.technicien).brightness, Brightness.dark);
+      expect(AppTheme.sombre(AppMode.technicien).brightness, Brightness.dark);
     });
 
     test('donne aux boutons une cible tactile confortable', () {
@@ -227,15 +231,23 @@ void main() {
           overrides: [
             tokenStoreProvider.overrideWithValue(MemoryTokenStore()),
             modeStoreProvider.overrideWithValue(MemoryModeStore()),
+            localisationStoreProvider.overrideWithValue(
+              MemoryLocalisationStore(),
+            ),
           ],
           child: const ParemaConnectApp(),
         ),
       );
 
-      await tester.pumpAndSettle();
+      // Les illustrations de l'onboarding flottent en boucle : `pumpAndSettle`
+      // n'en verrait jamais la fin. Quelques images suffisent à laisser la
+      // session se résoudre et le routeur rediriger.
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 300));
+      }
 
-      // Le premier argument de l'onboarding : la vérification des techniciens.
-      expect(find.text('Des techniciens vérifiés'), findsOneWidget);
+      // La première promesse de l'onboarding (prototype v4).
+      expect(find.text('Le bon pro en 2 minutes'), findsOneWidget);
     });
   });
 }

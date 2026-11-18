@@ -22,6 +22,9 @@ class Prestation {
     this.inclus = const <String>[],
     this.exclus = const <String>[],
     this.dureeMin,
+    this.type = 'DEPANNAGE',
+    this.typeLibelle = 'Dépannage',
+    this.photosAutorisees = 0,
   });
 
   final int id;
@@ -38,6 +41,15 @@ class Prestation {
 
   final int? dureeMin;
 
+  /// `DEPANNAGE`, `INSTALLATION` ou `CONSTRUCTION` (BTP, sur devis).
+  final String type;
+  final String typeLibelle;
+
+  /// Photos de la panne que le client peut joindre (trois pour un dépannage).
+  final int photosAutorisees;
+
+  bool get surDevis => type == 'CONSTRUCTION';
+
   factory Prestation.depuisJson(Map<String, dynamic> json) => Prestation(
     id: json['id'] as int,
     nom: json['nom'] as String,
@@ -47,6 +59,9 @@ class Prestation {
     inclus: _textes(json['inclus']),
     exclus: _textes(json['exclus']),
     dureeMin: json['duree_estimee_min'] as int?,
+    type: json['type'] as String? ?? 'DEPANNAGE',
+    typeLibelle: json['type_libelle'] as String? ?? 'Dépannage',
+    photosAutorisees: json['photos_autorisees'] as int? ?? 0,
   );
 }
 
@@ -627,5 +642,167 @@ class TechnicienDisponible {
         prixTotalGnf: json['prix_total_gnf'] as int? ?? 0,
         prixFormate: json['prix_formate'] as String? ?? '',
         distanceEstimee: json['distance_estimee'] as bool? ?? false,
+      );
+}
+
+// ------------------------------------------------- paiement tracé (ADR-0047) --
+
+/// Un moyen de paiement proposé par le serveur.
+class MoyenPaiement {
+  const MoyenPaiement({required this.code, required this.libelle});
+
+  final String code;
+  final String libelle;
+
+  bool get estEspeces => code == 'ESPECES';
+
+  factory MoyenPaiement.depuisJson(Map<String, dynamic> json) => MoyenPaiement(
+    code: json['code'] as String,
+    libelle: json['libelle'] as String? ?? json['code'] as String,
+  );
+}
+
+/// Une étape du journal de paiement (ajout seul, côté serveur).
+class EtapePaiement {
+  const EtapePaiement({
+    required this.type,
+    required this.libelle,
+    required this.acteur,
+    required this.le,
+  });
+
+  final String type;
+  final String libelle;
+  final String acteur;
+  final DateTime? le;
+
+  factory EtapePaiement.depuisJson(Map<String, dynamic> json) => EtapePaiement(
+    type: json['type'] as String? ?? '',
+    libelle: json['libelle'] as String? ?? '',
+    acteur: json['acteur'] as String? ?? '',
+    le: DateTime.tryParse(json['le'] as String? ?? '')?.toLocal(),
+  );
+}
+
+/// Le paiement en cours d'un ticket, tel que le serveur le présente.
+class PaiementTrace {
+  const PaiementTrace({
+    required this.reference,
+    required this.canal,
+    required this.moyen,
+    required this.moyenLibelle,
+    required this.montantGnf,
+    required this.statut,
+    required this.statutLibelle,
+    required this.historique,
+    this.declarePar,
+    this.referenceTransaction,
+    this.enAttenteDe,
+    this.motifContestation,
+  });
+
+  final String? reference;
+  final String canal;
+  final String moyen;
+  final String moyenLibelle;
+  final int montantGnf;
+  final String statut;
+  final String statutLibelle;
+  final String? declarePar;
+  final String? referenceTransaction;
+  final String? enAttenteDe;
+  final String? motifContestation;
+  final List<EtapePaiement> historique;
+
+  bool get conteste => statut == 'CONTESTEE';
+  bool get regle => statut == 'CONFIRMEE' || statut == 'CAPTUREE';
+
+  factory PaiementTrace.depuisJson(Map<String, dynamic> json) => PaiementTrace(
+    reference: json['reference'] as String?,
+    canal: json['canal'] as String? ?? 'DIRECT',
+    moyen: json['moyen'] as String? ?? '',
+    moyenLibelle: json['moyen_libelle'] as String? ?? '',
+    montantGnf: json['montant_gnf'] as int? ?? 0,
+    statut: json['statut'] as String? ?? '',
+    statutLibelle: json['statut_libelle'] as String? ?? '',
+    declarePar: json['declare_par'] as String?,
+    referenceTransaction: json['reference_transaction'] as String?,
+    enAttenteDe: json['en_attente_de'] as String?,
+    motifContestation:
+        (json['contestation'] as Map<String, dynamic>?)?['motif'] as String?,
+    historique: ((json['historique'] as List<dynamic>?) ?? const <dynamic>[])
+        .map((dynamic e) => EtapePaiement.depuisJson(e as Map<String, dynamic>))
+        .toList(),
+  );
+}
+
+/// Ce que l'utilisateur peut faire sur le paiement d'un ticket.
+///
+/// Les actions viennent du serveur : l'application n'en déduit aucune de
+/// l'état, pour ne jamais proposer un bouton qui échouerait.
+class EtatPaiement {
+  const EtatPaiement({
+    required this.totalGnf,
+    required this.totalFormate,
+    required this.monRole,
+    required this.moyens,
+    required this.peutDeclarer,
+    required this.peutConfirmer,
+    required this.peutContester,
+    required this.peutAnnuler,
+    this.paiement,
+  });
+
+  final int totalGnf;
+  final String totalFormate;
+  final String? monRole;
+  final List<MoyenPaiement> moyens;
+  final bool peutDeclarer;
+  final bool peutConfirmer;
+  final bool peutContester;
+  final bool peutAnnuler;
+  final PaiementTrace? paiement;
+
+  factory EtatPaiement.depuisJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> actions =
+        (json['actions'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+
+    return EtatPaiement(
+      totalGnf: json['total_gnf'] as int? ?? 0,
+      totalFormate: json['total_formate'] as String? ?? '',
+      monRole: json['mon_role'] as String?,
+      moyens: ((json['moyens'] as List<dynamic>?) ?? const <dynamic>[])
+          .map(
+            (dynamic m) => MoyenPaiement.depuisJson(m as Map<String, dynamic>),
+          )
+          .toList(),
+      peutDeclarer: actions['declarer'] as bool? ?? false,
+      peutConfirmer: actions['confirmer'] as bool? ?? false,
+      peutContester: actions['contester'] as bool? ?? false,
+      peutAnnuler: actions['annuler'] as bool? ?? false,
+      paiement: json['paiement'] == null
+          ? null
+          : PaiementTrace.depuisJson(json['paiement'] as Map<String, dynamic>),
+    );
+  }
+}
+
+/// Position du technicien pendant son trajet vers le client.
+class PositionTechnicien {
+  const PositionTechnicien({
+    required this.latitude,
+    required this.longitude,
+    this.le,
+  });
+
+  final double latitude;
+  final double longitude;
+  final DateTime? le;
+
+  factory PositionTechnicien.depuisJson(Map<String, dynamic> json) =>
+      PositionTechnicien(
+        latitude: (json['latitude'] as num).toDouble(),
+        longitude: (json['longitude'] as num).toDouble(),
+        le: DateTime.tryParse(json['le'] as String? ?? '')?.toLocal(),
       );
 }

@@ -1,213 +1,201 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/app_mode.dart';
-import 'design_tokens.dart';
+import 'pc_skin.dart';
+import 'pc_tokens.dart';
 
-/// Thèmes clair et sombre, déclinés par mode.
+/// Thèmes de l'application, d'après le prototype v4 validé.
 ///
-/// La couleur d'accentuation vient du mode : bleu pour le client, orange pour
-/// le technicien. Tout le reste — neutres, rayons, espacements, typographie —
-/// est commun, si bien que la bascule se voit sans que l'application change
-/// d'identité.
-///
-/// Le thème sombre n'est pas une inversion mécanique du clair. Les fonds
-/// gardent une dominante bleutée et les surfaces s'éclaircissent avec
-/// l'élévation, comme dans le back-office : un gris neutre à côté du bleu de
-/// marque paraît sale, et une carte plus sombre que son fond paraît creuse.
+/// L'espace **client** est clair, accent bleu ; l'espace **technicien** est
+/// sombre, accent vert. Ce n'est pas décoratif : on sait dans quel espace on se
+/// trouve sans lire un seul mot. Le réglage sombre du téléphone assombrit
+/// l'espace client en gardant son accent bleu.
 abstract final class AppTheme {
-  static ThemeData clair(AppMode mode) => _construire(mode, Brightness.light);
+  static ThemeData clair(AppMode mode) =>
+      _construire(mode == AppMode.client ? PcSkin.client : PcSkin.technicien);
 
-  static ThemeData sombre(AppMode mode) => _construire(mode, Brightness.dark);
+  static ThemeData sombre(AppMode mode) => _construire(
+    mode == AppMode.client ? PcSkin.clientSombre : PcSkin.technicien,
+  );
 
-  static Color accent(AppMode mode) => switch (mode) {
-    AppMode.client => DmColors.primary,
-    AppMode.technicien => DmColors.accentTech,
-  };
+  static Color accent(AppMode mode) =>
+      mode == AppMode.client ? PcColors.brand : PcColors.tech;
 
-  static ThemeData _construire(AppMode mode, Brightness luminosite) {
-    final bool estSombre = luminosite == Brightness.dark;
-    final Color accentuation = accent(mode);
-
-    final Color fond = estSombre
-        ? DmColors.darkBackground
-        : DmColors.neutral100;
-    final Color surface = estSombre ? DmColors.darkSurface : DmColors.surface;
-    final Color texte = estSombre
-        ? DmColors.darkTextPrimary
-        : DmColors.neutral900;
-    final Color texteSecondaire = estSombre
-        ? DmColors.darkTextSecondary
-        : DmColors.neutral500;
-    final Color bordure = estSombre ? DmColors.darkBorder : DmColors.neutral300;
+  static ThemeData _construire(PcSkin skin) {
+    final Brightness luminosite = skin.estSombre
+        ? Brightness.dark
+        : Brightness.light;
 
     final ColorScheme couleurs =
         ColorScheme.fromSeed(
-          seedColor: accentuation,
+          seedColor: skin.accent,
           brightness: luminosite,
         ).copyWith(
-          // `fromSeed` produit une palette harmonieuse mais déplace la teinte de
-          // marque. On la remet : le bleu #1B6FF3 et l'orange #FF7A1A sont
-          // l'identité, pas une suggestion.
-          primary: accentuation,
-          surface: surface,
-          error: DmColors.danger,
+          primary: skin.accent,
           onPrimary: Colors.white,
-          onSurface: texte,
+          surface: skin.card,
+          onSurface: skin.ink,
+          error: PcColors.danger,
         );
+
+    final TextTheme texte = _typographie(skin);
 
     return ThemeData(
       useMaterial3: true,
       brightness: luminosite,
       colorScheme: couleurs,
-      scaffoldBackgroundColor: fond,
-      fontFamily: DmType.body,
-      textTheme: _typographie(texte, texteSecondaire),
+      scaffoldBackgroundColor: skin.bg,
+      fontFamily: PcFonts.body,
+      textTheme: texte,
+      extensions: <ThemeExtension<dynamic>>[skin],
+      splashFactory: InkSparkle.splashFactory,
       appBarTheme: AppBarTheme(
-        backgroundColor: fond,
-        foregroundColor: texte,
+        backgroundColor: skin.bg,
+        foregroundColor: skin.ink,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: TextStyle(
-          fontFamily: DmType.heading,
-          fontSize: DmType.fs3,
-          fontWeight: FontWeight.w600,
-          color: texte,
-        ),
+        systemOverlayStyle: skin.estSombre
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
+        titleTextStyle: texte.titleLarge,
       ),
-      cardTheme: CardThemeData(
-        color: surface,
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: DmRadius.mdAll,
-          side: BorderSide(color: bordure),
-        ),
+      dividerTheme: DividerThemeData(color: skin.line, space: 1, thickness: 1),
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: skin.accent),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: skin.accent,
+        selectionHandleColor: skin.accent,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: estSombre ? DmColors.darkSurfaceRaised : DmColors.surface,
+        fillColor: skin.card,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: DmSpace.x4,
-          vertical: DmSpace.x4,
+          horizontal: 16,
+          vertical: 18,
         ),
+        hintStyle: TextStyle(color: skin.muted, fontWeight: FontWeight.w600),
         border: OutlineInputBorder(
-          borderRadius: DmRadius.smAll,
-          borderSide: BorderSide(color: bordure),
+          borderRadius: PcRadius.mdAll,
+          borderSide: BorderSide(color: skin.line, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: DmRadius.smAll,
-          borderSide: BorderSide(color: bordure),
+          borderRadius: PcRadius.mdAll,
+          borderSide: BorderSide(color: skin.line, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: DmRadius.smAll,
-          borderSide: BorderSide(color: accentuation, width: 2),
+          borderRadius: PcRadius.mdAll,
+          borderSide: BorderSide(color: skin.accent, width: 2),
         ),
         errorBorder: const OutlineInputBorder(
-          borderRadius: DmRadius.smAll,
-          borderSide: BorderSide(color: DmColors.danger),
+          borderRadius: PcRadius.mdAll,
+          borderSide: BorderSide(color: PcColors.danger, width: 1.5),
         ),
         focusedErrorBorder: const OutlineInputBorder(
-          borderRadius: DmRadius.smAll,
-          borderSide: BorderSide(color: DmColors.danger, width: 2),
+          borderRadius: PcRadius.mdAll,
+          borderSide: BorderSide(color: PcColors.danger, width: 2),
         ),
-        labelStyle: TextStyle(color: texteSecondaire),
-        hintStyle: TextStyle(color: texteSecondaire),
       ),
+      // Les écrans encore à l'ancienne mise en page héritent au moins des
+      // bonnes couleurs et des bonnes formes.
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: accentuation,
+          backgroundColor: skin.accent,
           foregroundColor: Colors.white,
-          // 52 px : au-dessus des 48 px recommandés, parce que l'application
-          // s'utilise debout, souvent d'une main, parfois avec des gants.
-          minimumSize: const Size.fromHeight(52),
-          shape: const RoundedRectangleBorder(borderRadius: DmRadius.smAll),
+          minimumSize: const Size.fromHeight(56),
+          shape: const RoundedRectangleBorder(borderRadius: PcRadius.mdAll),
           textStyle: const TextStyle(
-            fontFamily: DmType.heading,
-            fontSize: DmType.fs4,
+            fontFamily: PcFonts.display,
+            fontSize: 15.5,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: accentuation,
-          minimumSize: const Size.fromHeight(52),
-          side: BorderSide(color: accentuation),
-          shape: const RoundedRectangleBorder(borderRadius: DmRadius.smAll),
+          foregroundColor: skin.ink,
+          minimumSize: const Size.fromHeight(56),
+          side: BorderSide(color: skin.line, width: 1.5),
+          shape: const RoundedRectangleBorder(borderRadius: PcRadius.mdAll),
           textStyle: const TextStyle(
-            fontFamily: DmType.heading,
-            fontSize: DmType.fs4,
+            fontFamily: PcFonts.display,
+            fontSize: 15.5,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: accentuation),
+        style: TextButton.styleFrom(
+          foregroundColor: skin.accent,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
       ),
-      dividerTheme: DividerThemeData(color: bordure, space: 1, thickness: 1),
+      cardTheme: CardThemeData(
+        color: skin.card,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: const RoundedRectangleBorder(borderRadius: PcRadius.lgAll),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: skin.card,
+        showDragHandle: false,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+      ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: estSombre
-            ? DmColors.darkSurfaceRaised
-            : DmColors.neutral900,
-        contentTextStyle: const TextStyle(color: Colors.white),
+        backgroundColor: PcColors.ink,
+        contentTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
         behavior: SnackBarBehavior.floating,
-        shape: const RoundedRectangleBorder(borderRadius: DmRadius.smAll),
+        shape: const RoundedRectangleBorder(borderRadius: PcRadius.mdAll),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: surface,
-        indicatorColor: accentuation.withValues(alpha: 0.14),
+        backgroundColor: skin.card,
+        indicatorColor: skin.teinte(skin.accent, 0.16),
         elevation: 0,
-        labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => TextStyle(
-            fontSize: DmType.fs6,
-            fontWeight: states.contains(WidgetState.selected)
-                ? FontWeight.w600
-                : FontWeight.w400,
-            color: states.contains(WidgetState.selected)
-                ? accentuation
-                : texteSecondaire,
-          ),
-        ),
-        iconTheme: WidgetStateProperty.resolveWith(
-          (states) => IconThemeData(
-            color: states.contains(WidgetState.selected)
-                ? accentuation
-                : texteSecondaire,
-          ),
-        ),
       ),
     );
   }
 
-  static TextTheme _typographie(Color texte, Color secondaire) {
-    TextStyle titre(double taille, FontWeight graisse) => TextStyle(
-      fontFamily: DmType.heading,
+  static TextTheme _typographie(PcSkin skin) {
+    TextStyle titre(
+      double taille,
+      FontWeight graisse, [
+      double hauteur = 1.15,
+    ]) => TextStyle(
+      fontFamily: PcFonts.display,
       fontSize: taille,
       fontWeight: graisse,
-      color: texte,
-      height: 1.25,
+      color: skin.ink,
+      height: hauteur,
+      letterSpacing: -0.6,
     );
 
     TextStyle corps(double taille, Color couleur, [FontWeight? graisse]) =>
         TextStyle(
-          fontFamily: DmType.body,
+          fontFamily: PcFonts.body,
           fontSize: taille,
-          fontWeight: graisse ?? FontWeight.w400,
+          fontWeight: graisse ?? FontWeight.w500,
           color: couleur,
-          height: 1.5,
+          height: 1.45,
         );
 
     return TextTheme(
-      displaySmall: titre(DmType.fs1, FontWeight.w700),
-      headlineMedium: titre(DmType.fs2, FontWeight.w600),
-      titleLarge: titre(DmType.fs3, FontWeight.w600),
-      titleMedium: corps(DmType.fs4, texte, FontWeight.w600),
-      bodyLarge: corps(DmType.fs4, texte),
-      bodyMedium: corps(DmType.fs5, texte),
-      bodySmall: corps(DmType.fs6, secondaire),
-      labelLarge: corps(DmType.fs5, texte, FontWeight.w600),
-      labelSmall: corps(DmType.fs6, secondaire, FontWeight.w500),
+      displaySmall: titre(30, FontWeight.w800, 1.08),
+      headlineMedium: titre(25, FontWeight.w800),
+      headlineSmall: titre(21, FontWeight.w700),
+      titleLarge: titre(19, FontWeight.w700),
+      titleMedium: titre(15.5, FontWeight.w700, 1.3),
+      titleSmall: corps(14, skin.ink, FontWeight.w700),
+      bodyLarge: corps(15, skin.ink),
+      bodyMedium: corps(14, skin.ink),
+      bodySmall: corps(12.5, skin.muted, FontWeight.w600),
+      labelLarge: corps(14, skin.ink, FontWeight.w700),
+      labelMedium: corps(12.5, skin.muted, FontWeight.w700),
+      labelSmall: corps(11, skin.muted, FontWeight.w700),
     );
   }
 }

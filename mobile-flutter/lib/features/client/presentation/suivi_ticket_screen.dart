@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/temps_reel/temps_reel_providers.dart';
-import '../../../design_system/components/dm_composants.dart';
-import '../../../design_system/design_tokens.dart';
+import '../../../core/temps_reel/temps_reel_service.dart';
+import '../../../design_system/pc.dart';
 import '../../shared/data/modeles.dart';
 import '../application/client_providers.dart';
+import 'carte_suivi.dart';
 import 'diagnostic_feuille.dart';
 import 'paiement_feuille.dart';
 
-/// Suivi d'une demande, de la recherche à la clôture.
+/// Suivi d'une demande, de la publication à la clôture.
 ///
 /// Un seul écran pour toute la vie du ticket, piloté par son état. La
 /// solution inverse — un écran par état — obligerait le client à comprendre où
@@ -21,7 +24,8 @@ import 'paiement_feuille.dart';
 /// Chaque changement d'état arrive par Reverb sur `ticket.{id}` et déclenche
 /// une relecture. L'interrogation reste en repli — toutes les dix secondes sans
 /// WebSocket, toutes les trente avec — parce que sur le réseau de Conakry le
-/// WebSocket ne s'ouvrira pas toujours.
+/// WebSocket ne s'ouvrira pas toujours. Les positions du technicien passent
+/// sur le même canal mais ne relisent pas le ticket : la carte s'en charge.
 class SuiviTicketScreen extends ConsumerStatefulWidget {
   const SuiviTicketScreen({required this.ticketId, super.key});
 
@@ -52,53 +56,86 @@ class _SuiviTicketScreenState extends ConsumerState<SuiviTicketScreen>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(
-      signauxProvider('ticket.${widget.ticketId}'),
-      (_, _) => ref.invalidate(ticketProvider(widget.ticketId)),
-    );
+    final PcSkin pc = context.pc;
+
+    ref.listen(signauxProvider('ticket.${widget.ticketId}'), (
+      _,
+      AsyncValue<EvenementTempsReel> signal,
+    ) {
+      if (signal.value?.estPosition ?? false) return;
+      ref.invalidate(ticketProvider(widget.ticketId));
+    });
 
     final AsyncValue<Ticket> ticket = ref.watch(
       ticketProvider(widget.ticketId),
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(ticket.value?.reference ?? 'Ma demande'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/accueil'),
-        ),
-      ),
-      body: ticket.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => Padding(
-          padding: const EdgeInsets.all(DmSpace.x6),
-          child: DmErreur(
-            message: messageErreur(e),
-            onReessayer: () => ref.invalidate(ticketProvider(widget.ticketId)),
-          ),
-        ),
-        data: (Ticket t) => RefreshIndicator(
-          onRefresh: () async =>
-              ref.invalidate(ticketProvider(widget.ticketId)),
-          child: ListView(
-            padding: const EdgeInsets.all(DmSpace.x6),
-            children: <Widget>[
-              _Etat(ticket: t),
-              const SizedBox(height: DmSpace.x6),
-              if (t.technicien != null) ...<Widget>[
-                _Technicien(technicien: t.technicien!, ticket: t),
-                const SizedBox(height: DmSpace.x6),
-              ],
-              _Recapitulatif(ticket: t),
-              const SizedBox(height: DmSpace.x6),
-              _Actions(ticket: t),
-            ],
-          ),
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            PcHeader(
+              titre: ticket.value?.prestation?.nom ?? 'Ma demande',
+              sousTitre: ticket.value?.reference,
+              onRetour: () =>
+                  context.canPop() ? context.pop() : context.go('/accueil'),
+            ),
+            Expanded(
+              child: ticket.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (Object e, _) => Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: PcErreur(
+                    message: messageErreur(e),
+                    onReessayer: () =>
+                        ref.invalidate(ticketProvider(widget.ticketId)),
+                  ),
+                ),
+                data: (Ticket t) => RefreshIndicator(
+                  color: pc.accent,
+                  onRefresh: () async =>
+                      ref.invalidate(ticketProvider(widget.ticketId)),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 32),
+                    children: <Widget>[
+                      _Etat(ticket: t),
+                      const SizedBox(height: 14),
+                      _Progression(etat: t.etat),
+                      if (_trajet(t)) ...<Widget>[
+                        const SizedBox(height: 14),
+                        CarteSuivi(
+                          ticketId: t.id,
+                          destination: _destination(t),
+                        ),
+                      ],
+                      if (t.technicien != null) ...<Widget>[
+                        const SizedBox(height: 14),
+                        _Technicien(technicien: t.technicien!, ticket: t),
+                      ],
+                      const SizedBox(height: 14),
+                      _Actions(ticket: t),
+                      const PcSection('Récapitulatif'),
+                      _Recapitulatif(ticket: t),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  static bool _trajet(Ticket t) =>
+      t.technicien != null && (t.etat == 'ACCEPTEE' || t.etat == 'EN_ROUTE');
+
+  static LatLng? _destination(Ticket t) {
+    final Object? lat = t.adresse?['latitude'];
+    final Object? lng = t.adresse?['longitude'];
+    return lat is num && lng is num
+        ? LatLng(lat.toDouble(), lng.toDouble())
+        : null;
   }
 }
 
@@ -110,112 +147,219 @@ class _Etat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final (IconData icone, String texte, Color couleur) info = _info(theme);
+    final PcSkin pc = context.pc;
+    final (IconData icone, String texte, Color couleur) = _info(pc);
 
-    return DmCarte(
-      enfant: Row(
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: PcRadius.lgAll,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[couleur, Color.lerp(couleur, Colors.black, 0.25)!],
+        ),
+        boxShadow: PcShadow.glow(couleur),
+      ),
+      child: Row(
         children: <Widget>[
-          Icon(info.$1, color: info.$3, size: 32),
-          const SizedBox(width: DmSpace.x4),
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icone, color: Colors.white, size: 26),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(ticket.etatLibelle, style: theme.textTheme.titleMedium),
-                const SizedBox(height: DmSpace.x1),
-                Text(info.$2, style: theme.textTheme.bodySmall),
+                Text(
+                  ticket.etatLibelle,
+                  style: const TextStyle(
+                    fontFamily: PcFonts.display,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  texte,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.88),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                  ),
+                ),
               ],
             ),
           ),
-          // En sélection, le client doit agir : pas de spinner qui laisserait
-          // croire qu'une recherche tourne toute seule. Le sablier ne sert que
-          // quand on attend vraiment le serveur (confirmation du technicien).
-          if (ticket.enRecherche && !ticket.enSelection)
-            const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
         ],
       ),
     );
   }
 
   /// Ce que l'état veut dire pour le client, pas pour la machine à états.
-  (IconData, String, Color) _info(ThemeData theme) => switch (ticket.etat) {
+  (IconData, String, Color) _info(PcSkin pc) => switch (ticket.etat) {
     'PUBLIEE' => (
-      Icons.groups_outlined,
-      'Choisis un technicien parmi ceux disponibles près de chez toi — chacun avec son prix, sa note et sa distance.',
-      theme.colorScheme.primary,
+      Icons.groups_rounded,
+      'Choisissez un technicien parmi ceux disponibles : prix, note et '
+          'distance affichés.',
+      pc.accent,
     ),
     'ACCEPTEE' => (
-      Icons.check_circle_outline,
-      'Technicien sollicité. Il a quelques secondes pour confirmer, puis se met en route.',
-      DmColors.success,
+      Icons.hourglass_top_rounded,
+      'Technicien choisi. Il confirme, puis se met en route.',
+      PcColors.tech,
     ),
     'EN_ROUTE' => (
-      Icons.directions_car_outlined,
-      'Le technicien est en route vers chez toi.',
-      theme.colorScheme.primary,
+      Icons.two_wheeler_rounded,
+      'Votre technicien est en route : suivez-le sur la carte.',
+      pc.accent,
     ),
     'SUR_PLACE' => (
-      Icons.location_on_outlined,
-      'Le technicien est arrivé à l\'adresse indiquée.',
-      theme.colorScheme.primary,
+      Icons.location_on_rounded,
+      'Votre technicien est arrivé à l’adresse indiquée.',
+      pc.accent,
     ),
     'DIAGNOSTIC_EN_ATTENTE' => (
-      Icons.priority_high,
-      'Le technicien propose un supplément. À toi de décider.',
-      DmColors.warning,
+      Icons.priority_high_rounded,
+      'Le technicien propose un supplément. À vous de décider.',
+      PcColors.coral,
     ),
     'DIAGNOSTIC_VALIDE' => (
-      Icons.check_circle_outline,
-      'Supplément accepté. Le technicien peut continuer.',
-      DmColors.success,
+      Icons.check_circle_rounded,
+      'Supplément accepté. Le technicien continue.',
+      PcColors.tech,
     ),
     'DIAGNOSTIC_REFUSE' => (
-      Icons.info_outline,
-      'Supplément refusé. Le technicien fera ce qui était prévu au départ.',
-      DmColors.neutral500,
+      Icons.info_rounded,
+      'Supplément refusé. Le technicien fait ce qui était prévu.',
+      pc.muted,
     ),
     'EN_COURS' => (
-      Icons.build_outlined,
+      Icons.handyman_rounded,
       'Le travail est en cours.',
-      theme.colorScheme.primary,
+      pc.accent,
     ),
     'TERMINEE' => (
-      Icons.task_alt,
-      'L\'intervention est terminée. Il reste à régler.',
-      DmColors.warning,
+      Icons.task_alt_rounded,
+      ticket.estUnRetourGarantie
+          ? 'Retour sous garantie terminé. Confirmez que tout est réglé.'
+          : 'Intervention terminée. Il reste à régler le paiement.',
+      PcColors.coral,
     ),
     'PAYEE' => (
-      Icons.shield_outlined,
-      'Payé. Ton argent est bloqué jusqu\'à ce que tu valides — ou automatiquement sous 24 h.',
-      DmColors.success,
+      Icons.shield_rounded,
+      'Payé. L’argent reste bloqué jusqu’à votre validation, ou 24 h.',
+      PcColors.tech,
     ),
     'CLOTUREE' => (
-      Icons.done_all,
+      Icons.done_all_rounded,
       'Intervention terminée et réglée. Merci !',
-      DmColors.success,
+      PcColors.tech,
     ),
     'SANS_REPONSE' => (
-      Icons.person_off_outlined,
-      'Aucun technicien n\'était disponible. Tu peux republier ta demande.',
-      DmColors.danger,
+      Icons.person_off_rounded,
+      'Aucun technicien n’était disponible. Vous pouvez republier.',
+      PcColors.coral,
     ),
     'LITIGE_OUVERT' => (
-      Icons.gavel_outlined,
-      'Ta réclamation est en cours d\'examen. Le paiement reste bloqué.',
-      DmColors.warning,
+      Icons.gavel_rounded,
+      'Votre réclamation est en cours d’examen.',
+      PcColors.coral,
     ),
     _ when ticket.etat.startsWith('ANNULEE') => (
-      Icons.cancel_outlined,
+      Icons.cancel_rounded,
       'Cette demande a été annulée.',
-      DmColors.neutral500,
+      pc.muted,
     ),
-    _ => (Icons.help_outline, ticket.etatLibelle, DmColors.neutral500),
+    _ => (Icons.help_rounded, ticket.etatLibelle, pc.muted),
   };
+}
+
+/// Les grandes étapes, pour savoir d'un coup d'œil ce qui reste.
+class _Progression extends StatelessWidget {
+  const _Progression({required this.etat});
+
+  final String etat;
+
+  static const List<(String, IconData)> _etapes = <(String, IconData)>[
+    ('Choix', Icons.groups_rounded),
+    ('Trajet', Icons.two_wheeler_rounded),
+    ('Travaux', Icons.handyman_rounded),
+    ('Paiement', Icons.payments_rounded),
+    ('Terminé', Icons.done_all_rounded),
+  ];
+
+  int get _index => switch (etat) {
+    'PUBLIEE' => 0,
+    'ACCEPTEE' || 'EN_ROUTE' => 1,
+    'SUR_PLACE' ||
+    'DIAGNOSTIC_EN_ATTENTE' ||
+    'DIAGNOSTIC_VALIDE' ||
+    'DIAGNOSTIC_REFUSE' ||
+    'EN_COURS' => 2,
+    'TERMINEE' || 'PAYEE' || 'LITIGE_OUVERT' => 3,
+    'CLOTUREE' => 4,
+    _ => -1,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final PcSkin pc = context.pc;
+    final int courant = _index;
+
+    // États hors parcours (annulée, sans réponse) : pas de frise trompeuse.
+    if (courant < 0) return const SizedBox.shrink();
+
+    return PcCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      child: Row(
+        children: <Widget>[
+          for (int i = 0; i < _etapes.length; i++) ...<Widget>[
+            Expanded(
+              child: Column(
+                children: <Widget>[
+                  AnimatedContainer(
+                    duration: PcMotion.normal,
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i <= courant ? pc.accent : pc.soft,
+                    ),
+                    child: Icon(
+                      i < courant ? Icons.check_rounded : _etapes[i].$2,
+                      size: 17,
+                      color: i <= courant ? Colors.white : pc.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _etapes[i].$1,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: i <= courant ? pc.ink : pc.muted,
+                      fontWeight: i == courant
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _Technicien extends StatelessWidget {
@@ -226,43 +370,56 @@ class _Technicien extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final PcSkin pc = context.pc;
+    final String? tel = ticket.etatActif ? technicien.telephone : null;
 
-    return DmCarte(
-      enfant: Row(
+    return PcCard(
+      child: Row(
         children: <Widget>[
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-            child: Text(
-              technicien.nomComplet.isEmpty ? '?' : technicien.nomComplet[0],
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
-            ),
+          PcAvatar(
+            nom: technicien.nomComplet,
+            image: technicien.avatarUrl,
+            taille: 50,
           ),
-          const SizedBox(width: DmSpace.x4),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(technicien.nomComplet, style: theme.textTheme.titleMedium),
+                Text(
+                  technicien.nomComplet,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 Text(
                   // Le serveur ne livre le numéro en clair que pendant une
-                  // intervention active. Quand il est masqué, on le dit plutôt
-                  // que d'afficher des points sans explication.
-                  ticket.etatActif
-                      ? (technicien.telephone ?? '')
-                      : 'Numéro visible pendant l\'intervention',
-                  style: theme.textTheme.bodySmall,
+                  // intervention active. Masqué, on le dit plutôt que
+                  // d'afficher des points sans explication.
+                  tel ?? 'Numéro visible pendant l’intervention',
+                  style: TextStyle(
+                    color: pc.muted,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                  ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'Discuter',
-            icon: const Icon(Icons.chat_bubble_outline),
-            onPressed: () => context.push('/client/chat/${ticket.id}'),
+          if (tel != null && tel.isNotEmpty) ...<Widget>[
+            PcIconButton(
+              icone: Icons.call_rounded,
+              libelle: 'Appeler',
+              onTap: () => launchUrl(Uri(scheme: 'tel', path: tel)),
+            ),
+            const SizedBox(width: 8),
+          ],
+          PcIconButton(
+            icone: Icons.chat_bubble_rounded,
+            libelle: 'Discuter',
+            fond: pc.accent,
+            couleur: Colors.white,
+            onTap: () => context.push('/client/chat/${ticket.id}'),
           ),
         ],
       ),
@@ -277,43 +434,53 @@ class _Recapitulatif extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final PcSkin pc = context.pc;
+    final TextStyle doux = TextStyle(
+      color: pc.muted,
+      fontWeight: FontWeight.w600,
+      fontSize: 12.5,
+    );
 
-    return DmCarte(
-      enfant: Column(
+    return PcCard(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          if (ticket.prestation != null)
-            Text(ticket.prestation!.nom, style: theme.textTheme.titleMedium),
-          const SizedBox(height: DmSpace.x2),
-          Text(ticket.adresseLisible, style: theme.textTheme.bodySmall),
+          Row(
+            children: <Widget>[
+              Icon(Icons.place_outlined, size: 18, color: pc.muted),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  ticket.adresseLisible,
+                  style: TextStyle(color: pc.ink2, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
           if (ticket.description != null) ...<Widget>[
-            const SizedBox(height: DmSpace.x3),
-            Text(ticket.description!, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 12),
+            Text('Votre description', style: doux),
+            const SizedBox(height: 2),
+            Text(ticket.description!, style: TextStyle(color: pc.ink)),
           ],
           if (ticket.diagnostic != null) ...<Widget>[
-            const SizedBox(height: DmSpace.x4),
-            Text('Diagnostic du technicien', style: theme.textTheme.labelLarge),
-            const SizedBox(height: DmSpace.x1),
-            Text(ticket.diagnostic!, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 12),
+            Text('Diagnostic du technicien', style: doux),
+            const SizedBox(height: 2),
+            Text(ticket.diagnostic!, style: TextStyle(color: pc.ink)),
           ],
-          const SizedBox(height: DmSpace.x4),
-          const Divider(),
-          const SizedBox(height: DmSpace.x3),
+          const SizedBox(height: 12),
+          Divider(color: pc.line),
+          const SizedBox(height: 6),
           Row(
             children: <Widget>[
               Expanded(
                 child: Text(
                   ticket.prix.ferme ? 'Total' : 'À partir de',
-                  style: theme.textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              Text(
-                ticket.prix.totalFormate,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.primary,
-                ),
-              ),
+              PcMontant(ticket.prix.totalGnf, taille: 20, couleur: pc.accent),
             ],
           ),
         ],
@@ -333,168 +500,186 @@ class _Actions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      children: <Widget>[
-        // Place de marché (#2) : publier n'engage personne, le client choisit.
-        if (ticket.enSelection) ...<Widget>[
-          DmBouton(
-            libelle: 'Choisir un technicien',
-            onPresse: () => context.push('/client/choix/${ticket.id}'),
-          ),
-          const SizedBox(height: DmSpace.x3),
-        ],
+    final PcSkin pc = context.pc;
+    final TextStyle note = TextStyle(
+      color: pc.muted,
+      fontWeight: FontWeight.w600,
+      fontSize: 12,
+    );
 
-        if (ticket.attendUneDecision)
-          DmBouton(
-            libelle: 'Voir le supplément proposé',
-            onPresse: () => DiagnosticFeuille.ouvrir(context, ticket.id),
-          ),
+    final List<Widget> enfants = <Widget>[
+      // Place de marché (#2) : publier n'engage personne, le client choisit.
+      if (ticket.enSelection)
+        PcButton(
+          libelle: 'Choisir un technicien',
+          icone: Icons.groups_rounded,
+          onPressed: () => context.push('/client/choix/${ticket.id}'),
+        ),
 
-        // Paiement espèces déclaré par le technicien (#1) : le client confirme.
-        // C'est sa confirmation seule qui engage.
-        if (ticket.especesAConfirmer) ...<Widget>[
-          DmBouton(
-            libelle: 'J\'ai payé ${ticket.prix.totalFormate} en espèces',
-            onPresse: () => _confirmerEspeces(context, ref),
-          ),
-          const SizedBox(height: DmSpace.x2),
-          Text(
-            'Confirme seulement si tu as bien remis l\'argent au technicien.',
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: DmSpace.x3),
-        ],
+      if (ticket.attendUneDecision)
+        PcButton(
+          libelle: 'Voir le supplément proposé',
+          variante: PcVariante.corail,
+          icone: Icons.receipt_long_rounded,
+          onPressed: () => DiagnosticFeuille.ouvrir(context, ticket.id),
+        ),
 
-        if (ticket.aPayer)
-          DmBouton(
-            libelle: ticket.especesAConfirmer
-                ? 'Payer dans l\'application'
-                : 'Payer ${ticket.prix.totalFormate}',
-            secondaire: ticket.especesAConfirmer,
-            onPresse: () => PaiementFeuille.ouvrir(context, ticket.id),
-          ),
+      // Paiement tracé (ADR-0047) : que le technicien ait déclaré des espèces
+      // ou que le client doive choisir son moyen, tout passe par la feuille.
+      if (ticket.especesAConfirmer) ...<Widget>[
+        PcButton(
+          libelle: 'Confirmer le paiement déclaré',
+          variante: PcVariante.corail,
+          icone: Icons.verified_rounded,
+          onPressed: () => _payer(context, ref),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Le technicien déclare avoir été payé. Confirmez seulement si c’est '
+          'exact.',
+          style: note,
+          textAlign: TextAlign.center,
+        ),
+      ] else if (ticket.aPayer)
+        PcButton(
+          libelle: 'Régler ${ticket.prix.totalFormate}',
+          icone: Icons.payments_rounded,
+          onPressed: () => _payer(context, ref),
+        ),
 
-        // Retour sous garantie (#4) : la panne est réglée, le client confirme.
-        if (ticket.garantieAConfirmer)
-          DmBouton(
-            libelle: 'Confirmer que la panne est réglée',
-            onPresse: () => _confirmerGarantie(context, ref),
-          ),
+      // Retour sous garantie (#4) : la panne est réglée, le client confirme.
+      if (ticket.garantieAConfirmer)
+        PcButton(
+          libelle: 'Confirmer que la panne est réglée',
+          icone: Icons.task_alt_rounded,
+          onPressed: () => _confirmerGarantie(context, ref),
+        ),
 
-        if (ticket.aValider) ...<Widget>[
-          DmBouton(
-            libelle: 'Valider l\'intervention',
-            onPresse: () async {
-              final bool libere = await ref
-                  .read(clientRepositoryProvider)
-                  .validerIntervention(ticket.id);
-
-              ref.invalidate(ticketProvider(ticket.id));
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      libere ? 'Merci. Le technicien a été payé.' : 'La libération est suspendue : une réclamation est en cours.',
-                    ),
-                  ),
-                );
-              }
-            },
-          ),
-          const SizedBox(height: DmSpace.x3),
-          Text(
-            'Sans validation de ta part, les fonds sont libérés automatiquement '
-            'sous 24 heures.',
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-        ],
-
-        if (ticket.estNotable) ...<Widget>[
-          const SizedBox(height: DmSpace.x3),
-          DmBouton(
-            libelle: 'Noter le technicien',
-            secondaire: true,
-            onPresse: () => context.push('/client/avis/${ticket.id}'),
-          ),
-        ],
-
-        // Garantie (#4) : une intervention clôturée encore sous garantie peut
-        // rappeler le même technicien gratuitement si la panne revient.
-        if (ticket.garantieActive) ...<Widget>[
-          const SizedBox(height: DmSpace.x3),
-          DmBouton(
-            libelle: 'La panne est revenue (garantie)',
-            secondaire: true,
-            onPresse: () => _ouvrirGarantie(context, ref),
-          ),
-          const SizedBox(height: DmSpace.x2),
-          Text(
-            'Le retour du même technicien est gratuit tant que la garantie court.',
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-        ],
-
-        // Le serveur tient la fenêtre de 72 heures et l'unicité : le bouton
-        // est offert sur tout ticket terminé, et un refus arrive en clair.
-        if (ticket.reclamable) ...<Widget>[
-          const SizedBox(height: DmSpace.x3),
-          TextButton.icon(
-            onPressed: () => context.push('/client/reclamation/${ticket.id}'),
-            icon: const Icon(Icons.report_problem_outlined),
-            label: const Text('Signaler un problème'),
-          ),
-        ],
-
-        // Anti-contournement (#3) : pendant une intervention active, un bouton
-        // discret pour signaler qu'on a demandé au client de régler « dehors ».
-        if (ticket.etatActif) ...<Widget>[
-          TextButton.icon(
-            onPressed: () => _signalerHorsPlateforme(context, ref),
-            icon: const Icon(Icons.shield_outlined),
-            label: const Text('Signaler un paiement hors application'),
-          ),
-        ],
-
-        if (ticket.etat == 'SANS_REPONSE') ...<Widget>[
-          DmBouton(
-            libelle: 'Republier ma demande',
-            onPresse: () => context.go('/client/catalogue'),
-          ),
-        ],
-
-        if (ticket.annulable) ...<Widget>[
-          const SizedBox(height: DmSpace.x3),
-          TextButton(
-            onPressed: () => _confirmerAnnulation(context, ref),
-            child: const Text('Annuler ma demande'),
-          ),
-        ],
+      if (ticket.aValider) ...<Widget>[
+        PcButton(
+          libelle: 'Valider l’intervention',
+          icone: Icons.verified_rounded,
+          onPressed: () => _valider(context, ref),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Sans validation de votre part, les fonds sont libérés '
+          'automatiquement sous 24 heures.',
+          style: note,
+          textAlign: TextAlign.center,
+        ),
       ],
+
+      if (ticket.estNotable) ...<Widget>[
+        const SizedBox(height: 10),
+        PcButton(
+          libelle: 'Noter le technicien',
+          variante: PcVariante.doux,
+          icone: Icons.star_rounded,
+          onPressed: () => context.push('/client/avis/${ticket.id}'),
+        ),
+      ],
+
+      // Garantie (#4) : une intervention clôturée encore sous garantie peut
+      // rappeler le même technicien gratuitement si la panne revient.
+      if (ticket.garantieActive) ...<Widget>[
+        const SizedBox(height: 10),
+        PcCard(
+          bordure: PcColors.tech.withValues(alpha: 0.4),
+          onTap: () => _ouvrirGarantie(context, ref),
+          child: Row(
+            children: <Widget>[
+              const PcIco(
+                Icons.verified_user_rounded,
+                couleur: PcColors.tech,
+                taille: 42,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'La panne est revenue ?',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    Text(
+                      'Le retour du même technicien est gratuit sous garantie.',
+                      style: note,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: pc.muted),
+            ],
+          ),
+        ),
+      ],
+
+      if (ticket.etat == 'SANS_REPONSE')
+        PcButton(
+          libelle: 'Republier ma demande',
+          icone: Icons.refresh_rounded,
+          onPressed: () => context.go('/accueil'),
+        ),
+    ];
+
+    final List<Widget> liens = <Widget>[
+      // Le serveur tient la fenêtre et l'unicité : le bouton est offert sur
+      // tout ticket terminé, et un refus arrive en clair.
+      if (ticket.reclamable)
+        TextButton.icon(
+          onPressed: () => context.push('/client/reclamation/${ticket.id}'),
+          icon: const Icon(Icons.report_problem_outlined, size: 18),
+          label: const Text('Signaler un problème'),
+        ),
+
+      // Anti-contournement (#3) : un geste discret pour signaler qu'on a
+      // demandé au client de régler « en dehors ».
+      if (ticket.etatActif)
+        TextButton.icon(
+          onPressed: () => _signalerHorsPlateforme(context, ref),
+          icon: const Icon(Icons.shield_outlined, size: 18),
+          label: const Text('On m’a demandé de payer hors application'),
+        ),
+
+      if (ticket.annulable)
+        TextButton(
+          onPressed: () => _confirmerAnnulation(context, ref),
+          style: TextButton.styleFrom(foregroundColor: PcColors.coral),
+          child: const Text('Annuler ma demande'),
+        ),
+    ];
+
+    if (enfants.isEmpty && liens.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[...enfants, ...liens],
     );
   }
 
-  Future<void> _confirmerEspeces(BuildContext context, WidgetRef ref) async {
+  Future<void> _payer(BuildContext context, WidgetRef ref) async {
+    await PaiementFeuille.ouvrir(context, ticket.id);
+    ref.invalidate(ticketProvider(ticket.id));
+  }
+
+  Future<void> _valider(BuildContext context, WidgetRef ref) async {
     try {
-      await ref
+      final bool libere = await ref
           .read(clientRepositoryProvider)
-          .confirmerPaiementEspeces(ticket.id);
+          .validerIntervention(ticket.id);
       ref.invalidate(ticketProvider(ticket.id));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Paiement confirmé. L\'intervention est clôturée.'),
-          ),
+        showPcToast(
+          context,
+          libere
+              ? 'Merci. Le technicien a été payé.'
+              : 'Libération suspendue : une réclamation est en cours.',
         );
       }
     } on ApiException catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
+      if (context.mounted) _erreur(context, e);
     }
   }
 
@@ -503,17 +688,10 @@ class _Actions extends ConsumerWidget {
       await ref.read(clientRepositoryProvider).confirmerGarantie(ticket.id);
       ref.invalidate(ticketProvider(ticket.id));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Garantie clôturée. Merci d\'avoir confirmé.'),
-          ),
-        );
+        showPcToast(context, 'Garantie clôturée. Merci d’avoir confirmé.');
       }
     } on ApiException catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
+      if (context.mounted) _erreur(context, e);
     }
   }
 
@@ -521,7 +699,7 @@ class _Actions extends ConsumerWidget {
     final String? description = await _demanderTexte(
       context,
       titre: 'La panne est revenue',
-      indication: 'Décris ce qui se reproduit (au moins 10 caractères).',
+      indication: 'Décrivez ce qui se reproduit (10 caractères au moins).',
       bouton: 'Ouvrir la garantie',
     );
 
@@ -534,10 +712,7 @@ class _Actions extends ConsumerWidget {
       ref.invalidate(ticketsProvider);
       if (context.mounted) context.go('/client/suivi/${retour.id}');
     } on ApiException catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
+      if (context.mounted) _erreur(context, e);
     }
   }
 
@@ -547,10 +722,10 @@ class _Actions extends ConsumerWidget {
   ) async {
     final String? description = await _demanderTexte(
       context,
-      titre: 'Signaler un paiement hors application',
+      titre: 'Paiement hors application',
       indication:
-          'Explique ce qui t\'a été demandé. Rester dans l\'application, '
-          'c\'est garder la garantie et le support.',
+          'Expliquez ce qui vous a été demandé. Rester dans l’application, '
+          'c’est garder la garantie et le support.',
       bouton: 'Envoyer au support',
     );
 
@@ -561,57 +736,59 @@ class _Actions extends ConsumerWidget {
           .read(clientRepositoryProvider)
           .signalerHorsPlateforme(ticket.id, description);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signalement transmis au support.')),
-        );
+        showPcToast(context, 'Signalement transmis au support.');
       }
     } on ApiException catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
+      if (context.mounted) _erreur(context, e);
     }
   }
 
-  /// Petite saisie de texte en boîte de dialogue, réutilisée par la garantie
-  /// et le signalement. Renvoie `null` si l'utilisateur annule ou laisse vide.
+  void _erreur(BuildContext context, ApiException e) =>
+      showPcToast(context, e.message, icone: Icons.error_outline_rounded);
+
+  /// Saisie d'un texte d'au moins dix caractères, réutilisée par la garantie
+  /// et le signalement. Renvoie `null` si l'utilisateur renonce.
   Future<String?> _demanderTexte(
     BuildContext context, {
     required String titre,
     required String indication,
     required String bouton,
-  }) async {
+  }) {
     final TextEditingController controleur = TextEditingController();
 
-    final String? texte = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: Text(titre),
-        content: TextField(
-          controller: controleur,
-          minLines: 3,
-          maxLines: 5,
-          maxLength: 2000,
-          decoration: InputDecoration(hintText: indication),
+    return showPcSheet<String>(
+      context,
+      builder: (BuildContext ctx) => StatefulBuilder(
+        builder: (BuildContext ctx, StateSetter setState) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(titre, style: Theme.of(ctx).textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text(
+              indication,
+              style: TextStyle(
+                color: ctx.pc.muted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 14),
+            PcField(
+              libelle: 'Votre message',
+              controleur: controleur,
+              lignes: 4,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 14),
+            PcButton(
+              libelle: bouton,
+              onPressed: controleur.text.trim().length >= 10
+                  ? () => Navigator.of(ctx).pop(controleur.text.trim())
+                  : null,
+            ),
+          ],
         ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () {
-              final String valeur = controleur.text.trim();
-              Navigator.of(context).pop(valeur.length >= 10 ? valeur : null);
-            },
-            child: Text(bouton),
-          ),
-        ],
       ),
-    );
-
-    controleur.dispose();
-    return texte;
+    ).whenComplete(controleur.dispose);
   }
 
   /// L'annulation demande confirmation, et **annonce les frais avant** de les
@@ -620,24 +797,35 @@ class _Actions extends ConsumerWidget {
   Future<void> _confirmerAnnulation(BuildContext context, WidgetRef ref) async {
     final bool payante = ticket.etat != 'PUBLIEE' && ticket.etat != 'ACCEPTEE';
 
-    final bool? confirme = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('Annuler ta demande ?'),
-        content: Text(
-          payante
-              ? 'Le technicien est déjà en route : des frais d\'annulation '
-                    'tardive s\'appliqueront.'
-              : 'Personne n\'est encore intervenu, l\'annulation est gratuite.',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Non, garder'),
+    final bool? confirme = await showPcSheet<bool>(
+      context,
+      builder: (BuildContext ctx) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            'Annuler votre demande ?',
+            style: Theme.of(ctx).textTheme.titleLarge,
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Oui, annuler'),
+          const SizedBox(height: 8),
+          Text(
+            payante
+                ? 'Le technicien est déjà en route : des frais d’annulation '
+                      'tardive s’appliqueront.'
+                : 'Personne n’est encore intervenu : l’annulation est '
+                      'gratuite.',
+            style: TextStyle(color: ctx.pc.ink2, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 18),
+          PcButton(
+            libelle: 'Oui, annuler',
+            variante: PcVariante.corail,
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+          const SizedBox(height: 8),
+          PcButton(
+            libelle: 'Non, garder ma demande',
+            variante: PcVariante.doux,
+            onPressed: () => Navigator.of(ctx).pop(false),
           ),
         ],
       ),
@@ -650,10 +838,7 @@ class _Actions extends ConsumerWidget {
       ref.invalidate(ticketProvider(ticket.id));
       ref.invalidate(ticketsProvider);
     } on ApiException catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
+      if (context.mounted) _erreur(context, e);
     }
   }
 }

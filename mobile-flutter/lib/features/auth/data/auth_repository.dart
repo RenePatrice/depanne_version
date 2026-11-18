@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart' show FormData, MultipartFile;
+
 import '../../../core/auth/token_pair.dart';
 import '../../../core/auth/token_store.dart';
 import '../../../core/network/api_client.dart';
@@ -62,6 +64,56 @@ class AuthRepository {
   /// Le compte actuellement connecté, rechargé depuis le serveur.
   Future<Utilisateur> moi() async {
     final Map<String, dynamic> reponse = await _api.get('/moi');
+
+    return Utilisateur.depuisJson(
+      reponse['utilisateur'] as Map<String, dynamic>,
+    );
+  }
+
+  /// Modifier le nom affiché. Le téléphone, identifiant de connexion, ne se
+  /// change pas ici.
+  Future<Utilisateur> modifierNom(String nomComplet) async {
+    final Map<String, dynamic> reponse = await _api.patch(
+      '/moi',
+      corps: <String, dynamic>{'full_name': nomComplet},
+    );
+
+    return Utilisateur.depuisJson(
+      reponse['utilisateur'] as Map<String, dynamic>,
+    );
+  }
+
+  /// Changer de mot de passe. L'actuel est exigé, et les autres sessions du
+  /// compte sont coupées côté serveur.
+  Future<void> changerMotDePasse({
+    required String actuel,
+    required String nouveau,
+  }) => _api.post(
+    '/moi/mot-de-passe',
+    corps: <String, dynamic>{
+      'ancien_mot_de_passe': actuel,
+      'password': nouveau,
+      'password_confirmation': nouveau,
+    },
+  );
+
+  /// Déposer une photo de profil. Le serveur la recadre, la réduit et efface
+  /// ses métadonnées (dont la position GPS de la prise de vue).
+  Future<Utilisateur> changerAvatar(String chemin) async {
+    final Map<String, dynamic> reponse = await _api.post(
+      '/moi/avatar',
+      corps: FormData.fromMap(<String, dynamic>{
+        'photo': await MultipartFile.fromFile(chemin),
+      }),
+    );
+
+    return Utilisateur.depuisJson(
+      reponse['utilisateur'] as Map<String, dynamic>,
+    );
+  }
+
+  Future<Utilisateur> retirerAvatar() async {
+    final Map<String, dynamic> reponse = await _api.delete('/moi/avatar');
 
     return Utilisateur.depuisJson(
       reponse['utilisateur'] as Map<String, dynamic>,

@@ -19,6 +19,11 @@ class EvenementTempsReel {
   final String canal;
   final String nom;
   final Map<String, dynamic> donnees;
+
+  /// Position du technicien en route : un flux continu, pas un changement
+  /// d'état. Les écrans qui relisent le ticket sur signal doivent l'ignorer,
+  /// sinon ils le reliraient toutes les huit secondes.
+  bool get estPosition => nom == 'technicien.position';
 }
 
 /// Ce dont le service a besoin d'un WebSocket, et rien de plus.

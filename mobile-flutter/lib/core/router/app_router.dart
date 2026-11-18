@@ -3,16 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/application/session_controller.dart';
+import '../../features/auth/presentation/connexion_mot_de_passe_screen.dart';
 import '../../features/auth/presentation/connexion_screen.dart';
 import '../../features/auth/presentation/dossier_technicien_screen.dart';
 import '../../features/auth/presentation/inscription_screen.dart';
 import '../../features/auth/presentation/mot_de_passe_oublie_screen.dart';
 import '../../features/chat/presentation/chat_screen.dart';
 import '../../features/client/presentation/adresse_form_screen.dart';
+import '../../features/client/presentation/assistant_screen.dart';
 import '../../features/client/presentation/avis_screen.dart';
 import '../../features/client/presentation/catalogue_screen.dart';
+import '../../features/client/presentation/categorie_screen.dart';
 import '../../features/client/presentation/choix_technicien_screen.dart';
 import '../../features/client/presentation/nouvelle_demande_screen.dart';
+import '../../features/client/presentation/recherche_screen.dart';
 import '../../features/client/presentation/reclamation_screen.dart';
 import '../../features/client/presentation/suivi_ticket_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
@@ -21,6 +25,8 @@ import '../../features/technicien/presentation/intervention_screen.dart';
 import '../../features/technicien/presentation/tarifs_screen.dart';
 import '../../features/shared/accueil_screen.dart';
 import '../../features/shared/demarrage_screen.dart';
+import '../../features/shared/localisation/localisation_controller.dart';
+import '../../features/shared/localisation/localisation_screen.dart';
 import '../providers.dart';
 
 /// Navigation de l'application.
@@ -53,6 +59,7 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
       const Set<String> ecransOuverts = <String>{
         '/onboarding',
         '/connexion',
+        '/connexion/mot-de-passe',
         '/inscription',
         '/mot-de-passe-oublie',
       };
@@ -72,6 +79,15 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
         return vers == '/dossier-technicien' ? null : '/dossier-technicien';
       }
 
+      // La position est demandée dès l'entrée (décision du client), une
+      // seule fois. Tant que la réponse du coffre n'est pas connue (`null`),
+      // on n'insiste pas : mieux vaut entrer que clignoter.
+      final bool? localisationDemandee = ref.read(localisationDemandeeProvider);
+      if (session.etat == EtatSession.connecte &&
+          localisationDemandee == false) {
+        return vers == '/localisation' ? null : '/localisation';
+      }
+
       // Connecté : les écrans d'accueil et d'authentification n'ont plus de
       // sens, on renvoie vers l'application.
       if (ecransOuverts.contains(vers) || vers == '/demarrage') {
@@ -85,8 +101,19 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
       GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingScreen()),
       GoRoute(path: '/connexion', builder: (_, _) => const ConnexionScreen()),
       GoRoute(
+        path: '/connexion/mot-de-passe',
+        builder: (_, GoRouterState state) => ConnexionMotDePasseScreen(
+          chiffres: state.uri.queryParameters['tel'] ?? '',
+        ),
+      ),
+      GoRoute(
         path: '/inscription',
-        builder: (_, _) => const InscriptionScreen(),
+        builder: (_, GoRouterState state) =>
+            InscriptionScreen(chiffres: state.uri.queryParameters['tel']),
+      ),
+      GoRoute(
+        path: '/localisation',
+        builder: (_, _) => const LocalisationScreen(),
       ),
       GoRoute(
         path: '/mot-de-passe-oublie',
@@ -111,6 +138,19 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
       GoRoute(
         path: '/client/catalogue',
         builder: (_, _) => const CatalogueScreen(),
+      ),
+      GoRoute(
+        path: '/client/categorie/:code',
+        builder: (_, GoRouterState state) =>
+            CategorieScreen(code: state.pathParameters['code'] ?? ''),
+      ),
+      GoRoute(
+        path: '/client/recherche',
+        builder: (_, _) => const RechercheScreen(),
+      ),
+      GoRoute(
+        path: '/client/assistant',
+        builder: (_, _) => const AssistantScreen(),
       ),
       GoRoute(
         path: '/client/demande',
@@ -193,13 +233,21 @@ class _Rafraichisseur extends ChangeNotifier {
     ) {
       if (avant?.etat != apres.etat) notifyListeners();
     }).close;
+    _fermerLocalisation = ref.listen<bool?>(localisationDemandeeProvider, (
+      bool? avant,
+      bool? apres,
+    ) {
+      if (avant != apres) notifyListeners();
+    }).close;
   }
 
   late final VoidCallback _fermer;
+  late final VoidCallback _fermerLocalisation;
 
   @override
   void dispose() {
     _fermer();
+    _fermerLocalisation();
     super.dispose();
   }
 }

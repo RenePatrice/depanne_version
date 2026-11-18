@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/format/montant.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/temps_reel/temps_reel_providers.dart';
+import '../../../core/temps_reel/temps_reel_service.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
 import '../../client/application/client_providers.dart';
@@ -74,10 +75,13 @@ class _InterventionScreenState extends ConsumerState<InterventionScreen>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(
-      signauxProvider('ticket.${widget.ticketId}'),
-      (_, _) => ref.invalidate(ticketProvider(widget.ticketId)),
-    );
+    ref.listen(signauxProvider('ticket.${widget.ticketId}'), (
+      _,
+      AsyncValue<EvenementTempsReel> signal,
+    ) {
+      if (signal.value?.estPosition ?? false) return;
+      ref.invalidate(ticketProvider(widget.ticketId));
+    });
 
     final AsyncValue<Ticket> ticket = ref.watch(
       ticketProvider(widget.ticketId),

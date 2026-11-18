@@ -122,6 +122,21 @@ class SessionController extends Notifier<Session> {
   /// téléphone, ne doit y trouver ni les tickets ni le portefeuille d'avant.
   Future<void> _oublierLesLectures() => ref.read(cacheLectureProvider).vider();
 
+  /// Le profil a changé (nom, photo) : l'en-tête et les écrans qui lisent la
+  /// session se mettent à jour sans relancer `/moi`.
+  void mettreAJour(Utilisateur utilisateur) =>
+      state = state.copie(utilisateur: utilisateur);
+
+  /// Relit le compte et recalcule l'écran d'arrivée (dossier validé pendant
+  /// l'attente, par exemple). Une erreur réseau laisse la session telle quelle.
+  Future<void> rafraichir() async {
+    try {
+      state = _pour(await _depot.moi());
+    } on ApiException {
+      // Hors couverture : on garde ce qu'on sait.
+    }
+  }
+
   void effacerErreur() {
     if (state.erreur != null) state = state.copie(effacerErreur: true);
   }
@@ -151,10 +166,15 @@ class SessionController extends Notifier<Session> {
   /// tableau de bord : il n'y trouverait qu'un écran vide et n'aurait aucune
   /// idée de ce qu'on attend de lui.
   Session _pour(Utilisateur utilisateur, {String? etapeSuivante}) {
+    // Tant que le dossier n'est pas validé — à déposer, en examen ou rejeté —
+    // le technicien reste sur l'écran du dossier, qui lui dit où il en est et
+    // bascule tout seul à la validation. Un compte suspendu, lui, n'a pas de
+    // dossier à reprendre.
     final bool dossierAttendu =
         etapeSuivante == 'dossier_technicien' ||
         (utilisateur.estTechnicien &&
-            utilisateur.verificationTechnicien == null);
+            !utilisateur.peutTravailler &&
+            utilisateur.verificationTechnicien != 'SUSPENDU');
 
     return Session(
       etat: dossierAttendu

@@ -1,153 +1,278 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/providers.dart';
-import '../../../design_system/components/dm_composants.dart';
-import '../../../design_system/design_tokens.dart';
-import '../application/session_controller.dart';
+import '../../../design_system/pc.dart';
 
-/// Connexion par téléphone et mot de passe (§4).
+/// Entrée par le numéro de téléphone (prototype v4).
 ///
-/// Pas de code SMS ici : l'OTP est réservé au mot de passe oublié. Demander un
-/// code à chaque connexion coûterait un SMS par ouverture de session, sur un
-/// marché où le SMS se paie.
-class ConnexionScreen extends ConsumerStatefulWidget {
+/// Un seul champ pour commencer : le numéro. L'écran suivant demande le mot
+/// de passe, ou propose de créer un compte avec ce numéro. L'application ne
+/// cherche **pas** à savoir si le numéro est inscrit : l'API ne doit pas servir
+/// à découvrir qui utilise Parema (§7, « ce que l'API ne dit pas »).
+class ConnexionScreen extends StatefulWidget {
   const ConnexionScreen({super.key});
 
   @override
-  ConsumerState<ConnexionScreen> createState() => _ConnexionScreenState();
+  State<ConnexionScreen> createState() => _ConnexionScreenState();
 }
 
-class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
-  final TextEditingController _telephone = TextEditingController();
-  final TextEditingController _motDePasse = TextEditingController();
-
-  bool _enCours = false;
-  bool _masque = true;
+class _ConnexionScreenState extends State<ConnexionScreen> {
+  final TextEditingController _numero = TextEditingController();
+  String? _erreur;
 
   @override
   void dispose() {
-    _telephone.dispose();
-    _motDePasse.dispose();
+    _numero.dispose();
     super.dispose();
   }
 
-  Future<void> _soumettre() async {
-    if (_enCours) return;
+  String get _chiffres => _numero.text.replaceAll(RegExp(r'\D'), '');
 
-    setState(() => _enCours = true);
-
-    await ref
-        .read(sessionProvider.notifier)
-        .connecter(
-          telephone: _telephone.text.trim(),
-          motDePasse: _motDePasse.text,
-        );
-
-    // Le routeur écoute la session : en cas de succès il redirige seul. Il n'y
-    // a donc rien à faire ici de la valeur de retour, sinon rendre la main.
-    if (mounted) setState(() => _enCours = false);
+  void _continuer() {
+    if (_chiffres.length != 9) {
+      setState(
+        () => _erreur = 'Le numéro guinéen compte 9 chiffres, sans le +224.',
+      );
+      return;
+    }
+    context.push('/connexion/mot-de-passe?tel=$_chiffres');
   }
 
   @override
   Widget build(BuildContext context) {
-    final Session session = ref.watch(sessionProvider);
-    final ThemeData theme = Theme.of(context);
+    final PcSkin pc = context.pc;
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(DmSpace.x6),
-          child: AutofillGroup(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                const SizedBox(height: DmSpace.x8),
-                Text('Bon retour', style: theme.textTheme.displaySmall),
-                const SizedBox(height: DmSpace.x2),
-                Text(
-                  'Connecte-toi avec ton numéro de téléphone.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: DmColors.neutral500,
-                  ),
-                ),
-                const SizedBox(height: DmSpace.x8),
-
-                if (session.erreur != null) ...<Widget>[
-                  DmErreur(
-                    message: session.erreur!.message,
-                    onReessayer: session.erreur!.reseau ? _soumettre : null,
-                  ),
-                  const SizedBox(height: DmSpace.x4),
-                ],
-
-                DmChamp(
-                  libelle: 'Numéro de téléphone',
-                  indication: '620 00 00 00',
-                  controleur: _telephone,
-                  clavier: TextInputType.phone,
-                  autoRemplissage: const <String>[
-                    AutofillHints.telephoneNumber,
-                  ],
-                  action: TextInputAction.next,
-                  prefixe: const Icon(Icons.phone_outlined),
-                  erreur: session.erreur?.pourChamp('phone'),
-                ),
-                const SizedBox(height: DmSpace.x4),
-
-                DmChamp(
-                  libelle: 'Mot de passe',
-                  controleur: _motDePasse,
-                  masque: _masque,
-                  autoRemplissage: const <String>[AutofillHints.password],
-                  action: TextInputAction.done,
-                  onSoumis: (_) => _soumettre(),
-                  prefixe: const Icon(Icons.lock_outline),
-                  erreur: session.erreur?.pourChamp('password'),
-                ),
-
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => setState(() => _masque = !_masque),
-                    child: Text(_masque ? 'Afficher' : 'Masquer'),
-                  ),
-                ),
-
-                const SizedBox(height: DmSpace.x2),
-                DmBouton(
-                  libelle: 'Se connecter',
-                  enCours: _enCours,
-                  onPresse: _soumettre,
-                ),
-
-                const SizedBox(height: DmSpace.x4),
-                TextButton(
-                  onPressed: () => context.push('/mot-de-passe-oublie'),
-                  child: const Text('Mot de passe oublié ?'),
-                ),
-
-                const SizedBox(height: DmSpace.x8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text(
-                      'Pas encore de compte ?',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: DmColors.neutral500,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => context.push('/inscription'),
-                      child: const Text('Créer un compte'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(1, -1),
+            radius: 1.2,
+            colors: <Color>[
+              pc.accent.withValues(alpha: 0.2),
+              pc.bg.withValues(alpha: 0),
+            ],
           ),
         ),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints c) =>
+                SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(22, 18, 22, 26),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: c.maxHeight - 44),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Image.asset(
+                              'assets/images/logo_mark.png',
+                              height: 48,
+                              semanticLabel: 'Parema Connect',
+                              errorBuilder: (_, _, _) => Icon(
+                                Icons.handyman_rounded,
+                                color: pc.accent,
+                                size: 40,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          Text(
+                            'Votre numéro,\net c’est parti.',
+                            style: Theme.of(context).textTheme.displaySmall,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Un seul écran pour vous connecter ou créer votre '
+                            'compte.',
+                            style: TextStyle(
+                              color: pc.muted,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w600,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 26),
+                          _ChampNumero(
+                            controleur: _numero,
+                            onChanged: (_) {
+                              if (_erreur != null) {
+                                setState(() => _erreur = null);
+                              }
+                            },
+                            onSubmitted: (_) => _continuer(),
+                          ),
+                          if (_erreur != null)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                              child: Text(
+                                _erreur!,
+                                style: const TextStyle(
+                                  color: PcColors.danger,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 18),
+                          PcButton(
+                            libelle: 'Continuer',
+                            icone: Icons.arrow_forward_rounded,
+                            onPressed: _continuer,
+                          ),
+                          const Spacer(),
+                          const SizedBox(height: 26),
+                          const _Promesses(),
+                          const SizedBox(height: 12),
+                          Text(
+                            'En continuant, vous acceptez les conditions '
+                            'd’utilisation et la politique de confidentialité.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: pc.muted,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChampNumero extends StatelessWidget {
+  const _ChampNumero({
+    required this.controleur,
+    required this.onChanged,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controleur;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    final PcSkin pc = context.pc;
+
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: pc.card,
+        borderRadius: PcRadius.lgAll,
+        boxShadow: pc.ombre,
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: pc.soft,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              '🇬🇳 +224',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: pc.ink,
+                fontSize: 14.5,
+              ),
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controleur,
+              keyboardType: TextInputType.phone,
+              autofillHints: const <String>[
+                AutofillHints.telephoneNumberNational,
+              ],
+              textInputAction: TextInputAction.go,
+              onChanged: onChanged,
+              onSubmitted: onSubmitted,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.allow(RegExp(r'[\d ]')),
+                LengthLimitingTextInputFormatter(12),
+              ],
+              style: TextStyle(
+                fontFamily: PcFonts.display,
+                fontWeight: FontWeight.w700,
+                fontSize: 19,
+                letterSpacing: 0.4,
+                color: pc.ink,
+              ),
+              decoration: InputDecoration(
+                hintText: '620 12 34 56',
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                hintStyle: TextStyle(
+                  fontFamily: PcFonts.display,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 19,
+                  color: pc.muted.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Promesses extends StatelessWidget {
+  const _Promesses();
+
+  @override
+  Widget build(BuildContext context) {
+    final PcSkin pc = context.pc;
+
+    Widget ligne(IconData icone, String texte) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: <Widget>[
+          Icon(icone, color: pc.accent, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              texte,
+              style: TextStyle(
+                color: pc.ink2,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return PcCard(
+      child: Column(
+        children: <Widget>[
+          ligne(
+            Icons.verified_user_rounded,
+            'Techniciens vérifiés, identité contrôlée',
+          ),
+          ligne(Icons.sell_outlined, 'Prix affiché avant de choisir'),
+          ligne(
+            Icons.receipt_long_rounded,
+            'Chaque paiement confirmé et tracé',
+          ),
+        ],
       ),
     );
   }

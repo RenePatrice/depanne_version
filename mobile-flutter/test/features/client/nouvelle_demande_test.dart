@@ -1,5 +1,6 @@
 import 'package:depanne_moi/core/app_mode.dart';
 import 'package:depanne_moi/design_system/app_theme.dart';
+import 'package:depanne_moi/design_system/pc.dart';
 import 'package:depanne_moi/features/client/application/client_providers.dart';
 import 'package:depanne_moi/features/client/data/client_repository.dart';
 import 'package:depanne_moi/features/shared/data/modeles.dart';
@@ -83,8 +84,8 @@ Future<bool> _publicationActive(WidgetTester tester) async {
     scrollable: find.byType(Scrollable).first,
   );
 
-  final FilledButton bouton = tester.widget<FilledButton>(
-    find.ancestor(of: libelle, matching: find.byType(FilledButton)),
+  final PcButton bouton = tester.widget<PcButton>(
+    find.ancestor(of: libelle, matching: find.byType(PcButton)),
   );
 
   return bouton.onPressed != null;

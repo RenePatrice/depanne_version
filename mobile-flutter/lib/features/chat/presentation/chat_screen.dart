@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/temps_reel/temps_reel_providers.dart';
+import '../../../core/temps_reel/temps_reel_service.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
 import '../application/chat_providers.dart';
@@ -97,7 +98,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(signauxProvider('ticket.${widget.ticketId}'), (_, _) {
+    ref.listen(signauxProvider('ticket.${widget.ticketId}'), (
+      _,
+      AsyncValue<EvenementTempsReel> signal,
+    ) {
+      if (signal.value?.estPosition ?? false) return;
       ref.invalidate(conversationProvider(widget.ticketId));
     });
 
