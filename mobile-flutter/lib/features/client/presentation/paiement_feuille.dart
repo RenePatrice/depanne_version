@@ -117,7 +117,9 @@ class _PaiementFeuilleState extends ConsumerState<PaiementFeuille> {
                 ? null
                 : refOperateur,
           ),
-      succes: 'Paiement déclaré : le technicien doit le confirmer.',
+      succes: _etat?.monRole == 'TECHNICIEN'
+          ? 'Déclaré : le client doit le confirmer.'
+          : 'Paiement déclaré : le technicien doit le confirmer.',
     );
   }
 
@@ -179,17 +181,18 @@ class _PaiementFeuilleState extends ConsumerState<PaiementFeuille> {
   List<Widget> _contenu(EtatPaiement etat) {
     final PcSkin pc = context.pc;
     final PaiementTrace? p = etat.paiement;
+    final bool tech = etat.monRole == 'TECHNICIEN';
 
     return <Widget>[
       Text(
-        'Régler l’intervention',
+        tech ? 'Encaissement' : 'Régler l’intervention',
         style: Theme.of(context).textTheme.headlineSmall,
       ),
       const SizedBox(height: 4),
       Row(
         children: <Widget>[
           Text(
-            'Montant dû  ',
+            tech ? 'À encaisser  ' : 'Montant dû  ',
             style: TextStyle(color: pc.muted, fontWeight: FontWeight.w600),
           ),
           PcMontant(etat.totalGnf, taille: 20, couleur: pc.accent),
@@ -199,7 +202,7 @@ class _PaiementFeuilleState extends ConsumerState<PaiementFeuille> {
 
       if (p == null && etat.peutDeclarer) ..._choixMoyen(etat),
 
-      if (p != null) _CartePaiement(paiement: p),
+      if (p != null) _CartePaiement(paiement: p, technicien: tech),
 
       if (p != null && etat.peutConfirmer) ...<Widget>[
         const SizedBox(height: 14),
@@ -248,7 +251,7 @@ class _PaiementFeuilleState extends ConsumerState<PaiementFeuille> {
 
       if (p == null && !etat.peutDeclarer)
         Text(
-          'Le paiement s’ouvre quand le technicien a terminé l’intervention.',
+          'Le paiement s’ouvre une fois l’intervention terminée.',
           style: TextStyle(color: pc.muted, fontWeight: FontWeight.w600),
         ),
 
@@ -265,10 +268,13 @@ class _PaiementFeuilleState extends ConsumerState<PaiementFeuille> {
     final MoyenPaiement? choisi = etat.moyens
         .where((MoyenPaiement m) => m.code == _moyen)
         .firstOrNull;
+    final bool tech = etat.monRole == 'TECHNICIEN';
 
     return <Widget>[
       Text(
-        'Comment avez-vous payé le technicien ?',
+        tech
+            ? 'Comment le client vous a-t-il payé ?'
+            : 'Comment avez-vous payé le technicien ?',
         style: Theme.of(context).textTheme.titleMedium,
       ),
       const SizedBox(height: 10),
@@ -308,9 +314,12 @@ class _PaiementFeuilleState extends ConsumerState<PaiementFeuille> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Le technicien confirme à son tour. Un paiement tracé ici '
-                'garde votre garantie active ; en cas de désaccord, le support '
-                'tranche.',
+                tech
+                    ? 'Le client confirme à son tour. La commission de la '
+                          'plateforme vous restera due, suivie dans Gains.'
+                    : 'Le technicien confirme à son tour. Un paiement tracé '
+                          'ici garde votre garantie active ; en cas de '
+                          'désaccord, le support tranche.',
                 style: TextStyle(
                   color: pc.ink2,
                   fontWeight: FontWeight.w600,
@@ -323,17 +332,23 @@ class _PaiementFeuilleState extends ConsumerState<PaiementFeuille> {
       ),
       const SizedBox(height: 14),
       PcButton(
-        libelle: 'J’ai payé ${etat.totalFormate}',
+        libelle: tech
+            ? 'J’ai reçu ${etat.totalFormate}'
+            : 'J’ai payé ${etat.totalFormate}',
         icone: Icons.check_rounded,
         chargement: _enCours,
         onPressed: _moyen == null ? null : _declarer,
       ),
-      const SizedBox(height: 6),
-      TextButton.icon(
-        onPressed: () => setState(() => _parApplication = true),
-        icon: const Icon(Icons.phone_android_rounded, size: 18),
-        label: const Text('Payer plutôt dans l’application'),
-      ),
+      // Le paiement dans l'application, avec séquestre, ne se lance que du
+      // côté du client : c'est lui qui paie.
+      if (!tech) ...<Widget>[
+        const SizedBox(height: 6),
+        TextButton.icon(
+          onPressed: () => setState(() => _parApplication = true),
+          icon: const Icon(Icons.phone_android_rounded, size: 18),
+          label: const Text('Payer plutôt dans l’application'),
+        ),
+      ],
     ];
   }
 }
@@ -442,8 +457,8 @@ class _CarteMoyen extends StatelessWidget {
                   ),
                   Text(
                     moyen.estEspeces
-                        ? 'Remis en main propre au technicien'
-                        : 'Transfert vers le numéro du technicien',
+                        ? 'Remis en main propre'
+                        : 'Transfert Mobile Money',
                     style: TextStyle(
                       color: pc.muted,
                       fontWeight: FontWeight.w500,
@@ -467,15 +482,20 @@ class _CarteMoyen extends StatelessWidget {
 }
 
 class _CartePaiement extends StatelessWidget {
-  const _CartePaiement({required this.paiement});
+  const _CartePaiement({required this.paiement, required this.technicien});
 
   final PaiementTrace paiement;
+
+  /// Vu du technicien : les phrases changent de sens (« le client déclare
+  /// vous avoir payé » plutôt que « le technicien déclare avoir été payé »).
+  final bool technicien;
 
   @override
   Widget build(BuildContext context) {
     final PcSkin pc = context.pc;
     final (IconData icone, Color couleur, String titre, String texte) = _resume(
       paiement,
+      technicien,
     );
 
     return PcCard(
@@ -538,13 +558,19 @@ class _CartePaiement extends StatelessWidget {
     );
   }
 
-  static (IconData, Color, String, String) _resume(PaiementTrace p) {
+  static (IconData, Color, String, String) _resume(
+    PaiementTrace p,
+    bool technicien,
+  ) {
     if (p.regle) {
       return (
         Icons.verified_rounded,
         PcColors.tech,
         'Paiement réglé',
-        'Les deux confirmations sont enregistrées. Votre garantie est active.',
+        technicien
+            ? 'Les deux confirmations sont enregistrées.'
+            : 'Les deux confirmations sont enregistrées. Votre garantie est '
+                  'active.',
       );
     }
     if (p.conteste) {
@@ -554,6 +580,21 @@ class _CartePaiement extends StatelessWidget {
         'Paiement contesté',
         'Le support examine le désaccord et vous tiendra informé.',
       );
+    }
+    if (technicien) {
+      return p.enAttenteDe == 'TECHNICIEN'
+          ? (
+              Icons.pending_actions_rounded,
+              PcColors.coral,
+              'Le client déclare vous avoir payé',
+              'Confirmez seulement si vous avez bien reçu ce montant.',
+            )
+          : (
+              Icons.hourglass_top_rounded,
+              PcColors.coral,
+              'En attente du client',
+              'Vous avez déclaré ce paiement. Le client doit le confirmer.',
+            );
     }
     if (p.enAttenteDe == 'CLIENT') {
       return (

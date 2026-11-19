@@ -324,10 +324,14 @@ class Ticket {
     this.garantieActive = false,
     this.garantieOrigineReference,
     this.especesAConfirmer = false,
+    this.photos = const <String>[],
   });
 
   final int id;
   final String reference;
+
+  /// Photos jointes par le client (dépannage seulement, trois au plus).
+  final List<String> photos;
   final String etat;
   final String etatLibelle;
   final bool etatActif;
@@ -452,6 +456,7 @@ class Ticket {
           (json['garantie'] as Map<String, dynamic>?)?['origine_reference']
               as String?,
       especesAConfirmer: json['especes_a_confirmer'] as bool? ?? false,
+      photos: _textes(json['photos']),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/format/montant.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/providers.dart';
+import '../../../design_system/pc.dart';
 import '../../../design_system/components/dm_composants.dart';
 import '../../../design_system/design_tokens.dart';
 import '../application/technicien_providers.dart';
@@ -27,6 +28,8 @@ class RetraitFeuille extends ConsumerStatefulWidget {
   static Future<void> ouvrir(BuildContext context, Portefeuille portefeuille) =>
       showModalBottomSheet<void>(
         context: context,
+        backgroundColor: context.pc.card,
+        useSafeArea: true,
         isScrollControlled: true,
         showDragHandle: true,
         builder: (BuildContext context) => Padding(

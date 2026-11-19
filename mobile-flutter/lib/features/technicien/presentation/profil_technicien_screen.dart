@@ -3,305 +3,206 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers.dart';
-import '../../../design_system/components/dm_composants.dart';
-import '../../../design_system/design_tokens.dart';
-import '../../auth/application/session_controller.dart';
+import '../../../design_system/pc.dart';
 import '../../auth/data/utilisateur.dart';
+import '../../shared/mode/selecteur_mode.dart';
+import '../../shared/profil/profil_commun.dart';
+import 'composants_technicien.dart';
 
-/// Profil technicien : dossier, spécialités et statistiques.
+/// Onglet « Profil » du technicien : identité, dossier, métiers, chiffres,
+/// tarifs, compte.
 ///
 /// Les chiffres ne sont pas décoratifs — ils décident de qui reçoit les
 /// courses (§8.3). Les montrer, c'est donner au technicien les moyens de
-/// comprendre pourquoi il en reçoit plus ou moins, plutôt que de lui laisser
-/// imaginer une raison qui n'existe pas.
+/// comprendre pourquoi il en reçoit plus ou moins.
 class ProfilTechnicienScreen extends ConsumerWidget {
   const ProfilTechnicienScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final Session session = ref.watch(sessionProvider);
-    final Utilisateur? moi = session.utilisateur;
+    final PcSkin pc = context.pc;
+    final Utilisateur? moi = ref.watch(sessionProvider).utilisateur;
     final ProfilTechnicien? profil = moi?.profilTechnicien;
-    final ThemeData theme = Theme.of(context);
+    final bool peutBasculer = (moi?.modesDisponibles.length ?? 1) > 1;
+    final String metiers = profil == null || profil.specialites.isEmpty
+        ? 'Technicien'
+        : profil.specialites.map(((String, String) s) => s.$2).join(' · ');
 
     return ListView(
-      padding: const EdgeInsets.all(DmSpace.x4),
+      padding: EdgeInsets.fromLTRB(
+        18,
+        MediaQuery.of(context).padding.top + 18,
+        18,
+        PcTabBar.espaceReserve,
+      ),
       children: <Widget>[
-        DmCarte(
-          enfant: Row(
+        EnteteProfil(sousTitre: metiers),
+        const SizedBox(height: 16),
+        _Dossier(utilisateur: moi),
+
+        if (profil != null) ...<Widget>[
+          const PcSection('Vos chiffres'),
+          Row(
             children: <Widget>[
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: theme.colorScheme.primary.withValues(
-                  alpha: 0.12,
-                ),
-                child: Icon(
-                  Icons.handyman_outlined,
-                  color: theme.colorScheme.primary,
-                ),
+              ChiffreTech(
+                valeur: profil.avis == 0
+                    ? '—'
+                    : profil.noteMoyenne.toStringAsFixed(1),
+                libelle: '${profil.avis} avis',
+                icone: Icons.star_rounded,
+                couleur: const Color(0xFFF5B000),
               ),
-              const SizedBox(width: DmSpace.x4),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      moi?.nomComplet ?? 'Mon compte',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    Text(
-                      moi?.telephoneAffichage ?? '',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
+              const SizedBox(width: 10),
+              ChiffreTech(
+                valeur: '${profil.interventions}',
+                libelle: 'Terminées',
+                icone: Icons.done_all_rounded,
               ),
             ],
           ),
-        ),
-
-        const SizedBox(height: DmSpace.x4),
-        _Dossier(session: session),
-
-        if (profil != null) ...<Widget>[
-          if (profil.specialites.isNotEmpty) ...<Widget>[
-            const _Entete('Mes spécialités'),
-            Wrap(
-              spacing: DmSpace.x2,
-              runSpacing: DmSpace.x2,
-              children: <Widget>[
-                for (final (String _, String libelle) in profil.specialites)
-                  Chip(label: Text(libelle)),
-              ],
+          const SizedBox(height: 10),
+          Row(
+            children: <Widget>[
+              ChiffreTech(
+                valeur: '${(profil.tauxAcceptation * 100).round()} %',
+                libelle: 'Acceptation',
+                icone: Icons.thumb_up_alt_rounded,
+              ),
+              const SizedBox(width: 10),
+              ChiffreTech(
+                valeur: '${(profil.tauxAnnulation * 100).round()} %',
+                libelle: 'Annulation',
+                icone: Icons.cancel_rounded,
+                couleur: PcColors.coral,
+              ),
+            ],
+          ),
+          if (profil.debutant) ...<Widget>[
+            const SizedBox(height: 10),
+            PcCard(
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.info_outline_rounded, size: 18, color: pc.accent),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      // La note appliquée n'est pas la note affichée : le
+                      // scoring en substitue une neutre aux nouveaux venus,
+                      // sinon un technicien sans avis ne serait jamais choisi.
+                      'Vous débutez : en attendant vos premiers avis, vous '
+                      'êtes classé avec une note neutre de '
+                      '${profil.noteAppliquee.toStringAsFixed(1)}.',
+                      style: TextStyle(color: pc.ink2, fontSize: 12.5),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
-
-          const _Entete('Mes chiffres'),
-          _Statistiques(profil: profil),
-
-          // Place de marché (#2) : le technicien fixe ses prix.
-          const _Entete('Mes tarifs'),
-          DmCarte(
-            onTape: () => context.push('/technicien/tarifs'),
-            enfant: Row(
-              children: <Widget>[
-                const Icon(Icons.sell_outlined, color: DmColors.neutral500),
-                const SizedBox(width: DmSpace.x3),
-                Expanded(
-                  child: Text(
-                    'Fixer mes prix par prestation',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: DmColors.neutral500),
-              ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+            child: Text(
+              'La note, l’acceptation et la distance décident de votre place '
+              'dans la liste que voit le client.',
+              style: TextStyle(color: pc.muted, fontSize: 12),
             ),
           ),
         ],
 
-        const SizedBox(height: DmSpace.x8),
-        Center(
-          child: TextButton.icon(
-            onPressed: () => ref.read(sessionProvider.notifier).deconnecter(),
-            icon: const Icon(Icons.logout),
-            label: const Text('Se déconnecter'),
-          ),
+        const PcSection('Activité'),
+        GroupeProfil(
+          lignes: <Widget>[
+            // Place de marché (#2) : le technicien fixe ses prix.
+            LigneProfil(
+              icone: Icons.sell_outlined,
+              libelle: 'Mes tarifs',
+              detail: 'Votre prix par prestation, dans les bornes autorisées',
+              onTap: () => context.push('/technicien/tarifs'),
+            ),
+            if (profil?.rayonKm != null)
+              LigneProfil(
+                icone: Icons.radar_rounded,
+                libelle: 'Zone d’intervention',
+                detail: '${profil!.rayonKm} km autour de votre point de départ',
+              ),
+            LigneProfil(
+              icone: Icons.notifications_none_rounded,
+              libelle: 'Notifications',
+              onTap: () => context.push('/notifications'),
+            ),
+            if (peutBasculer)
+              LigneProfil(
+                icone: Icons.swap_horiz_rounded,
+                libelle: 'Passer à mon espace client',
+                couleur: const Color(0xFF2F6BED),
+                onTap: () => SelecteurMode.ouvrir(context),
+              ),
+          ],
         ),
-        const SizedBox(height: DmSpace.x8),
+
+        const LignesCompte(),
       ],
     );
   }
 }
 
-class _Entete extends StatelessWidget {
-  const _Entete(this.titre);
-
-  final String titre;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(
-      DmSpace.x2,
-      DmSpace.x6,
-      DmSpace.x2,
-      DmSpace.x3,
-    ),
-    child: Text(titre, style: Theme.of(context).textTheme.titleLarge),
-  );
-}
-
-/// L'état du dossier, en clair.
-///
-/// Un technicien dont le dossier est en attente ne peut pas se mettre en
-/// ligne : le lui dire ici, sur la carte qui porte son statut, évite qu'il
-/// cherche la panne du côté de l'interrupteur.
+/// L'état du dossier, en clair : un technicien en attente ne peut pas se
+/// mettre en ligne, et doit le lire ici plutôt que chercher la panne du côté
+/// de l'interrupteur.
 class _Dossier extends StatelessWidget {
-  const _Dossier({required this.session});
+  const _Dossier({required this.utilisateur});
 
-  final Session session;
+  final Utilisateur? utilisateur;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final bool peutTravailler = session.utilisateur?.peutTravailler ?? false;
-    final String statut =
-        session.utilisateur?.verificationTechnicien ?? 'INCONNU';
+    final PcSkin pc = context.pc;
+    final bool valide = utilisateur?.peutTravailler ?? false;
+    final bool rejete = utilisateur?.verificationTechnicien == 'REJETE';
+    final Color couleur = valide
+        ? PcColors.tech
+        : rejete
+        ? PcColors.coral
+        : pc.accent;
 
-    final Color couleur = peutTravailler
-        ? DmColors.success
-        : statut == 'REJETE'
-        ? DmColors.danger
-        : DmColors.warning;
-
-    return DmCarte(
-      onTape: peutTravailler ? null : () => context.push('/dossier-technicien'),
-      enfant: Row(
+    return PcCard(
+      onTap: valide ? null : () => context.push('/dossier-technicien'),
+      bordure: couleur.withValues(alpha: 0.45),
+      child: Row(
         children: <Widget>[
-          Icon(
-            peutTravailler ? Icons.verified_outlined : Icons.pending_outlined,
-            color: couleur,
+          PcIco(
+            valide
+                ? Icons.verified_rounded
+                : rejete
+                ? Icons.error_outline_rounded
+                : Icons.hourglass_top_rounded,
+            couleur: couleur,
+            taille: 42,
           ),
-          const SizedBox(width: DmSpace.x3),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  peutTravailler ? 'Dossier validé' : 'Dossier à compléter',
-                  style: theme.textTheme.titleMedium?.copyWith(color: couleur),
+                  valide
+                      ? 'Profil vérifié'
+                      : rejete
+                      ? 'Dossier à reprendre'
+                      : 'Dossier en cours',
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
                 Text(
-                  peutTravailler
-                      ? 'Tu peux te mettre en ligne et recevoir des demandes.'
-                      : 'Tant qu\'il n\'est pas validé, tu ne peux pas te '
+                  valide
+                      ? 'Pièce d’identité contrôlée par l’équipe Parema.'
+                      : 'Tant qu’il n’est pas validé, vous ne pouvez pas vous '
                             'mettre en ligne.',
-                  style: theme.textTheme.bodySmall,
+                  style: TextStyle(color: pc.muted, fontSize: 12.5),
                 ),
               ],
             ),
           ),
-          if (!peutTravailler)
-            const Icon(Icons.chevron_right, color: DmColors.neutral500),
-        ],
-      ),
-    );
-  }
-}
-
-class _Statistiques extends StatelessWidget {
-  const _Statistiques({required this.profil});
-
-  final ProfilTechnicien profil;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Column(
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _Chiffre(
-                libelle: 'Note',
-                valeur: profil.avis == 0
-                    ? '—'
-                    : profil.noteMoyenne.toStringAsFixed(1),
-                detail: '${profil.avis} avis',
-              ),
-            ),
-            Expanded(
-              child: _Chiffre(
-                libelle: 'Interventions',
-                valeur: '${profil.interventions}',
-                detail: 'terminées',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: DmSpace.x3),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _Chiffre(
-                libelle: 'Acceptation',
-                valeur: '${(profil.tauxAcceptation * 100).round()} %',
-                detail: 'des demandes reçues',
-              ),
-            ),
-            Expanded(
-              child: _Chiffre(
-                libelle: 'Annulation',
-                valeur: '${(profil.tauxAnnulation * 100).round()} %',
-                detail: 'après acceptation',
-              ),
-            ),
-          ],
-        ),
-
-        if (profil.debutant) ...<Widget>[
-          const SizedBox(height: DmSpace.x4),
-          DmCarte(
-            enfant: Row(
-              children: <Widget>[
-                const Icon(Icons.info_outline, size: 18),
-                const SizedBox(width: DmSpace.x3),
-                Expanded(
-                  child: Text(
-                    // La note appliquée n'est pas la note affichée : le
-                    // scoring en substitue une neutre aux nouveaux venus,
-                    // sinon un technicien sans avis ne serait jamais sollicité
-                    // — donc n'aurait jamais d'avis.
-                    'Tu débutes : en attendant tes premiers avis, tu es classé '
-                    'avec une note neutre de '
-                    '${profil.noteAppliquee.toStringAsFixed(1)}.',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-
-        const SizedBox(height: DmSpace.x4),
-        Text(
-          'Ta note pèse 30 % dans le choix du technicien à qui une demande est '
-          'proposée. Ton taux d\'acceptation et ta distance comptent aussi.',
-          style: theme.textTheme.bodySmall,
-        ),
-      ],
-    );
-  }
-}
-
-class _Chiffre extends StatelessWidget {
-  const _Chiffre({
-    required this.libelle,
-    required this.valeur,
-    required this.detail,
-  });
-
-  final String libelle;
-  final String valeur;
-  final String detail;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return DmCarte(
-      enfant: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(libelle, style: theme.textTheme.labelSmall),
-          const SizedBox(height: DmSpace.x1),
-          Text(
-            valeur,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          Text(detail, style: theme.textTheme.bodySmall),
+          if (!valide) Icon(Icons.chevron_right_rounded, color: pc.muted),
         ],
       ),
     );

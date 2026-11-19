@@ -1193,8 +1193,17 @@ espace client clair accent bleu, espace technicien sombre accent vert,
   **bascule seul** à la décision (notification `DOSSIER_VALIDE` /
   `DOSSIER_REJETE` sur `utilisateur.{id}` + relecture toutes les 30 s). Tant
   que le dossier n'est pas validé, la session reste en `dossierACompleter`.
-- Reste à refondre : tableau de bord, missions, gains, profil et intervention
-  du technicien (écrans D3 logés dans la nouvelle coquille).
+- **Technicien refondu** : tableau de bord (interrupteur en ligne, demande
+  entrante avec photos du client et chrono de 45 s, mission en cours, alerte de
+  commission bloquante, chiffres réels), Missions (le **suivi GPS** y reste
+  piloté, ADR-0038), Gains (solde, retirable, jauge de commission due),
+  Profil, Tarifs (groupés par métier, écart au catalogue), et **intervention**
+  : geste principal **à glisser** (`GlisserPourConfirmer` — un appui suffit
+  au lecteur d'écran), carte OSM du trajet + itinéraire `geo:`, photos de la
+  panne, paiement par la **même feuille** que le client (`PaiementFeuille`,
+  textes selon `mon_role` ; le technicien ne déclare que des espèces).
+- Les feuilles « supplément » et « retrait » gardent leurs composants (le test
+  du supplément vise `FilledButton`), habillées du fond `PcSkin`.
 
 Routes ajoutées pour la refonte :
 

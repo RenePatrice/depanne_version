@@ -3,121 +3,239 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/format/montant.dart';
 import '../../../core/network/api_exception.dart';
-import '../../../design_system/components/dm_composants.dart';
-import '../../../design_system/design_tokens.dart';
+import '../../../design_system/pc.dart';
 import '../application/technicien_providers.dart';
 import '../data/modeles.dart';
+import 'composants_technicien.dart';
 import 'retrait_feuille.dart';
 
-/// Solde, mouvements et retraits (§7.3, §8.4).
+/// Onglet « Gains » : solde, commission due, retraits, mouvements (§7.3, §8.4).
 ///
 /// Deux chiffres, pas un : le **solde** est ce que le technicien a gagné, le
 /// **retirable** est ce qu'il peut sortir aujourd'hui. Les confondre ferait
-/// déposer trois demandes de la totalité du solde, dont deux seraient rejetées
-/// — et rien n'est plus corrosif qu'un retrait refusé sans qu'on comprenne.
+/// déposer trois demandes de la totalité du solde, dont deux seraient rejetées.
 class PortefeuilleScreen extends ConsumerWidget {
   const PortefeuilleScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final PcSkin pc = context.pc;
     final AsyncValue<Portefeuille> portefeuille = ref.watch(
       portefeuilleProvider,
     );
     final AsyncValue<List<Retrait>> retraits = ref.watch(retraitsProvider);
 
-    return portefeuille.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (Object e, StackTrace _) => Padding(
-        padding: const EdgeInsets.all(DmSpace.x6),
-        child: Center(
-          child: DmErreur(
-            message: messageErreur(e),
-            onReessayer: () => ref.invalidate(portefeuilleProvider),
-          ),
-        ),
-      ),
-      data: (Portefeuille p) => RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(portefeuilleProvider);
-          ref.invalidate(retraitsProvider);
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(DmSpace.x4),
-          children: <Widget>[
-            if (p.commissionDueGnf > 0) _Commission(portefeuille: p),
-
-            _Solde(portefeuille: p),
-
-            const _Entete('Mes retraits'),
-            retraits.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(DmSpace.x6),
+    return RefreshIndicator(
+      color: pc.accent,
+      onRefresh: () async {
+        ref.invalidate(portefeuilleProvider);
+        ref.invalidate(retraitsProvider);
+      },
+      child: ListView(
+        padding: margesOnglet(context),
+        children: <Widget>[
+          const EnteteTechnicien(titre: 'Gains'),
+          const SizedBox(height: 16),
+          ...portefeuille.when(
+            loading: () => <Widget>[
+              const Padding(
+                padding: EdgeInsets.all(40),
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (Object e, StackTrace _) =>
-                  DmErreur(message: messageErreur(e)),
-              data: (List<Retrait> liste) => liste.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: DmSpace.x2,
-                      ),
-                      child: Text(
-                        'Aucun retrait demandé pour l\'instant.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    )
-                  : Column(
-                      children: <Widget>[
-                        for (final Retrait r in liste.take(5))
-                          _LigneRetrait(retrait: r),
-                      ],
-                    ),
-            ),
-
-            const _Entete('Mes mouvements'),
-            if (p.mouvements.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: DmSpace.x2),
-                child: Text(
-                  'Tes gains apparaîtront ici après ta première intervention '
-                  'clôturée.',
-                  style: Theme.of(context).textTheme.bodySmall,
+            ],
+            error: (Object e, StackTrace _) => <Widget>[
+              PcErreur(
+                message: messageErreur(e),
+                onReessayer: () => ref.invalidate(portefeuilleProvider),
+              ),
+            ],
+            data: (Portefeuille p) => <Widget>[
+              _Solde(portefeuille: p),
+              if (p.commissionDueGnf > 0) ...<Widget>[
+                const SizedBox(height: 12),
+                _Commission(portefeuille: p),
+              ],
+              const PcSection('Mes retraits'),
+              retraits.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
-              )
-            else
-              for (final Mouvement m in p.mouvements)
-                _LigneMouvement(mouvement: m),
-
-            const SizedBox(height: DmSpace.x8),
-          ],
-        ),
+                error: (Object e, StackTrace _) =>
+                    PcErreur(message: messageErreur(e)),
+                data: (List<Retrait> liste) => liste.isEmpty
+                    ? _Vide('Aucun retrait demandé pour l’instant.')
+                    : PcCard(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 4,
+                        ),
+                        child: Column(
+                          children: <Widget>[
+                            for (int i = 0; i < liste.take(5).length; i++) ...[
+                              _LigneRetrait(retrait: liste[i]),
+                              if (i < liste.take(5).length - 1)
+                                Divider(height: 1, color: pc.line),
+                            ],
+                          ],
+                        ),
+                      ),
+              ),
+              const PcSection('Mouvements'),
+              if (p.mouvements.isEmpty)
+                _Vide(
+                  'Vos gains apparaîtront ici après votre première '
+                  'intervention clôturée.',
+                )
+              else
+                PcCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 4,
+                  ),
+                  child: Column(
+                    children: <Widget>[
+                      for (int i = 0; i < p.mouvements.length; i++) ...[
+                        _LigneMouvement(mouvement: p.mouvements[i]),
+                        if (i < p.mouvements.length - 1)
+                          Divider(height: 1, color: pc.line),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-class _Entete extends StatelessWidget {
-  const _Entete(this.titre);
+class _Vide extends StatelessWidget {
+  const _Vide(this.texte);
 
-  final String titre;
+  final String texte;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(
-      DmSpace.x2,
-      DmSpace.x6,
-      DmSpace.x2,
-      DmSpace.x3,
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+    child: Text(
+      texte,
+      style: TextStyle(color: context.pc.muted, fontWeight: FontWeight.w600),
     ),
-    child: Text(titre, style: Theme.of(context).textTheme.titleLarge),
   );
 }
 
-/// Commission due sur les paiements en espèces (#1).
-///
-/// Mise en avant, au-dessus du solde : c'est une dette, et au-delà du plafond
-/// elle **bloque** l'acceptation de nouvelles demandes. Le technicien doit
-/// pouvoir la régler d'un geste pour se débloquer.
+class _Solde extends StatelessWidget {
+  const _Solde({required this.portefeuille});
+
+  final Portefeuille portefeuille;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool peutRetirer =
+        portefeuille.retirableGnf >= portefeuille.retraitMinimumGnf &&
+        portefeuille.retraitMinimumGnf > 0;
+    final TextStyle doux = TextStyle(
+      color: Colors.white.withValues(alpha: 0.8),
+      fontWeight: FontWeight.w600,
+      fontSize: 12.5,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: PcRadius.lgAll,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[PcColors.tech, PcColors.techDeep],
+        ),
+        boxShadow: PcShadow.glow(PcColors.tech),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text('Solde', style: doux),
+          const SizedBox(height: 2),
+          PcMontant(portefeuille.soldeGnf, taille: 32, couleur: Colors.white),
+          const SizedBox(height: 14),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('Retirable maintenant', style: doux),
+                    PcMontant(
+                      portefeuille.retirableGnf,
+                      taille: 17,
+                      couleur: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+              if (portefeuille.engageGnf > 0)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text('Demandé, pas versé', style: doux),
+                      PcMontant(
+                        portefeuille.engageGnf,
+                        taille: 17,
+                        couleur: Colors.white,
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Semantics(
+            button: true,
+            enabled: peutRetirer,
+            label: 'Demander un retrait',
+            child: PcPressable(
+              onTap: peutRetirer
+                  ? () => RetraitFeuille.ouvrir(context, portefeuille)
+                  : null,
+              child: Container(
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: peutRetirer ? 1 : 0.4),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Text(
+                  'Demander un retrait',
+                  style: TextStyle(
+                    fontFamily: PcFonts.display,
+                    fontWeight: FontWeight.w700,
+                    color: PcColors.techDeep,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (!peutRetirer) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              // Dire le seuil plutôt que griser en silence : un bouton
+              // inactif sans explication se lit comme une panne.
+              'Retrait possible à partir de '
+              '${formaterGnf(portefeuille.retraitMinimumGnf)}.',
+              style: doux,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Commission due sur les paiements directs (#1). Au-delà du plafond, elle
+/// **bloque** l'acceptation de nouvelles demandes : elle se règle d'un geste.
 class _Commission extends ConsumerWidget {
   const _Commission({required this.portefeuille});
 
@@ -125,73 +243,97 @@ class _Commission extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
-    final Color couleur = portefeuille.bloque
-        ? DmColors.danger
-        : DmColors.warning;
+    final PcSkin pc = context.pc;
+    final double part = portefeuille.commissionPlafondGnf <= 0
+        ? 0
+        : (portefeuille.commissionDueGnf / portefeuille.commissionPlafondGnf)
+              .clamp(0.0, 1.0);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: DmSpace.x4),
-      child: DmCarte(
-        padding: const EdgeInsets.all(DmSpace.x6),
-        enfant: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Icon(Icons.account_balance_wallet_outlined, color: couleur),
-                const SizedBox(width: DmSpace.x2),
-                Expanded(
-                  child: Text(
-                    'Commission à régler',
-                    style: theme.textTheme.titleMedium,
-                  ),
+    return PcCard(
+      bordure: portefeuille.bloque
+          ? PcColors.coral.withValues(alpha: 0.6)
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const PcIco(
+                Icons.receipt_long_rounded,
+                couleur: PcColors.coral,
+                taille: 42,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Commission à régler',
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
-                Text(
-                  portefeuille.commissionDueFormate,
-                  style: theme.textTheme.titleMedium?.copyWith(color: couleur),
-                ),
-              ],
+              ),
+              PcMontant(
+                portefeuille.commissionDueGnf,
+                taille: 17,
+                couleur: PcColors.coral,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: part,
+              minHeight: 8,
+              backgroundColor: pc.soft,
+              color: portefeuille.bloque ? PcColors.coral : PcColors.tech,
             ),
-            const SizedBox(height: DmSpace.x2),
-            Text(
-              portefeuille.bloque
-                  ? 'Tu as atteint le plafond de '
-                        '${formaterGnf(portefeuille.commissionPlafondGnf)}. '
-                        'Règle ta commission pour accepter de nouvelles demandes.'
-                  : 'Tu as encaissé des paiements en espèces : la commission de '
-                        'la plateforme reste à régler. Plafond : '
-                        '${formaterGnf(portefeuille.commissionPlafondGnf)}.',
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: DmSpace.x4),
-            DmBouton(
-              libelle: 'Régler ${portefeuille.commissionDueFormate}',
-              onPresse: () => _regler(context, ref),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            portefeuille.bloque
+                ? 'Plafond de ${formaterGnf(portefeuille.commissionPlafondGnf)} '
+                      'atteint : réglez pour recevoir de nouvelles demandes.'
+                : 'Sur les paiements reçus directement. Plafond : '
+                      '${formaterGnf(portefeuille.commissionPlafondGnf)}.',
+            style: TextStyle(color: pc.muted, fontSize: 12.5),
+          ),
+          const SizedBox(height: 12),
+          PcButton(
+            libelle: 'Régler ${portefeuille.commissionDueFormate}',
+            petit: true,
+            variante: portefeuille.bloque ? PcVariante.corail : PcVariante.doux,
+            onPressed: () => _regler(context, ref),
+          ),
+        ],
       ),
     );
   }
 
   Future<void> _regler(BuildContext context, WidgetRef ref) async {
-    final bool? confirme = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('Régler ta commission ?'),
-        content: Text(
-          'Tu vas régler ${portefeuille.commissionDueFormate} de commission '
-          'due. (Pilote : le règlement est simulé et aboutit immédiatement.)',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annuler'),
+    final bool? confirme = await showPcSheet<bool>(
+      context,
+      builder: (BuildContext ctx) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            'Régler ${portefeuille.commissionDueFormate} ?',
+            style: Theme.of(ctx).textTheme.titleLarge,
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Régler'),
+          const SizedBox(height: 6),
+          Text(
+            'Pilote : le règlement est simulé et aboutit immédiatement.',
+            style: TextStyle(color: ctx.pc.muted, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 18),
+          PcButton(
+            libelle: 'Régler',
+            variante: PcVariante.tech,
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+          const SizedBox(height: 8),
+          PcButton(
+            libelle: 'Plus tard',
+            variante: PcVariante.doux,
+            onPressed: () => Navigator.of(ctx).pop(false),
           ),
         ],
       ),
@@ -204,104 +346,12 @@ class _Commission extends ConsumerWidget {
           .read(technicienRepositoryProvider)
           .reglerCommission(portefeuille.commissionDueGnf);
       ref.invalidate(portefeuilleProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Commission réglée. Te voilà débloqué.'),
-          ),
-        );
-      }
+      if (context.mounted) showPcToast(context, 'Commission réglée.');
     } on ApiException catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        showPcToast(context, e.message, icone: Icons.error_outline_rounded);
       }
     }
-  }
-}
-
-class _Solde extends ConsumerWidget {
-  const _Solde({required this.portefeuille});
-
-  final Portefeuille portefeuille;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
-    final bool peutRetirer =
-        portefeuille.retirableGnf >= portefeuille.retraitMinimumGnf &&
-        portefeuille.retraitMinimumGnf > 0;
-
-    return DmCarte(
-      padding: const EdgeInsets.all(DmSpace.x6),
-      enfant: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Text('Solde', style: theme.textTheme.labelSmall),
-          const SizedBox(height: DmSpace.x1),
-          Text(
-            portefeuille.soldeFormate,
-            style: theme.textTheme.displaySmall?.copyWith(
-              color: theme.colorScheme.primary,
-            ),
-          ),
-
-          const SizedBox(height: DmSpace.x4),
-          const Divider(),
-          const SizedBox(height: DmSpace.x3),
-
-          _Ligne(
-            libelle: 'Retirable maintenant',
-            valeur: formaterGnf(portefeuille.retirableGnf),
-          ),
-          if (portefeuille.engageGnf > 0) ...<Widget>[
-            const SizedBox(height: DmSpace.x2),
-            _Ligne(
-              libelle: 'Déjà demandé, pas encore versé',
-              valeur: formaterGnf(portefeuille.engageGnf),
-            ),
-          ],
-
-          const SizedBox(height: DmSpace.x6),
-          DmBouton(
-            libelle: 'Demander un retrait',
-            onPresse: peutRetirer
-                ? () => RetraitFeuille.ouvrir(context, portefeuille)
-                : null,
-          ),
-          if (!peutRetirer) ...<Widget>[
-            const SizedBox(height: DmSpace.x3),
-            Text(
-              // Dire le seuil plutôt que griser le bouton en silence : un
-              // bouton inactif sans explication se lit comme une panne.
-              'Retrait possible à partir de '
-              '${formaterGnf(portefeuille.retraitMinimumGnf)}.',
-              style: theme.textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _Ligne extends StatelessWidget {
-  const _Ligne({required this.libelle, required this.valeur});
-
-  final String libelle;
-  final String valeur;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Row(
-      children: <Widget>[
-        Expanded(child: Text(libelle, style: theme.textTheme.bodyMedium)),
-        Text(valeur, style: theme.textTheme.titleSmall),
-      ],
-    );
   }
 }
 
@@ -312,49 +362,53 @@ class _LigneMouvement extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final PcSkin pc = context.pc;
+    final bool entree = mouvement.estUneEntree;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: DmSpace.x2),
-      child: DmCarte(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DmSpace.x4,
-          vertical: DmSpace.x3,
-        ),
-        enfant: Row(
-          children: <Widget>[
-            Icon(
-              mouvement.estUneEntree
-                  ? Icons.arrow_downward
-                  : Icons.arrow_upward,
-              size: 18,
-              color: mouvement.estUneEntree
-                  ? DmColors.success
-                  : DmColors.neutral500,
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: pc.teinte(entree ? PcColors.tech : PcColors.coral),
+              borderRadius: BorderRadius.circular(11),
             ),
-            const SizedBox(width: DmSpace.x3),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
+            child: Icon(
+              entree ? Icons.south_west_rounded : Icons.north_east_rounded,
+              size: 17,
+              color: entree ? PcColors.tech : PcColors.coral,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  mouvement.libelle ?? mouvement.typeLibelle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: pc.ink, fontWeight: FontWeight.w700),
+                ),
+                if (mouvement.ticket != null)
                   Text(
-                    mouvement.libelle ?? mouvement.typeLibelle,
-                    style: theme.textTheme.bodyMedium,
+                    mouvement.ticket!,
+                    style: TextStyle(color: pc.muted, fontSize: 12),
                   ),
-                  if (mouvement.ticket != null)
-                    Text(mouvement.ticket!, style: theme.textTheme.labelSmall),
-                ],
-              ),
+              ],
             ),
-            const SizedBox(width: DmSpace.x2),
-            Text(
-              mouvement.montantFormate,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: mouvement.estUneEntree ? DmColors.success : null,
-              ),
+          ),
+          Text(
+            mouvement.montantFormate,
+            style: TextStyle(
+              color: entree ? PcColors.tech : pc.ink2,
+              fontWeight: FontWeight.w800,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -367,50 +421,35 @@ class _LigneRetrait extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
+    final PcSkin pc = context.pc;
     final Color couleur = retrait.estVerse
-        ? DmColors.success
+        ? PcColors.tech
         : retrait.estRejete
-        ? DmColors.danger
-        : DmColors.warning;
+        ? PcColors.coral
+        : pc.accent;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: DmSpace.x2),
-      child: DmCarte(
-        enfant: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    retrait.montantFormate,
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-                Text(
-                  retrait.statutLibelle,
-                  style: theme.textTheme.labelSmall?.copyWith(color: couleur),
-                ),
-              ],
-            ),
-            const SizedBox(height: DmSpace.x1),
-            Text(
-              '${retrait.operateur} · ${retrait.numero}',
-              style: theme.textTheme.bodySmall,
-            ),
-            // Le motif d'un rejet est affiché, jamais avalé : un retrait refusé
-            // sans explication est le meilleur moyen de perdre un technicien.
-            if (retrait.note != null && retrait.note!.isNotEmpty) ...<Widget>[
-              const SizedBox(height: DmSpace.x2),
-              Text(
-                retrait.note!,
-                style: theme.textTheme.bodySmall?.copyWith(color: couleur),
-              ),
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(child: PcMontant(retrait.montantGnf, taille: 16)),
+              PcPill(retrait.statutLibelle, couleur: couleur),
             ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${retrait.operateur} · ${retrait.numero}',
+            style: TextStyle(color: pc.muted, fontSize: 12),
+          ),
+          // Le motif d'un rejet est affiché, jamais avalé.
+          if (retrait.note != null && retrait.note!.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 4),
+            Text(retrait.note!, style: TextStyle(color: couleur, fontSize: 12)),
           ],
-        ),
+        ],
       ),
     );
   }

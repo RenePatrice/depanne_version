@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/app_mode.dart';
 import '../../core/providers.dart';
@@ -19,7 +18,6 @@ import '../technicien/presentation/demandes_screen.dart';
 import '../technicien/presentation/mes_interventions_screen.dart';
 import '../technicien/presentation/portefeuille_screen.dart';
 import '../technicien/presentation/profil_technicien_screen.dart';
-import 'mode/selecteur_mode.dart';
 
 /// Coquille des deux espaces, avec la barre d'onglets flottante (prototype v4).
 ///
@@ -71,10 +69,10 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
             const ProfilClientScreen(),
           ]
         : const <Widget>[
-            _Herite(titre: 'Tableau de bord', enfant: DemandesScreen()),
-            _Herite(titre: 'Missions', enfant: MesInterventionsScreen()),
-            _Herite(titre: 'Gains', enfant: PortefeuilleScreen()),
-            _Herite(titre: 'Profil', enfant: ProfilTechnicienScreen()),
+            DemandesScreen(),
+            MesInterventionsScreen(),
+            PortefeuilleScreen(),
+            ProfilTechnicienScreen(),
           ];
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -121,99 +119,4 @@ class _AccueilScreenState extends ConsumerState<AccueilScreen> {
     PcOnglet(Icons.account_balance_wallet_outlined, 'Gains'),
     PcOnglet(Icons.person_outline_rounded, 'Profil'),
   ];
-}
-
-/// Écran pas encore redessiné, logé dans la nouvelle coquille.
-///
-/// Il reçoit un en-tête au nom de la personne — jamais « mode client » ou
-/// « mode technicien » (demande du client, point 5) — avec la cloche, la
-/// bascule d'espace et la déconnexion, et une marge basse pour ne rien cacher
-/// sous la barre flottante.
-class _Herite extends ConsumerWidget {
-  const _Herite({required this.titre, required this.enfant});
-
-  final String titre;
-  final Widget enfant;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final PcSkin pc = context.pc;
-    final Session session = ref.watch(sessionProvider);
-    final int nonLues = ref.watch(notificationsProvider).value?.nonLues ?? 0;
-    final bool peutBasculer =
-        (session.utilisateur?.modesDisponibles.length ?? 1) > 1;
-    final String nom = session.utilisateur?.nomComplet ?? '';
-
-    return Column(
-      children: <Widget>[
-        SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
-            child: Row(
-              children: <Widget>[
-                PcAvatar(
-                  nom: nom,
-                  taille: 42,
-                  image: session.utilisateur?.avatarUrl,
-                  couleurs: const <Color>[
-                    PcColors.coralLight,
-                    PcColors.coralDeep,
-                  ],
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        nom,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: pc.muted,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                      Text(
-                        titre,
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                    ],
-                  ),
-                ),
-                PcIconButton(
-                  icone: Icons.notifications_none_rounded,
-                  pastille: nonLues > 0,
-                  libelle: 'Notifications',
-                  onTap: () => context.push('/notifications'),
-                ),
-                if (peutBasculer) ...<Widget>[
-                  const SizedBox(width: 8),
-                  PcIconButton(
-                    icone: Icons.swap_horiz_rounded,
-                    libelle: 'Changer d’espace',
-                    onTap: () => SelecteurMode.ouvrir(context),
-                  ),
-                ],
-                const SizedBox(width: 8),
-                PcIconButton(
-                  icone: Icons.logout_rounded,
-                  libelle: 'Se déconnecter',
-                  onTap: () => ref.read(sessionProvider.notifier).deconnecter(),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: PcTabBar.espaceReserve - 20),
-            child: enfant,
-          ),
-        ),
-      ],
-    );
-  }
 }

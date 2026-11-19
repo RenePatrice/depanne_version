@@ -4,8 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/format/montant.dart';
 import '../../../core/network/api_exception.dart';
-import '../../../design_system/components/dm_composants.dart';
-import '../../../design_system/design_tokens.dart';
+import '../../../design_system/pc.dart';
 import '../application/technicien_providers.dart';
 import '../data/modeles.dart';
 
@@ -13,8 +12,8 @@ import '../data/modeles.dart';
 ///
 /// Le catalogue n'est qu'un **défaut** : le technicien fixe son prix par
 /// prestation, dans les bornes que le serveur impose (le prix hors bornes est
-/// refusé côté serveur, pas seulement ici). Laisser un champ vide revient à
-/// reprendre le prix catalogue.
+/// refusé côté serveur, pas seulement ici). Un champ vide reprend le prix
+/// catalogue.
 ///
 /// Aucun calcul de prix ici : le déplacement s'ajoute côté serveur au moment où
 /// un client choisit le technicien. On ne saisit que le tarif de la prestation.
@@ -26,25 +25,41 @@ class TarifsScreen extends ConsumerWidget {
     final AsyncValue<List<TarifTechnicien>> tarifs = ref.watch(tarifsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mes tarifs')),
-      body: tarifs.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, StackTrace _) => Padding(
-          padding: const EdgeInsets.all(DmSpace.x6),
-          child: Center(
-            child: DmErreur(
-              message: messageErreur(e),
-              onReessayer: () => ref.invalidate(tarifsProvider),
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            const PcHeader(
+              titre: 'Mes tarifs',
+              sousTitre: 'Votre prix, dans les bornes autorisées',
             ),
-          ),
+            Expanded(
+              child: tarifs.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (Object e, StackTrace _) => Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: PcErreur(
+                    message: messageErreur(e),
+                    onReessayer: () => ref.invalidate(tarifsProvider),
+                  ),
+                ),
+                data: (List<TarifTechnicien> liste) => liste.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(28),
+                        child: Text(
+                          'Vos tarifs apparaîtront ici une fois vos métiers '
+                          'validés.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: context.pc.muted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    : _Formulaire(tarifs: liste),
+              ),
+            ),
+          ],
         ),
-        data: (List<TarifTechnicien> liste) => liste.isEmpty
-            ? const DmVide(
-                icone: Icons.sell_outlined,
-                titre: 'Aucune prestation',
-                texte: 'Tes tarifs apparaîtront ici une fois ta spécialité validée.',
-              )
-            : _Formulaire(tarifs: liste),
       ),
     );
   }
@@ -84,32 +99,63 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
 
   @override
   Widget build(BuildContext context) {
+    final PcSkin pc = context.pc;
+    final Map<String, List<TarifTechnicien>> parMetier =
+        <String, List<TarifTechnicien>>{};
+    for (final TarifTechnicien t in widget.tarifs) {
+      parMetier.putIfAbsent(t.categorie, () => <TarifTechnicien>[]).add(t);
+    }
+
     return Column(
       children: <Widget>[
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.all(DmSpace.x4),
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
             children: <Widget>[
-              Text(
-                'Fixe ton prix par prestation. Laisse vide pour reprendre le '
-                'prix catalogue. Le déplacement s\'ajoute automatiquement selon '
-                'ta position quand un client te choisit.',
-                style: Theme.of(context).textTheme.bodySmall,
+              PcCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Icon(Icons.info_outline_rounded, color: pc.accent),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Laissez vide pour reprendre le prix catalogue. Le '
+                        'déplacement s’ajoute automatiquement selon votre '
+                        'position quand un client vous choisit.',
+                        style: TextStyle(color: pc.ink2, fontSize: 12.5),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: DmSpace.x3),
-              for (final TarifTechnicien t in widget.tarifs)
-                _LigneTarif(tarif: t, controleur: _controleurs[t.serviceId]!),
+              for (final MapEntry<String, List<TarifTechnicien>> m
+                  in parMetier.entries) ...<Widget>[
+                PcSection(m.key),
+                for (final TarifTechnicien t in m.value) ...<Widget>[
+                  _LigneTarif(
+                    tarif: t,
+                    controleur: _controleurs[t.serviceId]!,
+                    onChange: () => setState(() {}),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ],
             ],
           ),
         ),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(DmSpace.x4),
-            child: DmBouton(
-              libelle: 'Enregistrer mes tarifs',
-              enCours: _enCours,
-              onPresse: _enregistrer,
-            ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
+          decoration: BoxDecoration(
+            color: pc.card,
+            border: Border(top: BorderSide(color: pc.line)),
+          ),
+          child: PcButton(
+            libelle: 'Enregistrer mes tarifs',
+            icone: Icons.save_rounded,
+            variante: PcVariante.tech,
+            chargement: _enCours,
+            onPressed: _enregistrer,
           ),
         ),
       ],
@@ -130,13 +176,11 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
       if (valeur == null) continue;
 
       if (valeur < t.minGnf || valeur > t.maxGnf) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${t.prestation} : le prix doit être entre '
-              '${formaterGnf(t.minGnf)} et ${formaterGnf(t.maxGnf)}.',
-            ),
-          ),
+        showPcToast(
+          context,
+          '${t.prestation} : entre ${formaterGnf(t.minGnf)} et '
+          '${formaterGnf(t.maxGnf)}.',
+          icone: Icons.error_outline_rounded,
         );
         return;
       }
@@ -149,14 +193,10 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
     try {
       await ref.read(technicienRepositoryProvider).definirTarifs(prix);
       ref.invalidate(tarifsProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Tarifs enregistrés.')));
-      }
+      if (mounted) showPcToast(context, 'Tarifs enregistrés.');
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        showPcToast(context, e.message, icone: Icons.error_outline_rounded);
       }
     } finally {
       if (mounted) setState(() => _enCours = false);
@@ -165,79 +205,90 @@ class _FormulaireState extends ConsumerState<_Formulaire> {
 }
 
 class _LigneTarif extends StatelessWidget {
-  const _LigneTarif({required this.tarif, required this.controleur});
+  const _LigneTarif({
+    required this.tarif,
+    required this.controleur,
+    required this.onChange,
+  });
 
   final TarifTechnicien tarif;
   final TextEditingController controleur;
+  final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final PcSkin pc = context.pc;
+    final int? saisi = int.tryParse(controleur.text.trim());
+    final bool horsBornes =
+        saisi != null && (saisi < tarif.minGnf || saisi > tarif.maxGnf);
+    // Écart au catalogue, calculé sur ce que le technicien voit : un repère
+    // pour se situer, pas une recommandation.
+    final int? ecart = saisi == null || tarif.prixCatalogueGnf <= 0
+        ? null
+        : ((saisi - tarif.prixCatalogueGnf) * 100 / tarif.prixCatalogueGnf)
+              .round();
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: DmSpace.x3),
-      child: DmCarte(
-        enfant: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    tarif.prestation,
-                    style: theme.textTheme.titleSmall,
+    return PcCard(
+      bordure: horsBornes ? PcColors.coral.withValues(alpha: 0.6) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  tarif.prestation,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              PcPill(
+                tarif.type == 'DEPANNAGE' ? 'Dépannage' : 'Installation',
+                couleur: tarif.type == 'DEPANNAGE' ? PcColors.coral : pc.accent,
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Catalogue ${tarif.prixCatalogueFormate} · de '
+            '${formaterGnf(tarif.minGnf)} à ${formaterGnf(tarif.maxGnf)}',
+            style: TextStyle(color: pc.muted, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  controller: controleur,
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => onChange(),
+                  inputFormatters: <TextInputFormatter>[
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  style: TextStyle(
+                    color: pc.ink,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Mon prix',
+                    hintText: '${tarif.prixCatalogueGnf}',
+                    suffixText: 'GNF',
+                    errorText: horsBornes ? 'Hors des bornes' : null,
                   ),
                 ),
-                _TypeChip(type: tarif.type),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'Catalogue : ${tarif.prixCatalogueFormate} · '
-              'entre ${formaterGnf(tarif.minGnf)} et ${formaterGnf(tarif.maxGnf)}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: DmColors.neutral500,
               ),
-            ),
-            const SizedBox(height: DmSpace.x2),
-            TextField(
-              controller: controleur,
-              keyboardType: TextInputType.number,
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.digitsOnly,
+              if (ecart != null && !horsBornes) ...<Widget>[
+                const SizedBox(width: 10),
+                PcPill(
+                  ecart == 0
+                      ? 'Prix catalogue'
+                      : '${ecart > 0 ? '+' : ''}$ecart %',
+                  couleur: ecart > 0 ? PcColors.coral : PcColors.tech,
+                ),
               ],
-              decoration: InputDecoration(
-                labelText: 'Mon prix (GNF)',
-                hintText: tarif.prixCatalogueGnf.toString(),
-                suffixText: 'GNF',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TypeChip extends StatelessWidget {
-  const _TypeChip({required this.type});
-
-  final String type;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool depannage = type == 'DEPANNAGE';
-    final Color couleur = depannage ? DmColors.warning : DmColors.neutral500;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: couleur.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        depannage ? 'Dépannage' : 'Installation',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: couleur),
+            ],
+          ),
+        ],
       ),
     );
   }
