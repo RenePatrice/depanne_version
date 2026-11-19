@@ -40,6 +40,7 @@
         "FILESYSTEM_DISK": "s3",
         "MEDIA_DISK": "s3-public",
         "AWS_DOWNLOADS_BUCKET": "telechargements",
+        "MOBILE_LATEST_VERSION": "1.1.0",
         "DB_CONNECTION": "pgsql",
         "DB_SSLMODE": "require",
         "DB_DISABLE_NATIVE_PREPARES": "true",
