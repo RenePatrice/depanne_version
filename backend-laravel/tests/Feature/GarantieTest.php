@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Domain\Accounts\Data\VerificationStatus;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
-use App\Domain\Catalog\Models\Service;
 use App\Domain\Payments\Actions\DeclareCashPayment;
 use App\Domain\Settings\Models\AppSetting;
 use App\Domain\Tickets\Actions\AdvanceIntervention;
@@ -53,7 +52,7 @@ function interventionCloturee(?string $warrantyUntil = '+5 days'): array
         'reference' => 'DM-GAR-'.str_pad((string) (Ticket::query()->count() + 1), 4, '0', STR_PAD_LEFT),
         'client_id' => $client->id,
         'technician_id' => $technicien->id,
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'state' => TicketState::CLOTUREE->value,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma'],
         'location' => Geo::point(9.595, -13.640),
@@ -158,7 +157,7 @@ it('fige la garantie à la clôture d’une intervention payante', function (): 
     $ticket = Model::unguarded(fn (): Ticket => Ticket::query()->create([
         'reference' => 'DM-FIG-0001',
         'client_id' => $client->id,
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'state' => TicketState::TERMINEE->value,
         'address_snapshot' => ['formatted_address' => 'Kipé'],
         'location' => Geo::point(9.595, -13.640),

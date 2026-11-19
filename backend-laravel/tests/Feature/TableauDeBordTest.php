@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Domain\Accounts\Models\User;
-use App\Domain\Catalog\Models\Service;
 use App\Domain\Matching\Data\MatchResponse;
 use App\Domain\Reporting\Data\Periode;
 use App\Domain\Reporting\Services\DashboardService;
@@ -45,7 +44,7 @@ function ticketDeTest(TicketState $etat, CarbonImmutable $creeLe, int $total, ?i
         'reference' => 'DM-TEST-'.str_pad((string) Ticket::query()->count(), 6, '0', STR_PAD_LEFT),
         'client_id' => $client->id,
         'technician_id' => $technicien->id,
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'zone_id' => Zone::query()->value('id'),
         'state' => $etat,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma, Conakry'],

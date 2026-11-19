@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Domain\Accounts\Models\User;
-use App\Domain\Catalog\Models\Service;
 use App\Domain\Disputes\Actions\ResolveDispute;
 use App\Domain\Disputes\Data\DisputePriority;
 use App\Domain\Disputes\Data\DisputeReason;
@@ -79,7 +78,7 @@ function ticketRegle(int $total, int $commission): Ticket
         'reference' => 'DM-LIT-'.str_pad((string) (Ticket::query()->count() + 1), 4, '0', STR_PAD_LEFT),
         'client_id' => $client->id,
         'technician_id' => $technicien->id,
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'state' => TicketState::PAYEE->value,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma, Conakry'],
         'location' => Geo::point(9.598, -13.643),

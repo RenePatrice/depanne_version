@@ -187,7 +187,7 @@ it('ne crée aucun ticket en produisant un devis', function (): void {
     [, $adresse] = clientAvecAdresse();
 
     $this->postJson('/api/v1/devis', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->assertOk();
 
@@ -198,7 +198,7 @@ it('refuse un devis pour une adresse hors zone', function (): void {
     [, $adresse] = clientAvecAdresse(9.950, -13.200);
 
     $this->postJson('/api/v1/devis', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->assertStatus(422)->assertJsonPath('hors_zone', true);
 });
@@ -209,7 +209,7 @@ it('ne chiffre pas un devis sur l\'adresse de quelqu\'un d\'autre', function ():
     Sanctum::actingAs(User::factory()->create());
 
     $this->postJson('/api/v1/devis', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->assertNotFound();
 });
@@ -241,7 +241,7 @@ it('ne lance aucune recherche automatique à la publication', function (): void 
     [, $adresse] = clientAvecAdresse();
 
     $id = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->assertCreated()->assertJsonPath('ticket.etat', 'PUBLIEE')->json('ticket.id');
 
@@ -252,7 +252,7 @@ it('horodate la publication et journalise la transition d\'origine', function ()
     [, $adresse] = clientAvecAdresse();
 
     $id = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->json('ticket.id');
 
@@ -267,7 +267,7 @@ it('fige l\'adresse sur le ticket pour que l\'historique survive à sa suppressi
     [, $adresse] = clientAvecAdresse();
 
     $id = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->json('ticket.id');
 
@@ -280,7 +280,7 @@ it('fige l\'adresse sur le ticket pour que l\'historique survive à sa suppressi
 
 it('refuse une seconde demande tant que la première est ouverte', function (): void {
     [, $adresse] = clientAvecAdresse();
-    $service = Service::query()->value('id');
+    $service = servicePlomberie();
 
     $this->postJson('/api/v1/tickets', ['service_id' => $service, 'address_id' => $adresse->id])
         ->assertCreated();
@@ -294,7 +294,7 @@ it('refuse de publier depuis une adresse hors zone', function (): void {
     [, $adresse] = clientAvecAdresse(9.950, -13.200);
 
     $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->assertStatus(422);
 });
@@ -303,7 +303,7 @@ it('n\'accepte que trois photos', function (): void {
     [, $adresse] = clientAvecAdresse();
 
     $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
         'photos' => ['a.jpg', 'b.jpg', 'c.jpg', 'd.jpg'],
     ])->assertStatus(422)->assertJsonValidationErrors('photos');
@@ -331,7 +331,7 @@ it('ne montre pas le ticket d\'un autre', function (): void {
     [, $adresse] = clientAvecAdresse();
 
     $id = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->json('ticket.id');
 
@@ -414,7 +414,7 @@ it('n’applique pas le montant que le technicien a saisi sans accord du client'
     [, $adresse] = clientAvecAdresse();
 
     $ticketId = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->json('ticket.id');
 
@@ -445,7 +445,7 @@ it('annule sans frais une demande que personne n\'a encore prise', function (): 
     [, $adresse] = clientAvecAdresse();
 
     $id = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->json('ticket.id');
 
@@ -460,7 +460,7 @@ it('facture l\'annulation dès que le technicien est en route', function (): voi
     $technicien = User::factory()->technician()->create();
 
     $id = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->json('ticket.id');
 
@@ -483,7 +483,7 @@ it('refuse d\'annuler une intervention déjà terminée', function (): void {
     $technicien = User::factory()->technician()->create();
 
     $id = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->json('ticket.id');
 
@@ -509,7 +509,7 @@ it('masque le numéro du technicien tant que l\'intervention n\'est pas engagée
     $technicien = User::factory()->technician()->create(['phone' => '+224620999888']);
 
     $id = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ])->json('ticket.id');
 
@@ -533,7 +533,7 @@ it('ne révèle pas la part technicien au client', function (): void {
     [, $adresse] = clientAvecAdresse();
 
     $reponse = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => $adresse->id,
     ]);
 

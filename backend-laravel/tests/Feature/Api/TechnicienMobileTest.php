@@ -7,7 +7,6 @@ use App\Domain\Accounts\Data\VerificationStatus;
 use App\Domain\Accounts\Events\TechnicianPositionUpdated;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
-use App\Domain\Catalog\Models\Service;
 use App\Domain\Matching\Actions\ListAvailableTechnicians;
 use App\Domain\Matching\Actions\SelectTechnician;
 use App\Domain\Matching\Data\MatchResponse;
@@ -106,7 +105,7 @@ it('refuse la mise hors ligne pendant une intervention', function (): void {
         'reference' => 'DM-TEST-000900',
         'client_id' => User::factory()->create()->id,
         'technician_id' => $technicien->id,
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'state' => TicketState::EN_ROUTE->value,
         'address_snapshot' => ['formatted_address' => 'Kipé'],
         'location' => Geo::point(9.595, -13.640),

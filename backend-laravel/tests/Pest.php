@@ -100,6 +100,21 @@ function parametresTable(array $colonnes, array $filtres = []): array
 }
 
 /**
+ * Une prestation de plomberie, toujours la même.
+ *
+ * `Service::query()->value('id')` sans ordre laisse PostgreSQL rendre
+ * n'importe quelle ligne — parfois un métier du BTP que les techniciens de test
+ * (plomberie, électricité) ne couvrent pas, et le test échouait au hasard.
+ */
+function servicePlomberie(): int
+{
+    return (int) Service::query()
+        ->whereHas('category', fn ($q) => $q->where('code', 'PLOMBERIE'))
+        ->orderBy('id')
+        ->value('id');
+}
+
+/**
  * Ticket publié à Kipé, prêt à être proposé au matching.
  *
  * Déclaré ici et non dans un fichier de test : PHP n'a qu'un espace de
@@ -114,7 +129,7 @@ function ticketPublie(float $lat = 9.595, float $lng = -13.640): Ticket
     $ticket = Ticket::query()->create([
         'reference' => 'DM-TEST-'.str_pad((string) (Ticket::query()->count() + 1), 6, '0', STR_PAD_LEFT),
         'client_id' => $client->id,
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'zone_id' => Zone::query()->where('code', 'RAT-KIPE')->value('id'),
         'state' => TicketState::PUBLIEE->value,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma, Conakry', 'landmark' => 'Près du marché'],

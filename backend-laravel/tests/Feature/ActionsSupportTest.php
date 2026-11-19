@@ -8,7 +8,6 @@ use App\Domain\Accounts\Data\UserStatus;
 use App\Domain\Accounts\Data\VerificationStatus;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
-use App\Domain\Catalog\Models\Service;
 use App\Domain\Tickets\Actions\CancelTicketByAdmin;
 use App\Domain\Tickets\Actions\ForceCloseTicket;
 use App\Domain\Tickets\Actions\TransitionTicket;
@@ -37,7 +36,7 @@ function ticket(TicketState $etat, ?User $technicien = null): Ticket
         'reference' => 'DM-TEST-'.str_pad((string) (Ticket::query()->count() + 1), 6, '0', STR_PAD_LEFT),
         'client_id' => $client->id,
         'technician_id' => $technicien->id,
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'state' => $etat->value,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma, Conakry'],
         'location' => Geo::point(9.598, -13.643),

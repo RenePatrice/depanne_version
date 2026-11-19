@@ -6,7 +6,6 @@ use App\Domain\Accounts\Data\VerificationStatus;
 use App\Domain\Accounts\Models\Address;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
-use App\Domain\Catalog\Models\Service;
 use App\Domain\Matching\Models\MatchAttempt;
 use App\Domain\Payments\Data\PaymentMethod;
 use App\Domain\Payments\Models\Payment;
@@ -328,7 +327,7 @@ it('laisse une demande ouverte quand aucun technicien n’est disponible', funct
     Sanctum::actingAs($client);
 
     $ticketId = $this->postJson('/api/v1/tickets', [
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'address_id' => Address::query()->value('id'),
     ])->assertCreated()->json('ticket.id');
 

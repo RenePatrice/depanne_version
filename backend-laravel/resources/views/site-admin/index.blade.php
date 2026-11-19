@@ -189,9 +189,18 @@
 
             <div class="col-md-6">
                 <label class="form-label" for="{{ AppSetting::SITE_APK_URL }}">Lien APK (téléchargement direct)</label>
-                <input type="url" class="form-control" maxlength="2048" placeholder="https://…/parema.apk"
+                {{-- Texte et non `url` : la forme recommandée est la clé du
+                     fichier dans le bucket privé (PC-03), que le navigateur
+                     refuserait comme adresse. Le serveur valide les deux formes. --}}
+                <input type="text" class="form-control" maxlength="2048" placeholder="parema-connect.apk"
                        id="{{ AppSetting::SITE_APK_URL }}" name="{{ AppSetting::SITE_APK_URL }}"
+                       aria-describedby="aide-apk" spellcheck="false" autocomplete="off"
                        value="{{ old(AppSetting::SITE_APK_URL, $contenu[AppSetting::SITE_APK_URL]) }}">
+                <div id="aide-apk" class="form-text">
+                    Nom du fichier déposé dans le stockage privé « telechargements » (lien signé à chaque clic),
+                    ou une adresse https:// externe.
+                </div>
+                @error(AppSetting::SITE_APK_URL)<div class="text-danger small">{{ $message }}</div>@enderror
             </div>
             <div class="col-md-6">
                 <label class="form-label" for="{{ AppSetting::SITE_PLAYSTORE_URL }}">Lien Google Play Store</label>

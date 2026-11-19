@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Domain\Accounts\Data\VerificationStatus;
 use App\Domain\Accounts\Models\TechnicianProfile;
 use App\Domain\Accounts\Models\User;
-use App\Domain\Catalog\Models\Service;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Events\TechnicienPositionSuivie;
 use App\Domain\Tickets\Models\Ticket;
@@ -47,7 +46,7 @@ function trajet(TicketState $etat = TicketState::EN_ROUTE): array
         'reference' => 'DM-SUI-'.str_pad((string) (Ticket::query()->count() + 1), 4, '0', STR_PAD_LEFT),
         'client_id' => $client->id,
         'technician_id' => $technicien->id,
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'state' => $etat->value,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma', 'latitude' => 9.595, 'longitude' => -13.640],
         'location' => Geo::point(9.595, -13.640),

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Domain\Accounts\Models\User;
-use App\Domain\Catalog\Models\Service;
 use App\Domain\Reporting\Services\PredictionService;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
@@ -45,7 +44,7 @@ function ticketLe(CarbonImmutable $date, int $clientId, int $serviceId): void
 
 it('rend une prévision alignée sur l’historique, prête pour le graphe', function (): void {
     $client = User::factory()->create();
-    $serviceId = (int) Service::query()->value('id');
+    $serviceId = (int) servicePlomberie();
 
     // Deux demandes par jour sur les 14 derniers jours.
     for ($i = 0; $i < 14; $i++) {
@@ -79,7 +78,7 @@ it('rend une prévision alignée sur l’historique, prête pour le graphe', fun
 
 it('sert l’affluence prévue au technicien', function (): void {
     $client = User::factory()->create();
-    $serviceId = (int) Service::query()->value('id');
+    $serviceId = (int) servicePlomberie();
 
     // De l'historique pour que l'estimation ne soit pas « inconnue ».
     for ($i = 0; $i < 20; $i++) {

@@ -139,3 +139,30 @@ it('laisse l\'administrateur traiter un message et exporter les abonnés', funct
 it('ferme les messages et l\'export aux visiteurs non connectés', function (): void {
     $this->get(route('site-admin.abonnes.export'))->assertRedirect(route('connexion'));
 });
+
+it('accepte en back-office la clé de l’APK dans le stockage privé (PC-03)', function (): void {
+    $this->seed(RolesPermissionsSeeder::class);
+    $this->seed(AdminUserSeeder::class);
+    $admin = AdminUser::query()->where('email', 'admin@depanne-moi.gn')->firstOrFail();
+
+    $contenu = fn (string $apk): array => [
+        'site_hero_titre' => 'Le bon pro en deux minutes',
+        'site_hero_sous_titre' => 'Plomberie, électricité et BTP à Conakry.',
+        'site_contact_email' => 'contact@parema.gn',
+        'site_apk_url' => $apk,
+    ];
+
+    // La clé d'objet, telle que PC-03 l'exige, et une URL externe passent.
+    foreach (['parema-connect.apk', 'versions/parema-1.1.0.apk', 'https://exemple.com/parema.apk'] as $ok) {
+        $this->actingAs($admin, 'admin')
+            ->post(route('site-admin.contenu'), $contenu($ok))
+            ->assertSessionHasNoErrors();
+    }
+
+    // Une remontée d'arborescence ou un autre type de fichier, non.
+    foreach (['../pieces/cni.apk', 'parema.exe', 'javascript:alert(1)'] as $ko) {
+        $this->actingAs($admin, 'admin')
+            ->post(route('site-admin.contenu'), $contenu($ko))
+            ->assertSessionHasErrors('site_apk_url');
+    }
+});

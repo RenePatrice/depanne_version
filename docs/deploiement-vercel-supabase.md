@@ -135,11 +135,43 @@ quand `TACHES_JETON` n'est pas défini. Pour arrêter :
 
 ## Application mobile
 
-Compiler avec l'URL de production :
+### Construire
 
 ```cmd
-scripts\flutter.cmd build apk --release --dart-define=API_BASE_URL=https://<domaine>/api/v1
+scripts\build-release.cmd https://<domaine>/api/v1
 ```
+
+Le script signe avec `android/key.properties` (non versionné), obscurcit le
+code et ne garde que les processeurs ARM : l'APK reste sous les 50 Mo du
+stockage gratuit de Supabase. Livrable : `mobile-flutter\build\livrables\parema-connect.apk`.
 
 Sans `REVERB_URL`, l'application interroge le serveur au lieu d'écouter : c'est
 le comportement attendu sur ce montage.
+
+### Publier une nouvelle version — dans cet ordre
+
+L'application parle à l'API : une APK neuve devant un serveur ancien appelle
+des routes qui n'existent pas encore. **Le serveur d'abord, l'APK ensuite.**
+
+1. **Monter la version** dans `mobile-flutter/pubspec.yaml` (`1.1.0+2` →
+   `1.2.0+3`) : sans `versionCode` supérieur, Android refuse d'installer
+   par-dessus l'ancienne.
+2. **Annoncer la version au serveur** : `MOBILE_LATEST_VERSION` dans
+   `vercel.json` (la vérification de mise à jour du profil la lit sur
+   `/api/v1/application/version`). `MOBILE_MIN_VERSION` seulement si
+   l'ancienne application ne peut plus fonctionner — elle forcerait la mise à
+   jour.
+3. **Pousser** sur `main` : Vercel redéploie.
+4. **Migrer** la base de production :
+   `.\scripts\artisan-prod.ps1 migrate --database=pgsql_migrations --force`
+   (lit `backend-laravel\.env.production`, ignoré par git).
+5. **Construire** l'APK (`scripts\build-release.cmd`).
+6. **Déposer** le fichier dans le bucket **privé** `telechargements` de
+   Supabase (Storage), sous la clé `parema-connect.apk` — en remplaçant
+   l'ancien. Le bucket doit rester privé : la vitrine signe un lien de 15 min
+   à chaque clic (PC-03).
+7. **Back-office → Site vitrine** : « Lien de l'APK » = `parema-connect.apk`
+   (la clé, pas une URL), téléchargement activé. Si la clé n'a pas changé, il
+   n'y a rien à toucher : le bouton « Télécharger » sert le nouveau fichier.
+8. **Vérifier** : le bouton du site télécharge, l'APK s'installe par-dessus
+   l'ancienne, et `/api/v1/application/version` annonce la bonne version.

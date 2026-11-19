@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Domain\Accounts\Models\User;
-use App\Domain\Catalog\Models\Service;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
 use App\Support\Geo;
@@ -39,7 +38,7 @@ function interventionEnRelation(): array
         'reference' => 'DM-OFF-'.str_pad((string) (Ticket::query()->count() + 1), 4, '0', STR_PAD_LEFT),
         'client_id' => $client->id,
         'technician_id' => $technicien->id,
-        'service_id' => Service::query()->value('id'),
+        'service_id' => servicePlomberie(),
         'state' => TicketState::EN_ROUTE->value,
         'address_snapshot' => ['formatted_address' => 'Kipé, Ratoma'],
         'location' => Geo::point(9.595, -13.640),

@@ -1251,7 +1251,7 @@ Routes ajoutées pour la refonte :
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **505 tests passent** (1 918 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **506 tests passent** (1 937 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - Ne jamais lancer deux suites en même temps, ni `pest --parallel` : elles
   partagent `depanne_moi_test`, et les bases parallèles n'ont pas PostGIS.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit

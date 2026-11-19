@@ -91,11 +91,16 @@ final class SiteAdminController extends Controller
             AppSetting::SITE_HERO_SOUS_TITRE => ['required', 'string', 'max:400'],
             AppSetting::SITE_ANNONCE => ['nullable', 'string', 'max:200'],
             AppSetting::SITE_TELECHARGEMENT_ACTIF => ['sometimes', 'boolean'],
-            AppSetting::SITE_APK_URL => ['nullable', 'url', 'max:2048'],
+            // Une URL absolue (hébergement externe) ou la clé de l'APK dans le
+            // bucket privé `telechargements` (PC-03) : `parema-connect.apk`. Sans
+            // cette seconde forme, le formulaire refusait sa propre valeur.
+            AppSetting::SITE_APK_URL => ['nullable', 'string', 'max:2048', 'regex:#^(https?://\S+|[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*\.apk)$#', 'not_regex:#\.\.#'],
             AppSetting::SITE_PLAYSTORE_URL => ['nullable', 'url', 'max:2048'],
             AppSetting::SITE_CONTACT_EMAIL => ['required', 'email', 'max:160'],
             AppSetting::SITE_CONTACT_WHATSAPP => ['nullable', 'string', 'regex:/^[0-9]{6,20}$/'],
         ], [
+            AppSetting::SITE_APK_URL.'.not_regex' => 'Indiquez une adresse https:// ou le nom du fichier dans le stockage privé (ex. parema-connect.apk).',
+            AppSetting::SITE_APK_URL.'.regex' => 'Indiquez une adresse https:// ou le nom du fichier dans le stockage privé (ex. parema-connect.apk).',
             AppSetting::SITE_CONTACT_WHATSAPP.'.regex' => 'Le numéro WhatsApp doit être au format international, chiffres seuls (ex. 224620000000).',
         ]);
 
