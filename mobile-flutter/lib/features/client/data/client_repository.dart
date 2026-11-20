@@ -3,6 +3,19 @@ import 'package:dio/dio.dart' show FormData, MultipartFile;
 import '../../../core/network/api_client.dart';
 import '../../shared/data/modeles.dart';
 
+/// Réponse du modèle de diagnostic hébergé.
+class DiagnosticIa {
+  const DiagnosticIa({
+    required this.prestations,
+    required this.explication,
+    this.conseil,
+  });
+
+  final List<int> prestations;
+  final String explication;
+  final String? conseil;
+}
+
 /// Tous les appels du parcours client.
 ///
 /// Une seule classe plutôt qu'un dépôt par écran : les huit étapes du parcours
@@ -108,6 +121,26 @@ class ClientRepository {
   }
 
   // --------------------------------------------------------------- tickets --
+
+  /// Diagnostic par le modèle open source hébergé (lot 4). `null` quand aucun
+  /// modèle n'a répondu : l'écran garde alors son moteur local.
+  Future<DiagnosticIa?> diagnostiquer(String description) async {
+    final Map<String, dynamic> r = await _api.post(
+      '/assistant/diagnostic',
+      corps: <String, dynamic>{'description': description},
+    );
+
+    if (r['source'] != 'ia') return null;
+
+    return DiagnosticIa(
+      prestations: <int>[
+        for (final Object? id in (r['prestations'] as List<dynamic>? ?? []))
+          if (id is int) id,
+      ],
+      explication: r['explication'] as String? ?? '',
+      conseil: r['conseil'] as String?,
+    );
+  }
 
   /// Déposer une photo de panne avant la publication (lot 3). Renvoie le
   /// chemin à joindre à la demande ; le serveur la garde sur son disque privé.

@@ -1,0 +1,42 @@
+# Serveur de l'assistant de diagnostic Parema (lot 4).
+#
+# Ollama sert le modèle open source ; Caddy le place derrière HTTPS
+# (certificat Let's Encrypt automatique) et n'ouvre que /api/chat et
+# /api/tags, sur présentation du jeton. Ollama n'a pas d'authentification
+# propre : son port n'est jamais exposé à l'extérieur.
+
+services:
+  ollama:
+    image: ollama/ollama:0.12.6
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: "24h"     # modèle gardé en mémoire : pas d'attente au premier appel
+      OLLAMA_NUM_PARALLEL: "2"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    volumes:
+      - ollama-modeles:/root/.ollama
+    networks: [interne]
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on: [ollama]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAINE: ${DOMAINE}
+      OLLAMA_TOKEN: ${OLLAMA_TOKEN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-donnees:/data
+      - caddy-config:/config
+    networks: [interne]
+
+volumes:
+  ollama-modeles:
+  caddy-donnees:
+  caddy-config:
+
+networks:
+  interne:

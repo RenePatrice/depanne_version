@@ -108,4 +108,17 @@ return [
         'version_minimale' => env('MOBILE_MIN_VERSION', ''),
     ],
 
+    // Assistant de diagnostic (lot 4) : modèle open source auto-hébergé servi
+    // par Ollama. Sans `ASSISTANT_DRIVER=ollama` et une URL, aucun appel n'est
+    // tenté : l'application garde son moteur local par mots-clés.
+    'assistant' => [
+        'driver' => env('ASSISTANT_DRIVER', 'aucun'),
+        'ollama' => [
+            'url' => env('OLLAMA_URL', ''),
+            'modele' => env('OLLAMA_MODEL', 'qwen2.5:3b-instruct'),
+            'delai' => (int) env('OLLAMA_TIMEOUT', 25),
+            'jeton' => env('OLLAMA_TOKEN', ''),
+        ],
+    ],
+
 ];

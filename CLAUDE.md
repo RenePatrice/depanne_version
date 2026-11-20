@@ -189,7 +189,7 @@ Les assets front se construisent sur l'**hôte**, hors Docker, depuis
 
 ## 5. Organisation du domaine
 
-`app/Domain/` compte **14 contextes**. Chacun expose des actions invocables ;
+`app/Domain/` compte **15 contextes**. Chacun expose des actions invocables ;
 les contrôleurs web et API ne font que valider, appeler, présenter.
 
 | Contexte | Contient aujourd'hui |
@@ -208,6 +208,7 @@ les contrôleurs web et API ne font que valider, appeler, présenter.
 | `Notifications` | `AppNotification`, `NotificationType`, `SendNotification`, `PushProvider` et son pilote `log` |
 | `Settings` | `AppSetting` et ses clés de configuration |
 | `Reporting` | `Periode`, `DashboardService` — agrégations du tableau de bord ; `PredictionService` — prédictions locales sans API (#10) |
+| `Assistant` | `ModeleDiagnostic` et ses pilotes `OllamaModele` / `AucunModele`, `DiagnostiquerPanne` — assistant de diagnostic sur modèle open source auto-hébergé (lot 4) |
 
 Les fournisseurs externes sont configurés dans **`config/depanne.php`** : c'est
 le seul fichier autorisé à appeler `env()`, ailleurs la valeur disparaîtrait dès
@@ -734,6 +735,32 @@ l'appareil (1600 px) pour économiser le forfait.
 - Exposées par `TicketResource` (parties au ticket) et `SollicitationResource`
   (technicien sollicité), jamais ailleurs. Une ancienne adresse complète est
   rendue telle quelle.
+
+### Assistant de diagnostic (lot 4, 20 novembre 2026)
+Le client décrit sa panne, l'assistant propose la prestation. Décision du
+client : **modèle open source auto-hébergé**, pas d'API tierce.
+
+- `POST /assistant/diagnostic` (session, limite `assistant` 6/min) appelle
+  `ModeleDiagnostic`. Pilote `OllamaModele` (`/api/chat`, JSON contraint par
+  schéma, température 0, jeton Bearer du proxy) si `ASSISTANT_DRIVER=ollama`
+  et `OLLAMA_URL` ; sinon `AucunModele`, **aucun appel tenté**.
+- Le modèle ne fait que **choisir** parmi les identifiants du catalogue actif
+  qu'on lui passe ; `DiagnostiquerPanne` relit chaque identifiant (inventé,
+  désactivé → écarté) et en garde deux au plus. La consigne lui dit d'ignorer
+  toute instruction glissée dans la description.
+- Comme `MapProvider`, le pilote **ne lève jamais** : panne, délai, réponse
+  illisible → `{"source": null}`, et l'application retombe sur son moteur local
+  par synonymes (`rechercherPrestations`), sans message d'erreur. La pastille
+  de l'écran dit « IA » ou « Hors ligne ».
+- **Serveur à part** (Vercel ne fait pas tourner de modèle) : `deploy/ia/`
+  — Ollama + Caddy (HTTPS automatique, jeton exigé, seules `/api/chat` et
+  `/api/tags` ouvertes ; Ollama jamais exposé) et `installer.sh` (Ubuntu, une
+  commande). Procédure de branchement : [docs/ia-assistant.md](docs/ia-assistant.md).
+- Modèle par défaut `qwen2.5:3b-instruct`, délai 25 s (l'application attend
+  30 s). Essai réel sur la machine de dev (CPU seul) : 6 à 18 s, 5 bonnes
+  réponses sur 6 ; le 7B est plus précis sur les cas ambigus, sur 16 Go.
+  La réponse est plafonnée (`num_predict` 90) : sans GPU, c'est l'écriture qui
+  coûte, pas la lecture du catalogue.
 
 ### Anti-contournement « hors plateforme » (#3)
 Le §11 appelle le contournement « risque business n°1 ». Trois leviers, dans la
@@ -1305,7 +1332,7 @@ Routes ajoutées pour la refonte :
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **523 tests passent** (plus de 2 000 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **529 tests passent** (plus de 2 000 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - Ne jamais lancer deux suites en même temps, ni `pest --parallel` : elles
   partagent `depanne_moi_test`, et les bases parallèles n'ont pas PostGIS.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit

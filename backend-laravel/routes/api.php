@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AdresseController;
 use App\Http\Controllers\Api\V1\ApplicationController;
+use App\Http\Controllers\Api\V1\AssistantController;
 use App\Http\Controllers\Api\V1\Auth\InscriptionController;
 use App\Http\Controllers\Api\V1\Auth\MotDePasseController;
 use App\Http\Controllers\Api\V1\Auth\SessionController;
@@ -147,6 +148,12 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/tickets/photos', [TicketController::class, 'deposerPhoto'])
             ->middleware('throttle:photos-ticket')
             ->name('api.tickets.photos');
+
+        // Assistant de diagnostic (lot 4) : modèle open source auto-hébergé,
+        // repli local dans l'application.
+        Route::post('/assistant/diagnostic', [AssistantController::class, 'diagnostic'])
+            ->middleware('throttle:assistant')
+            ->name('api.assistant.diagnostic');
 
         Route::get('/tickets', [TicketController::class, 'index'])->name('api.tickets');
         Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('api.tickets.detail');

@@ -6,14 +6,14 @@ import '../../../design_system/pc.dart';
 import '../../shared/data/modeles.dart';
 import '../application/client_providers.dart';
 import '../application/recherche_prestations.dart';
+import '../data/client_repository.dart';
 import 'composants_client.dart';
 
 /// Assistant de diagnostic : le client décrit sa panne avec ses mots, et
 /// l'assistant propose la prestation qui correspond.
 ///
-/// Il fonctionne aujourd'hui sur le téléphone (`rechercherPrestations`), sans
-/// réseau. Le modèle de langue open source hébergé côté serveur prendra le
-/// relais quand il sera branché ; ce moteur local restera le repli.
+/// Le modèle open source hébergé répond quand il est branché (lot 4) ; sinon,
+/// ou sans réseau, le moteur local du téléphone (`rechercherPrestations`).
 class AssistantScreen extends ConsumerStatefulWidget {
   const AssistantScreen({super.key});
 
@@ -60,6 +60,7 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
     ),
   ];
   bool _occupe = false;
+  bool _iaDisponible = false;
 
   @override
   void dispose() {
@@ -100,18 +101,34 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
       // Sans catalogue, la réponse dira ne pas pouvoir conclure.
     }
 
-    // Un court délai : une réponse instantanée paraît mécanique.
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-    final List<ResultatRecherche> resultats = rechercherPrestations(
-      catalogue,
-      t,
-      limite: 2,
-    );
+    final DiagnosticIa? ia = await _demanderAuModele(t);
+    final List<ResultatRecherche> parIa = ia == null
+        ? const <ResultatRecherche>[]
+        : _depuisIdentifiants(catalogue, ia.prestations);
+
+    if (parIa.isEmpty) {
+      // Un court délai : une réponse instantanée paraît mécanique.
+      await Future<void>.delayed(const Duration(milliseconds: 650));
+    }
+    final List<ResultatRecherche> resultats = parIa.isNotEmpty
+        ? parIa
+        : rechercherPrestations(catalogue, t, limite: 2);
 
     if (!mounted) return;
     setState(() {
       _fil.removeWhere((_Bulle b) => b is _Reflexion);
-      if (resultats.isEmpty) {
+      if (parIa.isNotEmpty) {
+        _iaDisponible = true;
+        _fil.add(
+          _BulleAssistant(
+            <String>[
+              if (ia!.explication.isNotEmpty) ia.explication,
+              if ((ia.conseil ?? '').isNotEmpty) '⚠️ ${ia.conseil}',
+            ].join('\n\n'),
+            parIa,
+          ),
+        );
+      } else if (resultats.isEmpty) {
         _fil.add(
           const _BulleAssistant(
             'Je n’ai pas bien identifié la panne 🤔 Pouvez-vous préciser la '
@@ -135,6 +152,30 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
     _defilerEnBas();
   }
 
+  /// Le modèle hébergé, s'il répond. Toute erreur rend `null` : le moteur
+  /// local prend le relais sans rien afficher.
+  Future<DiagnosticIa?> _demanderAuModele(String texte) async {
+    try {
+      return await ref
+          .read(clientRepositoryProvider)
+          .diagnostiquer(texte)
+          .timeout(const Duration(seconds: 30));
+    } on Object {
+      return null;
+    }
+  }
+
+  static List<ResultatRecherche> _depuisIdentifiants(
+    List<CategoriePrestations> catalogue,
+    List<int> ids,
+  ) => <ResultatRecherche>[
+    for (final int id in ids)
+      for (final CategoriePrestations c in catalogue)
+        for (final Prestation p in c.prestations)
+          if (p.id == id)
+            ResultatRecherche(categorie: c, prestation: p, score: 1),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final PcSkin pc = context.pc;
@@ -146,9 +187,9 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
             PcHeader(
               titre: 'Assistant Parema',
               sousTitre: 'Diagnostic à partir de votre description',
-              action: const PcPill(
-                'Hors ligne',
-                couleur: PcColors.coral,
+              action: PcPill(
+                _iaDisponible ? 'IA' : 'Hors ligne',
+                couleur: _iaDisponible ? PcColors.tech : PcColors.coral,
                 icone: Icons.auto_awesome_rounded,
               ),
             ),

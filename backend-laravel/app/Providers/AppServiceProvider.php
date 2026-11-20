@@ -86,6 +86,10 @@ final class AppServiceProvider extends ServiceProvider
         RateLimiter::for('pieces', fn (Request $request): Limit => Limit::perHour(20)
             ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // Chaque appel occupe le serveur du modèle plusieurs secondes.
+        RateLimiter::for('assistant', fn (Request $request): Limit => Limit::perMinute(6)
+            ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         RateLimiter::for('photos-ticket', fn (Request $request): Limit => Limit::perHour(30)
             ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
 

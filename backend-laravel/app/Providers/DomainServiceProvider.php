@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Assistant\Contracts\ModeleDiagnostic;
+use App\Domain\Assistant\Providers\AucunModele;
+use App\Domain\Assistant\Providers\OllamaModele;
 use App\Domain\Chat\Contracts\MaskedCallProvider;
 use App\Domain\Chat\Providers\MockMaskedCallProvider;
 use App\Domain\Notifications\Channels\LogPushProvider;
@@ -82,6 +85,22 @@ final class DomainServiceProvider extends ServiceProvider
                 (string) $config['client_secret'],
                 (string) $config['merchant_key'],
                 (string) ($config['webhook_secret'] ?? ''),
+            );
+        });
+
+        $this->app->bind(ModeleDiagnostic::class, function (): ModeleDiagnostic {
+            $config = (array) config('depanne.assistant.ollama');
+            $url = (string) ($config['url'] ?? '');
+
+            if (config('depanne.assistant.driver') !== 'ollama' || $url === '') {
+                return new AucunModele;
+            }
+
+            return new OllamaModele(
+                $url,
+                (string) ($config['modele'] ?? ''),
+                (int) ($config['delai'] ?? 15),
+                (string) ($config['jeton'] ?? ''),
             );
         });
 
