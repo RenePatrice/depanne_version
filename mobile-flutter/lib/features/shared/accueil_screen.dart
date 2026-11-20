@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_mode.dart';
+import '../../core/mise_a_jour/fenetre_mise_a_jour.dart';
 import '../../core/providers.dart';
 import '../../core/temps_reel/temps_reel_providers.dart';
 import '../../core/temps_reel/temps_reel_service.dart';
@@ -19,11 +20,7 @@ import '../technicien/presentation/mes_interventions_screen.dart';
 import '../technicien/presentation/portefeuille_screen.dart';
 import '../technicien/presentation/profil_technicien_screen.dart';
 
-/// Coquille des deux espaces, avec la barre d'onglets flottante (prototype v4).
-///
-/// Client : Accueil, Explorer, Commandes, Messages, Profil — en clair, accent
-/// bleu. Technicien : Tableau, Missions, Gains, Profil — en sombre, accent
-/// vert. On sait dans quel espace on se trouve sans lire un mot.
+/// Coquille des deux espaces, avec la barre d'onglets flottante.
 class AccueilScreen extends ConsumerStatefulWidget {
   const AccueilScreen({super.key});
 
@@ -34,6 +31,14 @@ class AccueilScreen extends ConsumerStatefulWidget {
 class _AccueilScreenState extends ConsumerState<AccueilScreen> {
   int _onglet = 0;
   AppMode? _modePrecedent;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) proposerMiseAJour(context, ref);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -38,6 +38,20 @@ class PcSkin extends ThemeExtension<PcSkin> {
   );
 
   static const PcSkin technicien = PcSkin(
+    bg: PcColors.bg,
+    card: PcColors.card,
+    soft: PcColors.soft,
+    ink: PcColors.ink,
+    ink2: PcColors.ink2,
+    muted: PcColors.muted,
+    line: PcColors.line,
+    accent: PcColors.tech,
+    accentLight: PcColors.techLight,
+    accentDeep: PcColors.techDeep,
+    estSombre: false,
+  );
+
+  static const PcSkin technicienSombre = PcSkin(
     bg: PcColors.nightBg,
     card: PcColors.nightCard,
     soft: PcColors.nightSoft,

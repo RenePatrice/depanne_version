@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/providers.dart';
+import '../../auth/application/session_controller.dart';
 import '../../shared/data/modeles.dart';
 import '../data/modeles.dart';
 import '../data/technicien_repository.dart';
@@ -79,19 +80,29 @@ class Disponibilite {
 }
 
 class DisponibiliteController extends Notifier<Disponibilite> {
-  @override
-  Disponibilite build() => const Disponibilite();
+  bool _amorce = false;
 
-  /// Reprend l'état connu du compte, au premier affichage de l'écran.
+  @override
+  Disponibilite build() {
+    // Changement de compte : l'interrupteur repart de l'état du nouveau compte.
+    ref.watch(sessionProvider.select((Session s) => s.utilisateur?.id));
+    _amorce = false;
+    return const Disponibilite();
+  }
+
+  /// Reprend l'état connu du compte, une seule fois. La session n'est pas
+  /// relue après un basculement : la reprendre à chaque affichage remettait
+  /// l'interrupteur « hors ligne » juste après la réponse du serveur.
   void amorcer(bool enLigne) {
-    if (!state.enCours && state.enLigne != enLigne) {
-      state = state.copie(enLigne: enLigne);
-    }
+    if (_amorce || state.enCours) return;
+    _amorce = true;
+    if (state.enLigne != enLigne) state = state.copie(enLigne: enLigne);
   }
 
   Future<void> basculer(bool vers) async {
     if (state.enCours) return;
 
+    _amorce = true;
     state = state.copie(enCours: true);
 
     try {

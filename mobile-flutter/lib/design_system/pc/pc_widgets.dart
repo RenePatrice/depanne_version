@@ -358,12 +358,16 @@ class PcAvatar extends StatelessWidget {
     this.taille = 48,
     this.couleurs = const <Color>[PcColors.brandLight, PcColors.brandDark],
     this.image,
+    this.rond = false,
   });
 
   final String nom;
   final double taille;
   final List<Color> couleurs;
   final String? image;
+
+  /// Cercle plein plutôt que carré arrondi (photo du profil, dans son anneau).
+  final bool rond;
 
   static String initiales(String nom) {
     final List<String> mots = nom
@@ -385,7 +389,8 @@ class PcAvatar extends StatelessWidget {
       height: taille,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(taille * 0.34),
+        shape: rond ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: rond ? null : BorderRadius.circular(taille * 0.34),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

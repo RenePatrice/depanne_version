@@ -1205,8 +1205,12 @@ direct), **sans casser le parcours existant** :
 ### Refonte mobile « Pc » (prototype v4 validé, 19 novembre 2026)
 
 Design system `lib/design_system/pc*` (Sora + Plus Jakarta Sans embarquées,
-espace client clair accent bleu, espace technicien sombre accent vert,
-`PcSkin` lu par `context.pc`). Coquille à onglets flottants (`PcTabBar`).
+accent bleu côté client, vert côté technicien, `PcSkin` lu par `context.pc`).
+**Clair par défaut, sombre au choix** pour les deux espaces (Profil →
+Apparence : clair, sombre, comme le téléphone ; `core/apparence.dart`, mémorisé
+dans le coffre). Coquille à onglets flottants (`PcTabBar`). À l'ouverture,
+`proposerMiseAJour` propose la nouvelle version une fois par session, et
+bloque sous `MOBILE_MIN_VERSION`.
 
 - **Client refondu** : accueil, Explorer (filtre Dépannage / Installation /
   BTP), catégorie, recherche + assistant **sur l'appareil** (correspondance par

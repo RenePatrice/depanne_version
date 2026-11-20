@@ -1,4 +1,5 @@
 import 'package:depanne_moi/core/app_mode.dart';
+import 'package:depanne_moi/core/apparence.dart';
 import 'package:depanne_moi/core/auth/token_store.dart';
 import 'package:depanne_moi/core/providers.dart';
 import 'package:depanne_moi/design_system/app_theme.dart';
@@ -72,14 +73,17 @@ void main() {
       );
     });
 
-    test('garde l’espace technicien sombre, l’espace client clair', () {
-      // Prototype v4 : le client en clair (le réglage du téléphone peut
-      // l'assombrir), le technicien toujours en sombre — on sait dans quel
-      // espace on est sans lire.
+    test('offre le clair et le sombre aux deux espaces', () {
       expect(AppTheme.clair(AppMode.client).brightness, Brightness.light);
       expect(AppTheme.sombre(AppMode.client).brightness, Brightness.dark);
-      expect(AppTheme.clair(AppMode.technicien).brightness, Brightness.dark);
+      expect(AppTheme.clair(AppMode.technicien).brightness, Brightness.light);
       expect(AppTheme.sombre(AppMode.technicien).brightness, Brightness.dark);
+    });
+
+    test('part en clair tant que rien n’est choisi', () {
+      expect(Apparence.depuisCle(null), Apparence.clair);
+      expect(Apparence.depuisCle('inconnu'), Apparence.clair);
+      expect(Apparence.depuisCle('sombre').themeMode, ThemeMode.dark);
     });
 
     test('donne aux boutons une cible tactile confortable', () {

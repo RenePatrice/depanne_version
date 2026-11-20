@@ -5,18 +5,14 @@ import '../core/app_mode.dart';
 import 'pc_skin.dart';
 import 'pc_tokens.dart';
 
-/// Thèmes de l'application, d'après le prototype v4 validé.
-///
-/// L'espace **client** est clair, accent bleu ; l'espace **technicien** est
-/// sombre, accent vert. Ce n'est pas décoratif : on sait dans quel espace on se
-/// trouve sans lire un seul mot. Le réglage sombre du téléphone assombrit
-/// l'espace client en gardant son accent bleu.
+/// Thèmes de l'application : clair par défaut, sombre au choix (Profil →
+/// Apparence). L'accent dit l'espace — bleu client, vert technicien.
 abstract final class AppTheme {
   static ThemeData clair(AppMode mode) =>
       _construire(mode == AppMode.client ? PcSkin.client : PcSkin.technicien);
 
   static ThemeData sombre(AppMode mode) => _construire(
-    mode == AppMode.client ? PcSkin.clientSombre : PcSkin.technicien,
+    mode == AppMode.client ? PcSkin.clientSombre : PcSkin.technicienSombre,
   );
 
   static Color accent(AppMode mode) =>

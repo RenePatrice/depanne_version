@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/apparence.dart';
 import '../../../core/mise_a_jour/mise_a_jour.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/providers.dart';
@@ -144,7 +145,12 @@ class _EnteteProfilState extends ConsumerState<EnteteProfil> {
                       shape: BoxShape.circle,
                       color: pc.bg,
                     ),
-                    child: PcAvatar(nom: nom, image: u?.avatarUrl, taille: 92),
+                    child: PcAvatar(
+                      nom: nom,
+                      image: u?.avatarUrl,
+                      taille: 92,
+                      rond: true,
+                    ),
                   ),
                 ),
                 Positioned(
@@ -325,6 +331,12 @@ class LignesCompte extends ConsumerWidget {
         GroupeProfil(
           lignes: <Widget>[
             LigneProfil(
+              icone: Icons.contrast_rounded,
+              libelle: 'Apparence',
+              detail: ref.watch(apparenceProvider).libelle,
+              onTap: () => _choisirApparence(context, ref),
+            ),
+            LigneProfil(
               icone: Icons.system_update_rounded,
               libelle: etat?.disponible ?? false
                   ? 'Mise à jour disponible'
@@ -354,6 +366,38 @@ class LignesCompte extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _choisirApparence(BuildContext context, WidgetRef ref) async {
+    final Apparence actuelle = ref.read(apparenceProvider);
+    final Apparence? choix = await showPcSheet<Apparence>(
+      context,
+      builder: (BuildContext ctx) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text('Apparence', style: Theme.of(ctx).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          for (final Apparence a in Apparence.values)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(switch (a) {
+                Apparence.clair => Icons.light_mode_rounded,
+                Apparence.sombre => Icons.dark_mode_rounded,
+                Apparence.systeme => Icons.phone_android_rounded,
+              }, color: ctx.pc.accent),
+              title: Text(a.libelle),
+              trailing: a == actuelle
+                  ? Icon(Icons.check_rounded, color: ctx.pc.accent)
+                  : null,
+              onTap: () => Navigator.of(ctx).pop(a),
+            ),
+        ],
+      ),
+    );
+
+    if (choix != null) {
+      await ref.read(apparenceProvider.notifier).choisir(choix);
+    }
   }
 
   Future<void> _verifierMiseAJour(BuildContext context, WidgetRef ref) async {

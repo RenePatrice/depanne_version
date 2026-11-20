@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/app_mode.dart';
+import 'core/apparence.dart';
 import 'core/hors_ligne/bandeau_hors_ligne.dart';
 import 'core/providers.dart';
 import 'core/router/app_router.dart';
@@ -58,6 +59,7 @@ class _ParemaConnectAppState extends ConsumerState<ParemaConnectApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.clair(mode),
       darkTheme: AppTheme.sombre(mode),
+      themeMode: ref.watch(apparenceProvider).themeMode,
       routerConfig: ref.watch(routerProvider),
       builder: (BuildContext context, Widget? enfant) =>
           BandeauHorsLigne(enfant: enfant ?? const SizedBox.shrink()),
