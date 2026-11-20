@@ -1,0 +1,12 @@
+# Port 80 déjà pris par un autre service, 443 libre : Caddy n'ouvre que le 443
+# et utilise Caddyfile.443 (certificat par TLS-ALPN). Choisi automatiquement
+# par installer.sh.
+#
+#   docker compose -f docker-compose.yml -f port-443-seul.yml up -d
+
+services:
+  caddy:
+    ports: !override
+      - "443:443"
+    volumes:
+      - ./Caddyfile.443:/etc/caddy/Caddyfile:ro

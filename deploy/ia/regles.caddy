@@ -1,0 +1,25 @@
+# Règles communes aux deux Caddyfile : seules deux routes d'Ollama sont utiles
+# à Parema, et seulement avec le jeton. Le reste (téléchargement ou
+# suppression de modèles…) reste fermé.
+@autorise {
+	path /api/chat /api/tags
+	header Authorization "Bearer {$OLLAMA_TOKEN}"
+}
+
+handle @autorise {
+	reverse_proxy ollama:11434 {
+		transport http {
+			read_timeout 60s
+		}
+	}
+}
+
+handle {
+	respond "Non autorisé" 401
+}
+
+header -Server
+log {
+	output stdout
+	format json
+}

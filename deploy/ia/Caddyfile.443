@@ -1,0 +1,15 @@
+# Variante quand le port 80 est déjà pris par un autre service : Caddy n'écoute
+# que sur le 443 et obtient son certificat par la vérification TLS-ALPN de
+# Let's Encrypt, qui passe par ce seul port.
+{
+	auto_https disable_redirects
+}
+
+{$DOMAINE} {
+	tls {
+		issuer acme {
+			disable_http_challenge
+		}
+	}
+	import /etc/caddy/regles.caddy
+}

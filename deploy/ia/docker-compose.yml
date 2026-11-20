@@ -29,6 +29,7 @@ services:
       OLLAMA_TOKEN: ${OLLAMA_TOKEN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./regles.caddy:/etc/caddy/regles.caddy:ro
       - caddy-donnees:/data
       - caddy-config:/config
     networks: [interne]

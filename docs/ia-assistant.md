@@ -66,8 +66,13 @@ sudo ./installer.sh                        # sans domaine (adresse sslip.io)
 Le script, dans l'ordre :
 
 1. choisit l'adresse (sslip.io si aucun domaine n'est donné) ;
-2. vérifie que les ports **80 et 443 sont libres** — sinon il s'arrête sans
-   rien modifier (voir plus bas, « Serveur déjà équipé d'un proxy ») ;
+2. regarde les ports, sans jamais toucher à un service existant :
+   - 80 et 443 libres → installation complète ;
+   - **80 pris, 443 libre** → Caddy n'ouvre que le 443 et obtient le
+     certificat par la vérification **TLS-ALPN** de Let's Encrypt
+     (`port-443-seul.yml`, `Caddyfile.443`) — choisi automatiquement ;
+   - 443 pris → arrêt sans rien modifier (voir « Serveur déjà équipé d'un
+     proxy ») ;
 3. installe Docker s'il manque ;
 4. si le pare-feu est actif, **ajoute** les règles 80/443 sans toucher aux
    autres ; s'il est inactif, il le laisse tel quel (vos autres services ne
@@ -147,6 +152,10 @@ cd ~/parema-ia
 docker compose logs -f caddy      # requêtes reçues (code 200 / 401)
 docker compose exec ollama ollama ps   # modèle chargé en mémoire
 ```
+
+En mode « 443 seul » (port 80 pris), ajouter les deux fichiers à chaque
+commande qui démarre ou recrée les conteneurs :
+`docker compose -f docker-compose.yml -f port-443-seul.yml up -d`.
 
 Si la pastille reste « Hors ligne » : vérifier les variables Vercel et le
 redéploiement, puis tester depuis votre poste :
