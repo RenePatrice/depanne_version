@@ -1,0 +1,11 @@
+# Variante pour un serveur dont les ports 80/443 sont déjà tenus par un proxy
+# (nginx, Traefik…). On ne démarre qu'Ollama, joignable sur 127.0.0.1:11434
+# uniquement (jamais depuis l'extérieur) ; le proxy existant fait le HTTPS et
+# vérifie le jeton. Voir docs/ia-assistant.md, « Serveur déjà équipé d'un proxy ».
+#
+#   docker compose -f docker-compose.yml -f proxy-existant.yml up -d ollama
+
+services:
+  ollama:
+    ports:
+      - "127.0.0.1:11434:11434"

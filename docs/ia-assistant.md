@@ -36,16 +36,18 @@ deux secondes ; c'est l'option à retenir si le volume grandit.
 Choisir un hébergeur proche (Europe de l'Ouest) pour limiter la latence depuis
 Vercel. Il faut un accès SSH root ou sudo.
 
-## 2. Pointer un nom de domaine
+## 2. Une adresse pour le serveur (domaine facultatif)
 
-Créer un enregistrement DNS **A** vers l'adresse IP du serveur, par exemple :
+Le HTTPS est obligatoire (sans lui, le jeton circulerait en clair) et un
+certificat HTTPS demande un **nom**, pas une IP. Deux possibilités :
 
-```
-ia.parema-connect.com   A   203.0.113.10
-```
+- **Sans domaine** (recommandé pour démarrer) : le script utilise
+  **sslip.io**, un service gratuit sans inscription où le nom contient l'IP :
+  `ia.203-0-113-10.sslip.io` pointe vers `203.0.113.10`. Rien à configurer.
+- **Avec un domaine** à vous : créer un enregistrement DNS **A**
+  (`ia.parema-connect.com  A  203.0.113.10`) avant l'installation.
 
-Le certificat HTTPS est obtenu automatiquement par Caddy au premier démarrage :
-le domaine doit pointer vers le serveur **avant** l'installation.
+Dans les deux cas, Caddy obtient le certificat tout seul au premier démarrage.
 
 ## 3. Installer
 
@@ -56,19 +58,60 @@ scp -r deploy/ia utilisateur@203.0.113.10:~/parema-ia
 ssh utilisateur@203.0.113.10
 cd ~/parema-ia
 chmod +x installer.sh
-sudo ./installer.sh ia.parema-connect.com qwen2.5:3b-instruct
+sudo ./installer.sh                        # sans domaine (adresse sslip.io)
+# ou : sudo ./installer.sh ia.parema-connect.com
+# ou : sudo ./installer.sh "" qwen2.5:7b-instruct
 ```
 
 Le script, dans l'ordre :
 
-1. installe Docker s'il manque ;
-2. ferme le pare-feu sauf SSH, HTTP et HTTPS (Ollama n'est jamais exposé) ;
-3. génère un **jeton aléatoire** dans `~/parema-ia/.env` (lisible par root seul) ;
-4. démarre Ollama et Caddy ;
-5. télécharge le modèle (quelques minutes) et le préchauffe ;
-6. vérifie l'accès : **401 sans jeton, 200 avec jeton**.
+1. choisit l'adresse (sslip.io si aucun domaine n'est donné) ;
+2. vérifie que les ports **80 et 443 sont libres** — sinon il s'arrête sans
+   rien modifier (voir plus bas, « Serveur déjà équipé d'un proxy ») ;
+3. installe Docker s'il manque ;
+4. si le pare-feu est actif, **ajoute** les règles 80/443 sans toucher aux
+   autres ; s'il est inactif, il le laisse tel quel (vos autres services ne
+   sont jamais coupés) ;
+5. génère un **jeton aléatoire** dans `~/parema-ia/.env` (lisible par root seul) ;
+6. démarre Ollama et Caddy, télécharge le modèle et le préchauffe ;
+7. vérifie l'accès : **401 sans jeton, 200 avec jeton**.
 
-Il affiche à la fin les variables à poser dans Vercel.
+Il affiche à la fin l'adresse et les variables à poser dans Vercel.
+
+### Serveur déjà équipé d'un proxy
+
+Si un autre service tient déjà les ports 80/443 (nginx, Traefik, Apache…), on
+ne démarre pas Caddy : seul Ollama tourne, joignable sur `127.0.0.1:11434`
+uniquement, et votre proxy existant fait le HTTPS et vérifie le jeton.
+
+```bash
+cd ~/parema-ia
+JETON=$(openssl rand -hex 32); echo "OLLAMA_TOKEN=$JETON" | sudo tee .env >/dev/null; sudo chmod 600 .env
+sudo docker compose -f docker-compose.yml -f proxy-existant.yml up -d ollama
+sudo docker compose exec ollama ollama pull qwen2.5:3b-instruct
+```
+
+Avec **nginx** : copier [`nginx-parema-ia.conf`](../deploy/ia/nginx-parema-ia.conf)
+dans `/etc/nginx/sites-available/`, y remplacer `IA_DOMAINE` (par exemple
+`ia.203-0-113-10.sslip.io`) et `IA_JETON`, l'activer, puis :
+
+```bash
+sudo ln -s /etc/nginx/sites-available/nginx-parema-ia.conf /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d IA_DOMAINE --redirect
+```
+
+Pour un autre proxy, la règle à reproduire est la même : n'ouvrir que
+`/api/chat` et `/api/tags`, exiger `Authorization: Bearer <jeton>`, et
+renvoyer vers `http://127.0.0.1:11434`.
+
+### Sur un serveur partagé
+
+Le modèle 3B occupe environ **3 à 4 Go de mémoire** en permanence (il reste
+chargé pour répondre vite) et utilise tout le processeur pendant chaque
+réponse. Vérifier avec `free -h` qu'il reste cette marge à côté de vos autres
+services ; sinon, réduire avec `OLLAMA_NUM_PARALLEL: "1"` dans
+`docker-compose.yml`.
 
 ## 4. Brancher sur Vercel
 
@@ -78,7 +121,7 @@ Vercel → projet **parema-connect** → **Settings → Environment Variables**
 | Variable | Valeur |
 |---|---|
 | `ASSISTANT_DRIVER` | `ollama` |
-| `OLLAMA_URL` | `https://ia.parema-connect.com` |
+| `OLLAMA_URL` | l'adresse affichée par le script (`https://ia.203-0-113-10.sslip.io` ou votre domaine) |
 | `OLLAMA_MODEL` | `qwen2.5:3b-instruct` (ou le 7B) |
 | `OLLAMA_TIMEOUT` | `25` |
 | `OLLAMA_TOKEN` | le jeton du fichier `~/parema-ia/.env` du serveur |

@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 # Installation du serveur de l'assistant Parema sur un VPS Ubuntu 22.04/24.04.
 #
-#   sudo ./installer.sh ia.parema-connect.com qwen2.5:3b-instruct
+#   sudo ./installer.sh                         # sans domaine : adresse sslip.io
+#   sudo ./installer.sh ia.mondomaine.com       # avec un domaine qui pointe ici
+#   sudo ./installer.sh "" qwen2.5:7b-instruct  # sans domaine, autre modèle
 #
-# Le nom de domaine doit déjà pointer vers l'IP du serveur (enregistrement A).
-# Le script installe Docker, ferme le pare-feu sauf SSH/HTTP/HTTPS, génère le
-# jeton, démarre Ollama + Caddy, télécharge le modèle et fait un essai.
+# Sans domaine, l'adresse est construite sur l'IP publique via sslip.io
+# (ia.203-0-113-10.sslip.io → 203.0.113.10) : gratuit, sans inscription, et
+# compatible avec le certificat HTTPS automatique.
+#
+# Sur un serveur qui fait déjà tourner d'autres services, le script ne touche
+# à rien d'existant : il vérifie que les ports 80 et 443 sont libres et
+# s'arrête sinon ; il ajoute des règles de pare-feu sans l'activer.
 set -euo pipefail
 
-DOMAINE="${1:?Usage : sudo ./installer.sh <domaine> [modele]}"
 MODELE="${2:-qwen2.5:3b-instruct}"
 DOSSIER="$(cd "$(dirname "$0")" && pwd)"
 cd "$DOSSIER"
@@ -18,17 +23,34 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+if [ -n "${1:-}" ]; then
+  DOMAINE="$1"
+else
+  IP="$(curl -4fsS https://api.ipify.org)"
+  DOMAINE="ia.${IP//./-}.sslip.io"
+fi
+echo "==> Adresse du serveur IA : https://$DOMAINE"
+
+echo "==> Ports 80 et 443"
+if [ ! -f .env ] && ss -ltnH '( sport = :80 or sport = :443 )' | grep -q .; then
+  echo "Les ports 80/443 sont déjà utilisés par un autre service :" >&2
+  ss -ltnp '( sport = :80 or sport = :443 )' >&2 || true
+  echo "Rien n'a été modifié. Voir docs/ia-assistant.md, « Serveur déjà équipé d'un proxy »." >&2
+  exit 1
+fi
+
 echo "==> Docker"
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
 fi
 
-echo "==> Pare-feu (SSH, HTTP, HTTPS seulement)"
-if command -v ufw >/dev/null 2>&1; then
-  ufw allow OpenSSH >/dev/null
+echo "==> Pare-feu"
+if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
   ufw allow 80/tcp >/dev/null
   ufw allow 443/tcp >/dev/null
-  ufw --force enable >/dev/null
+  echo "    règles 80/443 ajoutées (les autres règles sont inchangées)"
+else
+  echo "    pare-feu inactif : non modifié (Ollama reste de toute façon interne à Docker)"
 fi
 
 echo "==> Jeton"
