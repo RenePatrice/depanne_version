@@ -23,6 +23,7 @@ String? destinationDe(NotificationApp notification, AppMode mode) {
     'TICKET_ACCEPTE',
     'TECHNICIEN_EN_ROUTE',
     'TECHNICIEN_ARRIVE',
+    'ARRIVEE_A_CONFIRMER',
     'INTERVENTION_TERMINEE',
     'DIAGNOSTIC_PROPOSE',
     'AUCUN_TECHNICIEN',

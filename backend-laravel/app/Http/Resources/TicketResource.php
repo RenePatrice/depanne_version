@@ -9,6 +9,7 @@ use App\Domain\Payments\Models\Payment;
 use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
+use App\Domain\Tickets\Services\CodeArrivee;
 use App\Support\Money;
 use App\Support\Telephone;
 use Illuminate\Http\Request;
@@ -111,6 +112,11 @@ final class TicketResource extends JsonResource
                 ),
             ],
 
+            // Code d'arrivée (lot 2). Le client voit le code tant que le
+            // technicien est attendu ; le technicien ne voit que s'il doit le
+            // demander et combien d'essais il lui reste.
+            'arrivee' => $this->arrivee($estLeClient),
+
             'client' => $this->when(! $estLeClient && $this->relationLoaded('client'), fn (): ?array => $this->partie($this->client, $etat)),
             'technicien' => $this->when($estLeClient && $this->relationLoaded('technician'), fn (): ?array => $this->partie($this->technician, $etat)),
 
@@ -127,6 +133,28 @@ final class TicketResource extends JsonResource
 
             'creee_le' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private function arrivee(bool $estLeClient): array
+    {
+        $requis = CodeArrivee::requis($this->resource);
+        $bloque = $requis && CodeArrivee::bloque($this->resource);
+
+        return $estLeClient
+            ? [
+                'code_requis' => $requis,
+                'code' => $requis ? $this->arrival_code : null,
+                'bloque' => $bloque,
+                // Sortie de secours : le client peut confirmer lui-même dès
+                // que le technicien est en route.
+                'confirmable' => $this->state->etat() === TicketState::EN_ROUTE,
+            ]
+            : [
+                'code_requis' => $requis,
+                'essais_restants' => $requis ? CodeArrivee::essaisRestants($this->resource) : null,
+                'bloque' => $bloque,
+            ];
     }
 
     /**

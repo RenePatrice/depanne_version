@@ -136,7 +136,8 @@ it('aucun paiement n’est possible sur un retour sous garantie', function (): v
     // Le technicien repasse jusqu'à TERMINEE.
     $avancer = app(AdvanceIntervention::class);
     foreach (['en-route', 'sur-place', 'demarrer', 'terminer'] as $etape) {
-        $retour = $avancer->execute($retour->fresh(), $technicien, $etape);
+        // Un retour sous garantie a lui aussi son code d'arrivée (lot 2).
+        $retour = $avancer->execute($retour->fresh(), $technicien, $etape, null, $retour->fresh()->arrival_code);
     }
 
     // Déclarer un paiement espèces est refusé : c'est gratuit.

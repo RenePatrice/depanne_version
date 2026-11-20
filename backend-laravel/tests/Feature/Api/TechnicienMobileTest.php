@@ -232,7 +232,8 @@ it('fait avancer l’intervention étape par étape', function (): void {
     $this->postJson('/api/v1/sollicitations/'.MatchAttempt::query()->value('id').'/accepter')->assertOk();
 
     foreach ([['en-route', 'EN_ROUTE'], ['sur-place', 'SUR_PLACE'], ['demarrer', 'EN_COURS']] as [$etape, $etat]) {
-        $this->postJson('/api/v1/tickets/'.$ticket->id.'/avancer', ['etape' => $etape])
+        // Le code d'arrivée (lot 2) est donné par le client devant la porte.
+        $this->postJson('/api/v1/tickets/'.$ticket->id.'/avancer', ['etape' => $etape, 'code' => $ticket->fresh()->arrival_code])
             ->assertOk()
             ->assertJsonPath('ticket.etat', $etat);
     }

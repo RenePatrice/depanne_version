@@ -217,6 +217,16 @@ class ClientRepository {
     return Ticket.depuisJson(reponse['ticket'] as Map<String, dynamic>);
   }
 
+  /// Confirmer soi-même l'arrivée du technicien (lot 2) : sortie de secours
+  /// quand le code d'arrivée n'a pas pu être saisi.
+  Future<Ticket> confirmerArrivee(int ticketId) async {
+    final Map<String, dynamic> reponse = await _api.post(
+      '/tickets/$ticketId/confirmer-arrivee',
+    );
+
+    return Ticket.depuisJson(reponse['ticket'] as Map<String, dynamic>);
+  }
+
   /// Clôturer un retour sous garantie : la panne est réglée.
   Future<Ticket> confirmerGarantie(int ticketId) async {
     final Map<String, dynamic> reponse = await _api.post(

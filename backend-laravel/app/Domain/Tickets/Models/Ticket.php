@@ -16,6 +16,7 @@ use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\States\TicketStatus;
 use App\Domain\Wallet\Models\Transaction;
 use App\Domain\Zones\Models\Zone;
+use App\Support\Concerns\RouteParIdOpaque;
 use Carbon\CarbonImmutable;
 use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,8 +51,8 @@ use Spatie\ModelStates\HasStates;
  */
 final class Ticket extends Model
 {
-    use \App\Support\Concerns\RouteParIdOpaque;
     use HasStates;
+    use RouteParIdOpaque;
 
     protected $fillable = [
         'reference', 'parent_ticket_id', 'is_warranty', 'warranty_until',
@@ -97,8 +98,15 @@ final class Ticket extends Model
             'completed_at' => 'datetime',
             'paid_at' => 'datetime',
             'closed_at' => 'datetime',
+            // Code d'arrivée (lot 2) : chiffré au repos, jamais sérialisé
+            // (cf. $hidden) — seul TicketResource le montre, au seul client.
+            'arrival_code' => 'encrypted',
+            'arrival_code_attempts' => 'integer',
         ];
     }
+
+    /** @var list<string> */
+    protected $hidden = ['arrival_code'];
 
     // ------------------------------------------------------------- relations --
 

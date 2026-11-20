@@ -95,6 +95,17 @@ final class TicketPolicy
         return $this->view($utilisateur, $ticket);
     }
 
+    /**
+     * Confirmer l'arrivée du technicien sans code (lot 2) : réservé au
+     * **client**. L'ouvrir au technicien rendrait le code d'arrivée inutile.
+     */
+    public function confirmerArrivee(User $utilisateur, Ticket $ticket): Response
+    {
+        return $ticket->estLeClient($utilisateur)
+            ? Response::allow()
+            : Response::denyAsNotFound();
+    }
+
     /** Ouvrir une réclamation ou signaler un contournement : les deux parties le peuvent. */
     public function reclamer(User $utilisateur, Ticket $ticket): Response
     {

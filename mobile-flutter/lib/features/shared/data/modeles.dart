@@ -325,6 +325,7 @@ class Ticket {
     this.garantieOrigineReference,
     this.especesAConfirmer = false,
     this.photos = const <String>[],
+    this.arrivee = const ArriveeTicket(),
   });
 
   final int id;
@@ -332,6 +333,9 @@ class Ticket {
 
   /// Photos jointes par le client (dépannage seulement, trois au plus).
   final List<String> photos;
+
+  /// Code d'arrivée (lot 2) : le client le lit, le technicien le demande.
+  final ArriveeTicket arrivee;
   final String etat;
   final String etatLibelle;
   final bool etatActif;
@@ -457,6 +461,46 @@ class Ticket {
               as String?,
       especesAConfirmer: json['especes_a_confirmer'] as bool? ?? false,
       photos: _textes(json['photos']),
+      arrivee: ArriveeTicket.depuisJson(
+        json['arrivee'] as Map<String, dynamic>?,
+      ),
+    );
+  }
+}
+
+/// Code d'arrivée (lot 2), vu selon qui regarde.
+///
+/// Le serveur n'envoie `code` qu'au client, et `essaisRestants` qu'au
+/// technicien. Un serveur plus ancien n'envoie rien : `codeRequis` reste faux
+/// et l'étape « je suis arrivé » se franchit comme avant.
+class ArriveeTicket {
+  const ArriveeTicket({
+    this.codeRequis = false,
+    this.code,
+    this.bloque = false,
+    this.confirmable = false,
+    this.essaisRestants,
+  });
+
+  final bool codeRequis;
+  final String? code;
+  final bool bloque;
+
+  /// Le client peut confirmer lui-même l'arrivée (technicien en route).
+  final bool confirmable;
+  final int? essaisRestants;
+
+  factory ArriveeTicket.depuisJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return const ArriveeTicket();
+    }
+
+    return ArriveeTicket(
+      codeRequis: json['code_requis'] as bool? ?? false,
+      code: json['code'] as String?,
+      bloque: json['bloque'] as bool? ?? false,
+      confirmable: json['confirmable'] as bool? ?? false,
+      essaisRestants: json['essais_restants'] as int?,
     );
   }
 }

@@ -11,6 +11,7 @@ use App\Domain\Tickets\Events\TicketEtatChange;
 use App\Domain\Tickets\Events\TicketTransitioned;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Models\TicketEvent;
+use App\Domain\Tickets\Services\CodeArrivee;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -86,6 +87,14 @@ final class TransitionTicket
                 if ($jours > 0) {
                     $modifications['warranty_until'] = now()->addDays($jours);
                 }
+            }
+
+            // Code d'arrivée (lot 2) : tiré à chaque entrée en ACCEPTEE. Après
+            // une réassignation, le nouveau technicien a un code neuf et un
+            // compteur d'essais remis à zéro.
+            if ($cible === TicketState::ACCEPTEE) {
+                $modifications['arrival_code'] = CodeArrivee::generer();
+                $modifications['arrival_code_attempts'] = 0;
             }
 
             $ticket->forceFill($modifications)->save();

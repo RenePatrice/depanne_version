@@ -173,6 +173,8 @@ final class TechnicienController extends Controller
         $valide = $request->validate([
             'etape' => ['required', Rule::in(AdvanceIntervention::etapesDisponibles())],
             'diagnostic' => ['nullable', 'string', 'max:2000'],
+            // Code d'arrivée (lot 2), exigé à l'étape « sur-place ».
+            'code' => ['nullable', 'string', 'max:12'],
         ]);
 
         try {
@@ -181,6 +183,7 @@ final class TechnicienController extends Controller
                 $this->technicien($request),
                 (string) $valide['etape'],
                 $valide['diagnostic'] ?? null,
+                isset($valide['code']) ? (string) $valide['code'] : null,
             );
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

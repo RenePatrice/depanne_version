@@ -21,6 +21,7 @@ enum NotificationType: string
     case TICKET_ACCEPTE = 'TICKET_ACCEPTE';
     case TECHNICIEN_EN_ROUTE = 'TECHNICIEN_EN_ROUTE';
     case TECHNICIEN_ARRIVE = 'TECHNICIEN_ARRIVE';
+    case ARRIVEE_A_CONFIRMER = 'ARRIVEE_A_CONFIRMER';
     case INTERVENTION_TERMINEE = 'INTERVENTION_TERMINEE';
     case PAIEMENT_RECU = 'PAIEMENT_RECU';
     case PAIEMENT_A_CONFIRMER = 'PAIEMENT_A_CONFIRMER';
@@ -53,6 +54,7 @@ enum NotificationType: string
             self::TICKET_ACCEPTE => 'Technicien trouvé',
             self::TECHNICIEN_EN_ROUTE => 'Technicien en route',
             self::TECHNICIEN_ARRIVE => 'Technicien arrivé',
+            self::ARRIVEE_A_CONFIRMER => "Confirme l'arrivée",
             self::INTERVENTION_TERMINEE => 'Intervention terminée',
             self::PAIEMENT_RECU => 'Paiement reçu',
             self::PAIEMENT_A_CONFIRMER => 'Confirme le paiement',
@@ -97,6 +99,8 @@ enum NotificationType: string
             self::TICKET_ACCEPTE => '{technicien} a accepté ta demande {reference}.',
             self::TECHNICIEN_EN_ROUTE => '{technicien} est en route pour {reference}.',
             self::TECHNICIEN_ARRIVE => '{technicien} est arrivé à l\'adresse indiquée.',
+            self::ARRIVEE_A_CONFIRMER => '{technicien} n\'a pas pu saisir ton code d\'arrivée pour {reference}. '
+                .'S\'il est bien devant toi, confirme son arrivée dans l\'application.',
             self::INTERVENTION_TERMINEE => 'L\'intervention {reference} est terminée. Total : {total}.',
             self::PAIEMENT_RECU => 'Paiement de {total} reçu pour {reference}.',
             self::PAIEMENT_A_CONFIRMER => '{auteur} indique un paiement de {total} ({moyen}) pour {reference}. Confirme-le ou conteste-le dans l\'application.',
@@ -137,6 +141,8 @@ enum NotificationType: string
         // La sollicitation a une fenêtre de 45 secondes ; le supplément
         // immobilise un technicien devant une porte. Les deux doivent réveiller
         // le téléphone, le reste peut attendre qu'on regarde l'écran.
-        return $this === self::NOUVELLE_DEMANDE || $this === self::DIAGNOSTIC_PROPOSE;
+        return $this === self::NOUVELLE_DEMANDE
+            || $this === self::DIAGNOSTIC_PROPOSE
+            || $this === self::ARRIVEE_A_CONFIRMER;
     }
 }

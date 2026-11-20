@@ -14,6 +14,7 @@ use App\Domain\Payments\Data\PaymentStatus;
 use App\Domain\Pricing\Services\PricingService;
 use App\Domain\Tickets\Actions\CancelTicketByClient;
 use App\Domain\Tickets\Actions\CloseWarranty;
+use App\Domain\Tickets\Actions\ConfirmArrivalByClient;
 use App\Domain\Tickets\Actions\CreateTicket;
 use App\Domain\Tickets\Actions\OpenWarranty;
 use App\Domain\Tickets\Models\Ticket;
@@ -213,6 +214,30 @@ final class TicketController extends Controller
             'message' => 'Retour sous garantie ouvert. Ton technicien a été prévenu, c\'est gratuit.',
             'ticket' => new TicketResource($retour),
         ], 201);
+    }
+
+    /**
+     * Confirmer l'arrivée du technicien sans code (lot 2).
+     *
+     * Sortie de secours quand le code n'a pas pu être saisi : le client voit le
+     * technicien devant sa porte, sa confirmation vaut le code.
+     */
+    public function confirmerArrivee(Request $request, Ticket $ticket, ConfirmArrivalByClient $confirmation): JsonResponse
+    {
+        Gate::authorize('confirmerArrivee', $ticket);
+
+        try {
+            $ticket = $confirmation->execute($ticket, $this->moi($request));
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $ticket->load(['service', 'technician']);
+
+        return response()->json([
+            'message' => 'Arrivée confirmée. Ton technicien peut commencer.',
+            'ticket' => new TicketResource($ticket),
+        ]);
     }
 
     /** Clôturer un retour sous garantie : le client confirme que la panne est réglée. */

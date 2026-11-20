@@ -159,6 +159,11 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/tickets/{ticket}/garantie/confirmer', [TicketController::class, 'confirmerGarantie'])
             ->name('api.tickets.garantie.confirmer');
 
+        // Code d'arrivée (lot 2) : sortie de secours, le client confirme
+        // lui-même que le technicien est devant sa porte.
+        Route::post('/tickets/{ticket}/confirmer-arrivee', [TicketController::class, 'confirmerArrivee'])
+            ->name('api.tickets.confirmer-arrivee');
+
         // Anti-contournement (#3) : signaler une sollicitation hors plateforme.
         Route::post('/tickets/{ticket}/signaler-hors-plateforme', [TicketController::class, 'signalerHorsPlateforme'])
             ->name('api.tickets.hors-plateforme');

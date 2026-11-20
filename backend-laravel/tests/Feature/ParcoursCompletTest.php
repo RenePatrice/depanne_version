@@ -219,10 +219,16 @@ it('mène une intervention de l’inscription au retrait, par l’API seule', fu
 
     // ─── 10. Le technicien mène l'intervention ────────────────────────────
 
+    // Le client lit son code d'arrivée dans l'application (lot 2) et le
+    // donne au technicien devant la porte.
+    Sanctum::actingAs($client);
+    $codeArrivee = $this->getJson("/api/v1/tickets/{$ticketId}")->json('ticket.arrivee.code');
+    expect($codeArrivee)->toMatch('/^\d{4}$/');
+
     Sanctum::actingAs($technicien);
 
     foreach (['en-route' => 'EN_ROUTE', 'sur-place' => 'SUR_PLACE', 'demarrer' => 'EN_COURS'] as $etape => $etat) {
-        $this->postJson("/api/v1/tickets/{$ticketId}/avancer", ['etape' => $etape])
+        $this->postJson("/api/v1/tickets/{$ticketId}/avancer", ['etape' => $etape, 'code' => $codeArrivee])
             ->assertOk()
             ->assertJsonPath('ticket.etat', $etat);
     }

@@ -16,6 +16,7 @@ import '../../client/application/client_providers.dart';
 import '../../client/presentation/paiement_feuille.dart';
 import '../../shared/data/modeles.dart';
 import '../application/technicien_providers.dart';
+import 'code_arrivee_feuille.dart';
 import 'composants_technicien.dart';
 import 'diagnostic_feuille.dart';
 
@@ -61,18 +62,37 @@ class _InterventionScreenState extends ConsumerState<InterventionScreen>
 
   Future<void> _avancer(String etape) async {
     if (_enCours) return;
+
+    // Code d'arrivée (lot 2) : « je suis arrivé » se prouve par les quatre
+    // chiffres que le client lit dans son application.
+    String? code;
+    final ArriveeTicket? arrivee = ref
+        .read(ticketProvider(widget.ticketId))
+        .value
+        ?.arrivee;
+
+    if (etape == 'sur-place' && (arrivee?.codeRequis ?? false)) {
+      code = await CodeArriveeFeuille.demander(
+        context,
+        essaisRestants: arrivee?.essaisRestants,
+      );
+      if (code == null || !mounted) return;
+    }
+
     setState(() => _enCours = true);
 
     try {
       await ref
           .read(technicienRepositoryProvider)
-          .avancer(widget.ticketId, etape);
+          .avancer(widget.ticketId, etape, code: code);
       ref.invalidate(ticketProvider(widget.ticketId));
       ref.invalidate(interventionsProvider);
     } on ApiException catch (e) {
       if (mounted) {
         showPcToast(context, e.message, icone: Icons.error_outline_rounded);
       }
+      // Un code refusé change le nombre d'essais restants : on relit.
+      ref.invalidate(ticketProvider(widget.ticketId));
     } finally {
       if (mounted) setState(() => _enCours = false);
     }
@@ -348,12 +368,42 @@ class _Gestes extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (geste != null)
+        // Code d'arrivée bloqué (lot 2) : plus de geste possible, seul le
+        // client peut confirmer l'arrivée depuis son application.
+        if (geste != null && geste.$1 == 'sur-place' && ticket.arrivee.bloque)
+          PcCard(
+            couleur: PcColors.danger.withValues(alpha: 0.12),
+            bordure: PcColors.danger.withValues(alpha: 0.4),
+            child: Row(
+              children: <Widget>[
+                const Icon(Icons.lock_rounded, color: PcColors.danger),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Trop d’essais avec un code incorrect. Le client a été '
+                    'prévenu : il peut confirmer votre arrivée depuis son '
+                    'application.',
+                    style: TextStyle(color: pc.ink, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (geste != null) ...<Widget>[
           GlisserPourConfirmer(
             libelle: geste.$2,
             chargement: enCours,
             onConfirme: () => onAvancer(geste.$1),
           ),
+          if (geste.$1 == 'sur-place' && ticket.arrivee.codeRequis) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              'Le client vous donnera son code d’arrivée à 4 chiffres.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: pc.muted, fontSize: 12),
+            ),
+          ],
+        ],
         if (paiement) ...<Widget>[
           PcButton(
             libelle: 'Enregistrer le paiement',

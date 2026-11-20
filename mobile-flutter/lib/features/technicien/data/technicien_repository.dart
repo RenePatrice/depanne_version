@@ -124,10 +124,16 @@ class TechnicienRepository {
     int ticketId,
     String etape, {
     String? diagnostic,
+    String? code,
   }) async {
     final Map<String, dynamic> reponse = await _api.post(
       '/tickets/$ticketId/avancer',
-      corps: <String, dynamic>{'etape': etape, 'diagnostic': ?diagnostic},
+      // `code` : le code d'arrivée que le client donne devant la porte (lot 2).
+      corps: <String, dynamic>{
+        'etape': etape,
+        'diagnostic': ?diagnostic,
+        'code': ?code,
+      },
     );
 
     return Ticket.depuisJson(reponse['ticket'] as Map<String, dynamic>);

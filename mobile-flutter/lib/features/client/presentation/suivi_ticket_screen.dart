@@ -101,6 +101,10 @@ class _SuiviTicketScreenState extends ConsumerState<SuiviTicketScreen>
                       _Etat(ticket: t),
                       const SizedBox(height: 14),
                       _Progression(etat: t.etat),
+                      if (t.arrivee.codeRequis) ...<Widget>[
+                        const SizedBox(height: 14),
+                        _CodeArrivee(ticket: t),
+                      ],
                       if (_trajet(t)) ...<Widget>[
                         const SizedBox(height: 14),
                         CarteSuivi(
@@ -136,6 +140,141 @@ class _SuiviTicketScreenState extends ConsumerState<SuiviTicketScreen>
     return lat is num && lng is num
         ? LatLng(lat.toDouble(), lng.toDouble())
         : null;
+  }
+}
+
+/// Code d'arrivée (lot 2).
+///
+/// Quatre chiffres à donner au technicien **devant la porte**, pas avant : un
+/// technicien qui n'est pas là ne peut pas se déclarer arrivé. Et pour le
+/// client, celui qui demande le bon code est bien celui que l'application a
+/// envoyé.
+///
+/// Si le technicien a épuisé ses essais, ou si le code ne passe pas, le client
+/// confirme lui-même l'arrivée : il le voit, sa parole vaut le code.
+class _CodeArrivee extends ConsumerWidget {
+  const _CodeArrivee({required this.ticket});
+
+  final Ticket ticket;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final PcSkin pc = context.pc;
+    final ArriveeTicket arrivee = ticket.arrivee;
+    final String code = arrivee.code ?? '----';
+
+    return PcCard(
+      bordure: arrivee.bloque ? PcColors.danger.withValues(alpha: 0.5) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(Icons.shield_rounded, color: pc.accent, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Code d’arrivée',
+                  style: TextStyle(
+                    fontFamily: PcFonts.display,
+                    fontWeight: FontWeight.w700,
+                    color: pc.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Semantics(
+            label: 'Code d’arrivée : ${code.split('').join(' ')}',
+            excludeSemantics: true,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                for (final String c in code.split(''))
+                  Container(
+                    width: 52,
+                    height: 60,
+                    margin: const EdgeInsets.symmetric(horizontal: 5),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: pc.accentLight.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      c,
+                      style: TextStyle(
+                        fontFamily: PcFonts.display,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        color: pc.accentDeep,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            arrivee.bloque
+                ? 'Votre technicien n’a pas réussi à saisir ce code. S’il est '
+                      'bien devant vous, confirmez son arrivée.'
+                : 'Donnez ce code au technicien quand il est devant vous, '
+                      'jamais avant ni par téléphone.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: arrivee.bloque ? PcColors.danger : pc.muted,
+              fontSize: 12.5,
+            ),
+          ),
+          if (arrivee.confirmable) ...<Widget>[
+            const SizedBox(height: 12),
+            PcButton(
+              libelle: 'Le technicien est là : confirmer',
+              icone: Icons.how_to_reg_rounded,
+              variante: arrivee.bloque ? PcVariante.accent : PcVariante.doux,
+              petit: !arrivee.bloque,
+              onPressed: () => _confirmer(context, ref),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmer(BuildContext context, WidgetRef ref) async {
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Confirmer l’arrivée ?'),
+        content: const Text(
+          'Confirmez seulement si le technicien est devant vous. Il pourra '
+          'alors commencer l’intervention.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Pas encore'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Il est là'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      await ref.read(clientRepositoryProvider).confirmerArrivee(ticket.id);
+      ref.invalidate(ticketProvider(ticket.id));
+      if (context.mounted) showPcToast(context, 'Arrivée confirmée.');
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        showPcToast(context, e.message, icone: Icons.error_outline_rounded);
+      }
+    }
   }
 }
 

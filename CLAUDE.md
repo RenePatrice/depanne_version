@@ -604,6 +604,8 @@ clair : mieux vaut une phrase incomplète qu'un « {technicien} » affiché.
   collecter des adresses.
 - **Sauter une étape** : il nomme un geste — « je pars », « je suis arrivé » —
   et c'est la machine à états qui décide s'il est possible.
+- **Se déclarer arrivé sans le code d'arrivée** que le client lui donne devant
+  la porte (lot 2) ; cinq essais, puis seul le client peut confirmer.
 
 ### Statistiques de matching
 `RecalculateTechnicianStats` **recalcule**, n'incrémente jamais — même
@@ -684,6 +686,34 @@ CLOTUREE.
   **refusent** un ticket `is_warranty` : c'est gratuit, il n'y a rien à encaisser.
 - Réservé au client (Policy `garantir`, 404 sinon) : c'est lui qui constate le
   retour de la panne, puis sa réparation.
+
+### Code d'arrivée (lot 2, 20 novembre 2026)
+Quatre chiffres tirés par `TransitionTicket` à **chaque entrée en ACCEPTEE**
+(réassignation et retour sous garantie compris : code neuf, compteur à zéro),
+stockés **chiffrés** (cast `encrypted`, colonne dans `$hidden`). Le client les
+lit dans son application ; le technicien les saisit à « je suis arrivé »
+(`AdvanceIntervention`, champ `code`). C'est la preuve qu'il est devant la
+porte, et pour le client que celui qui sonne est bien celui envoyé.
+
+- **Cinq essais** (`CodeArrivee::ESSAIS_MAX`), comptés par une mise à jour
+  conditionnelle **avant** la comparaison (`hash_equals`) : deux saisies
+  parallèles ne dépassent pas le plafond. Sans code saisi, aucun essai n'est
+  compté.
+- Au cinquième échec : trace `securite` dans `activity_log`, notification
+  urgente `ARRIVEE_A_CONFIRMER` au client, et la porte reste fermée — même le
+  bon code est refusé.
+- **Sortie de secours** : le client confirme lui-même l'arrivée
+  (`ConfirmArrivalByClient`, `POST /tickets/{t}/confirmer-arrivee`, Policy
+  `confirmerArrivee` réservée au client, 404 sinon), depuis EN_ROUTE seulement.
+- `ticket_events.metadata.code_arrivee` dit comment l'arrivée a été validée :
+  `verifie`, `confirme_par_client` ou `sans_code`.
+- `TicketResource.arrivee` : le client reçoit `code` (tant que le technicien
+  est attendu) et `confirmable` ; le technicien seulement `code_requis`,
+  `essais_restants`, `bloque` — jamais le code.
+- Les tickets antérieurs n'ont pas de code et passent comme avant ; une
+  application ancienne ne reçoit pas `arrivee` et ne change rien.
+- Mobile : carte « Code d'arrivée » au suivi client ; côté technicien, le geste
+  « je suis arrivé » ouvre un pavé de saisie (`CodeArriveeFeuille`).
 
 ### Anti-contournement « hors plateforme » (#3)
 Le §11 appelle le contournement « risque business n°1 ». Trois leviers, dans la
@@ -1251,7 +1281,7 @@ Routes ajoutées pour la refonte :
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **506 tests passent** (1 937 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **516 tests passent** (près de 1 970 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - Ne jamais lancer deux suites en même temps, ni `pest --parallel` : elles
   partagent `depanne_moi_test`, et les bases parallèles n'ont pas PostGIS.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit

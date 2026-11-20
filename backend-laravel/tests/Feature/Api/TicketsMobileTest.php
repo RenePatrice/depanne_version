@@ -389,6 +389,7 @@ it('n’expose aucune route permettant de modifier le prix d’un ticket', funct
         'POST api/v1/tickets/{ticket}/avancer',               // jalon d'intervention
         'POST api/v1/tickets/{ticket}/avis',                  // noter
         'POST api/v1/tickets/{ticket}/choisir',               // choix du technicien — technicien_id, sans montant
+        'POST api/v1/tickets/{ticket}/confirmer-arrivee',     // le client confirme l'arrivée — sans paramètre (lot 2)
         'POST api/v1/tickets/{ticket}/diagnostic',            // supplément — SEULE à prendre un montant
         'POST api/v1/tickets/{ticket}/diagnostic/reponse',    // décision du client, sans montant
         'POST api/v1/tickets/{ticket}/garantie',              // ouvrir un retour sous garantie — sans montant (#4)
