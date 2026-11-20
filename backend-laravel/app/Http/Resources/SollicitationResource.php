@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Domain\Matching\Data\MatchResponse;
 use App\Domain\Matching\Models\MatchAttempt;
+use App\Domain\Tickets\Services\PhotosTicket;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -39,7 +40,7 @@ final class SollicitationResource extends JsonResource
             'reference' => $ticket->reference,
             'prestation' => $ticket->service?->name,
             'description' => $ticket->problem_description,
-            'photos' => $ticket->photos ?? [],
+            'photos' => app(PhotosTicket::class)->liens($ticket->photos),
 
             'distance_km' => (float) $this->distance_km,
             'quartier' => $this->quartier($ticket->address_snapshot),

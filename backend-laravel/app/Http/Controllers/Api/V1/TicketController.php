@@ -18,6 +18,7 @@ use App\Domain\Tickets\Actions\ConfirmArrivalByClient;
 use App\Domain\Tickets\Actions\CreateTicket;
 use App\Domain\Tickets\Actions\OpenWarranty;
 use App\Domain\Tickets\Models\Ticket;
+use App\Domain\Tickets\Services\PhotosTicket;
 use App\Domain\Zones\Services\ZoneService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\TicketRequest;
@@ -25,6 +26,8 @@ use App\Http\Resources\TicketResource;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -214,6 +217,43 @@ final class TicketController extends Controller
             'message' => 'Retour sous garantie ouvert. Ton technicien a été prévenu, c\'est gratuit.',
             'ticket' => new TicketResource($retour),
         ], 201);
+    }
+
+    /**
+     * Déposer une photo de panne (lot 3), avant la publication.
+     *
+     * Renvoie le chemin à joindre à la demande, et un lien d'aperçu signé.
+     */
+    public function deposerPhoto(Request $request, PhotosTicket $photos): JsonResponse
+    {
+        $request->validate(
+            ['photo' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:8192']],
+            attributes: ['photo' => 'photo'],
+        );
+
+        /** @var UploadedFile $fichier */
+        $fichier = $request->file('photo');
+
+        try {
+            $chemin = $photos->deposer($this->moi($request), $fichier);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['chemin' => $chemin, 'url' => $photos->lien($chemin)], 201);
+    }
+
+    /** Servir une photo de panne par lien signé (stockage local). */
+    public function servirPhoto(Request $request, PhotosTicket $photos): Response
+    {
+        $chemin = (string) $request->query('chemin', '');
+
+        abort_unless($photos->estUnChemin($chemin) && $photos->disque()->exists($chemin), 404);
+
+        return response((string) $photos->disque()->get($chemin), 200, [
+            'Content-Type' => 'image/jpeg',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     /**

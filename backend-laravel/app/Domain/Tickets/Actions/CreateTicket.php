@@ -11,6 +11,7 @@ use App\Domain\Pricing\Services\PricingService;
 use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
+use App\Domain\Tickets\Services\PhotosTicket;
 use App\Domain\Zones\Services\ZoneService;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,7 @@ final class CreateTicket
         private readonly PricingService $tarification,
         private readonly ZoneService $zones,
         private readonly TransitionTicket $transition,
+        private readonly PhotosTicket $photos,
     ) {}
 
     /**
@@ -74,7 +76,12 @@ final class CreateTicket
         // dépannage, aucune pour une installation, où il n'y a encore rien à
         // photographier. Le surplus est silencieusement écarté — l'application
         // n'offre déjà pas le bouton pour une installation.
-        $photos = array_slice($donnees['photos'] ?? [], 0, $service->type->photosAutorisees());
+        // Seules les photos déposées par ce client sont retenues (lot 3).
+        $photos = array_slice(
+            $this->photos->retenir($client, $donnees['photos'] ?? []),
+            0,
+            $service->type->photosAutorisees(),
+        );
 
         return DB::transaction(function () use ($client, $service, $adresse, $zone, $point, $devis, $donnees, $photos): Ticket {
             /** @var Ticket $ticket */

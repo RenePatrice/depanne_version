@@ -7,6 +7,7 @@ import '../../../design_system/pc.dart';
 import '../../shared/data/modeles.dart';
 import '../application/client_providers.dart';
 import 'composants_client.dart';
+import 'photos_panne.dart';
 
 /// Adresse, description, prix, publication.
 ///
@@ -34,6 +35,8 @@ class _NouvelleDemandeScreenState extends ConsumerState<NouvelleDemandeScreen> {
   bool _calculEnCours = false;
   bool _publicationEnCours = false;
   ApiException? _erreur;
+  List<String> _photos = const <String>[];
+  bool _photosEnCours = false;
 
   @override
   void dispose() {
@@ -87,6 +90,7 @@ class _NouvelleDemandeScreenState extends ConsumerState<NouvelleDemandeScreen> {
             description: _description.text.trim().isEmpty
                 ? null
                 : _description.text.trim(),
+            photos: _photos,
           );
 
       ref.read(brouillonProvider.notifier).vider();
@@ -231,6 +235,18 @@ class _NouvelleDemandeScreenState extends ConsumerState<NouvelleDemandeScreen> {
                     ),
                   ),
 
+                  if (prestation.photosAutorisees > 0) ...<Widget>[
+                    const PcSection('Photos de la panne'),
+                    PhotosPanne(
+                      maximum: prestation.photosAutorisees,
+                      onChange: (List<String> chemins, bool enCours) =>
+                          setState(() {
+                            _photos = chemins;
+                            _photosEnCours = enCours;
+                          }),
+                    ),
+                  ],
+
                   const SizedBox(height: 18),
                   _CommentCaMarche(),
                 ],
@@ -242,7 +258,8 @@ class _NouvelleDemandeScreenState extends ConsumerState<NouvelleDemandeScreen> {
               // Publier sans avoir vu le prix est possible techniquement, mais
               // contraire à la promesse : le bouton reste inactif tant que le
               // devis n'est pas affiché.
-              onPublier: _devis == null ? null : _publier,
+              // Inactif aussi pendant l'envoi d'une photo.
+              onPublier: _devis == null || _photosEnCours ? null : _publier,
             ),
           ],
         ),

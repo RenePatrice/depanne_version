@@ -41,6 +41,13 @@ Route::prefix('v1')->group(function (): void {
 
     // --- Ouvert ------------------------------------------------------------
 
+    // Photo de panne servie par lien signé de 15 min (stockage local
+    // seulement ; sur S3, le lien vient du bucket lui-même). La signature
+    // couvre le chemin : elle ne se réutilise pas pour une autre photo.
+    Route::get('/photos-ticket', [TicketController::class, 'servirPhoto'])
+        ->middleware('signed')
+        ->name('api.photos.ticket');
+
     Route::get('/application/version', [ApplicationController::class, 'version'])
         ->middleware('throttle:version-app')
         ->name('api.application.version');
@@ -134,6 +141,12 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/devis', [TicketController::class, 'devis'])
             ->middleware('throttle:devis')
             ->name('api.devis');
+
+        // Photos de panne (lot 3) : déposées une à une avant la publication,
+        // sur le disque privé ; le ticket ne retient que les chemins rendus.
+        Route::post('/tickets/photos', [TicketController::class, 'deposerPhoto'])
+            ->middleware('throttle:photos-ticket')
+            ->name('api.tickets.photos');
 
         Route::get('/tickets', [TicketController::class, 'index'])->name('api.tickets');
         Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('api.tickets.detail');

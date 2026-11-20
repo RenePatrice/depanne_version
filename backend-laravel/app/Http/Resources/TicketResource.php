@@ -10,6 +10,7 @@ use App\Domain\Tickets\Data\ActorType;
 use App\Domain\Tickets\Data\TicketState;
 use App\Domain\Tickets\Models\Ticket;
 use App\Domain\Tickets\Services\CodeArrivee;
+use App\Domain\Tickets\Services\PhotosTicket;
 use App\Support\Money;
 use App\Support\Telephone;
 use Illuminate\Http\Request;
@@ -53,7 +54,8 @@ final class TicketResource extends JsonResource
 
             'prestation' => new ServiceResource($this->whenLoaded('service')),
             'description' => $this->problem_description,
-            'photos' => $this->photos ?? [],
+            // Liens signés de 15 min, fabriqués à chaque lecture (lot 3).
+            'photos' => app(PhotosTicket::class)->liens($this->photos),
 
             'adresse' => $this->address_snapshot,
             'distance_km' => $this->distance_km === null ? null : (float) $this->distance_km,

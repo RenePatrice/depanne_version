@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart' show FormData, MultipartFile;
+
 import '../../../core/network/api_client.dart';
 import '../../shared/data/modeles.dart';
 
@@ -106,6 +108,19 @@ class ClientRepository {
   }
 
   // --------------------------------------------------------------- tickets --
+
+  /// Déposer une photo de panne avant la publication (lot 3). Renvoie le
+  /// chemin à joindre à la demande ; le serveur la garde sur son disque privé.
+  Future<String> deposerPhoto(String cheminLocal) async {
+    final Map<String, dynamic> reponse = await _api.post(
+      '/tickets/photos',
+      corps: FormData.fromMap(<String, dynamic>{
+        'photo': await MultipartFile.fromFile(cheminLocal),
+      }),
+    );
+
+    return reponse['chemin'] as String;
+  }
 
   Future<Ticket> publier({
     required int prestationId,

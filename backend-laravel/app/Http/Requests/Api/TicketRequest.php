@@ -29,7 +29,8 @@ final class TicketRequest extends FormRequest
             'address_id' => ['required', 'integer', 'exists:addresses,id'],
             'problem_description' => ['nullable', 'string', 'max:1000'],
             'photos' => ['nullable', 'array', 'max:'.CreateTicket::MAX_PHOTOS],
-            'photos.*' => ['string', 'max:500'],
+            // Chemins rendus par POST /tickets/photos (lot 3), jamais une URL.
+            'photos.*' => ['string', 'max:120'],
         ];
     }
 

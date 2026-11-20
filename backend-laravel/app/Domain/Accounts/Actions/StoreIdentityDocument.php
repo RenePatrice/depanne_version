@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Accounts\Actions;
 
 use App\Domain\Accounts\Models\User;
+use App\Support\ImageJpeg;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -51,26 +52,7 @@ final class StoreIdentityDocument
             throw new DomainException('Pièce inconnue.');
         }
 
-        $source = @imagecreatefromstring((string) file_get_contents($fichier->getRealPath()));
-
-        if ($source === false) {
-            throw new DomainException('Cette photo n\'a pas pu être lue. Reprenez-la en JPEG ou PNG.');
-        }
-
-        $largeur = imagesx($source);
-        $hauteur = imagesy($source);
-        $echelle = min(1.0, self::COTE_MAX / max($largeur, $hauteur));
-        $l = max(1, (int) round($largeur * $echelle));
-        $h = max(1, (int) round($hauteur * $echelle));
-
-        $cible = imagecreatetruecolor($l, $h);
-        imagecopyresampled($cible, $source, 0, 0, 0, 0, $l, $h, $largeur, $hauteur);
-
-        ob_start();
-        imagejpeg($cible, null, 85);
-        $jpeg = (string) ob_get_clean();
-        imagedestroy($source);
-        imagedestroy($cible);
+        $jpeg = ImageJpeg::depuis($fichier, self::COTE_MAX);
 
         $chemin = self::dossierDe((int) $utilisateur->getKey()).$type.'-'.Str::uuid()->toString().'.jpg';
         Storage::disk((string) config('filesystems.default'))->put($chemin, $jpeg);

@@ -385,6 +385,7 @@ it('n’expose aucune route permettant de modifier le prix d’un ticket', funct
     $this->assertSame([
         'DELETE api/v1/tickets/{ticket}',                     // annuler
         'POST api/v1/tickets',                                // publier
+        'POST api/v1/tickets/photos',                         // déposer une photo de panne — fichier, sans montant (lot 3)
         'POST api/v1/tickets/{ticket}/appel',                 // mise en relation
         'POST api/v1/tickets/{ticket}/avancer',               // jalon d'intervention
         'POST api/v1/tickets/{ticket}/avis',                  // noter

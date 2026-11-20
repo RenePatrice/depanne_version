@@ -715,6 +715,26 @@ porte, et pour le client que celui qui sonne est bien celui envoyé.
 - Mobile : carte « Code d'arrivée » au suivi client ; côté technicien, le geste
   « je suis arrivé » ouvre un pavé de saisie (`CodeArriveeFeuille`).
 
+### Photos de panne (lot 3, 20 novembre 2026)
+Le client joint jusqu'à trois photos à un dépannage (aucune à une
+installation). Chacune est **déposée avant la publication**
+(`POST /tickets/photos`, limite `photos-ticket` 30/h), **ré-encodée** en JPEG
+1600 px par `App\Support\ImageJpeg` (EXIF et position GPS effacées, SVG
+refusé — même outil que les pièces d'identité), rangée sur le disque **privé**
+sous `ticket-photos/{client}/{uuid}.jpg`. L'application compresse déjà sur
+l'appareil (1600 px) pour économiser le forfait.
+
+- Le ticket ne garde que des **chemins**. `PhotosTicket::retenir()` écarte tout
+  ce qui n'a pas été déposé par ce client : chemin d'un autre, URL externe,
+  `..`. La validation n'accepte plus d'URL.
+- Lecture par **lien signé de 20 minutes** (`temporaryUrl` du bucket en
+  production ; route signée `api.photos.ticket` en local, signature couvrant le
+  chemin). Le même lien est resservi pendant 10 minutes (cache) : l'écran qui
+  relit le ticket ne retélécharge pas les photos.
+- Exposées par `TicketResource` (parties au ticket) et `SollicitationResource`
+  (technicien sollicité), jamais ailleurs. Une ancienne adresse complète est
+  rendue telle quelle.
+
 ### Anti-contournement « hors plateforme » (#3)
 Le §11 appelle le contournement « risque business n°1 ». Trois leviers, dans la
 continuité de l'ADR-0030 (*filtrer et signaler, ne pas bloquer*) :
@@ -1285,7 +1305,7 @@ Routes ajoutées pour la refonte :
 ### Tests (Pest)
 - `tests/Unit` ne démarre pas l'application : logique pure uniquement.
 - `tests/Feature` tourne sur la vraie base `depanne_moi_test` avec PostGIS.
-- **516 tests passent** (près de 1 970 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
+- **523 tests passent** (plus de 2 000 assertions) ; `composer analyse` (PHPStan niveau 6) ne remonte rien.
 - Ne jamais lancer deux suites en même temps, ni `pest --parallel` : elles
   partagent `depanne_moi_test`, et les bases parallèles n'ont pas PostGIS.
 - `phpstan.neon` active `parseModelCastsMethod: true` — sans elle, Larastan lit
